@@ -10,6 +10,7 @@
 
 import { getCachedConnectedTools, mergeConnectedTools, MAX_AUTO_ASSIGNED_TOOLS } from './connectedSourcesService';
 import { composeDocPromptInput, isDocsRoute } from '@/lib/docsPromptContext';
+import { getDocGroup } from '@/components/docs/docGroups';
 
 export interface AgentContextApp {
   name: string;
@@ -217,6 +218,19 @@ export const getActivePageEntityName = (): string | undefined => {
 
 /** Helper to extract a user-friendly page name from documentation path or active doc title */
 export const getDocPageDisplayName = (pathname: string, entityOverride?: string): string => {
+  // If we are within documentation (/docs/*), map to its category so "Ask about X" asks about the whole category
+  if (pathname.startsWith('/docs')) {
+    const slug = pathname.replace(/^\/docs\/?/, '').split('/')[0]?.split('#')[0]?.split('?')[0];
+    if (slug) {
+      const group = getDocGroup(slug);
+      if (group) {
+        return group.label;
+      }
+    } else {
+      return 'Docs';
+    }
+  }
+
   let candidate = (entityOverride || '').trim();
   if (!candidate || candidate.toLowerCase() === 'documentation' || candidate.toLowerCase() === 'index') {
     const parts = pathname.split('/').filter(Boolean);
@@ -870,7 +884,7 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     buttonLabel: (params, pathname, entity) => formatDocAskAbout(getDocPageDisplayName(pathname, entity)),
     headerTitle: (params, pathname, entity) => formatDocAskAbout(getDocPageDisplayName(pathname, entity)),
     title: (params, pathname, entity) => formatDocHelpTitle(getDocPageDisplayName(pathname, entity)),
-    subtitle: 'Documentation & Knowledge Assistant',
+    subtitle: (params, pathname, entity) => `Shuffle ${getDocPageDisplayName(pathname, entity)} Documentation`,
     defaultPrompt: (params, pathname, entity) => formatDocDefaultPrompt(getDocPageDisplayName(pathname, entity)),
     placeholder: 'Ask questions about Shuffle features, guides, or API...',
     getStorageKey: (params, pathname) => `docs_${pathname.replace(/[^a-zA-Z0-9_-]/g, '_')}`,

@@ -15,10 +15,17 @@ const AUTO_REDIRECT_MS = 4000;
 export default function WorkflowsNotSupportedPage() {
   const { id } = useParams<{ id?: string }>();
   const coreBase = useMemo(() => getShuffleCoreBaseUrl(), []);
-  const targetUrl = useMemo(
-    () => getShuffleCoreWorkflowUrl(id),
-    [id],
-  );
+  const targetUrl = useMemo(() => {
+    const search = typeof window !== 'undefined' ? window.location.search : '';
+    const cleanSearch = search.startsWith('?') ? search.slice(1) : search;
+    const queryParams: Record<string, string> = {};
+    if (cleanSearch) {
+      new URLSearchParams(cleanSearch).forEach((v, k) => {
+        queryParams[k] = v;
+      });
+    }
+    return getShuffleCoreWorkflowUrl(id, queryParams);
+  }, [id]);
 
   const [secondsLeft, setSecondsLeft] = useState(Math.ceil(AUTO_REDIRECT_MS / 1000));
 

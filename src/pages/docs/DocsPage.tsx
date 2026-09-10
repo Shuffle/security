@@ -76,9 +76,9 @@ const DocsPage = ({
   // Keep global entity title and doc context in sync with current doc and its group for Ask AI contextual handles
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    (window as any).__shuffleActiveEntityTitle = docTitle;
-
     const group = getDocGroup(slug);
+    (window as any).__shuffleActiveEntityTitle = group ? group.label : docTitle;
+
     setActiveDocPromptContext({
       title: docTitle,
       content: doc.content,

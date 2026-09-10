@@ -77,11 +77,11 @@ export const isManagedDomain = (): boolean => {
  * Resolves the base frontend URL for Shuffle Core (Automation).
  *
  * Precedence:
- * 1. Environment variable overwrite: `VITE_SHUFFLE_CORE_URL` (or `VITE_SHUFFLE_AUTOMATION_URL` / `VITE_SHUFFLE_URL`)
+ * 1. Environment variable overwrite: `VITE_SHUFFLE_CORE_URL` (or `SHUFFLE_CORE_URL` / `VITE_SHUFFLE_AUTOMATION_URL` / `VITE_SHUFFLE_URL`)
  * 2. User / Admin localStorage override: `shuffle_core_url`
- * 3. Saved custom host: `shuffle_custom_host_url` (adjusts backend :5001 to frontend :3001)
- * 4. Baseline Left Sidebar Resolution:
- *    - Managed Cloud: `https://shuffler.io`
+ * 3. Managed Cloud check: `https://shuffler.io` when running on a managed domain (shuffle.security, shuffler.io, etc.)
+ * 4. Saved custom host: `shuffle_custom_host_url` (translates backend :5001 to frontend :3001)
+ * 5. Baseline Left Sidebar Resolution:
  *    - On-Premises: `${window.location.protocol}//${window.location.hostname}:3001`
  *      (or current origin if already on port 3001)
  */
@@ -97,15 +97,28 @@ export const getShuffleCoreBaseUrl = (): string => {
     return envUrl.replace(/\/+$/, '');
   }
 
-  // 2. Local storage override (user-configured)
+  // 2. Local storage override (user-configured frontend Core URL)
   if (typeof window !== 'undefined') {
     try {
       const savedCore = localStorage.getItem('shuffle_core_url');
       if (savedCore && savedCore.trim().length > 0) {
         return savedCore.trim().replace(/\/+$/, '');
       }
+    } catch { /* ignore */ }
+  }
 
-      // Check if custom server host was configured for on-prem
+  // 3. Managed Cloud check
+  // On managed domains (shuffle.security, shuffler.io, shutdown.no, lovable),
+  // Shuffle Core is always https://shuffler.io.
+  // Backend API tunnels (e.g. tunnel.schemaless.org) or custom backend hosts must never
+  // poison the frontend Shuffle Core URL for cloud users.
+  if (typeof window !== 'undefined' && isManagedDomain()) {
+    return 'https://shuffler.io';
+  }
+
+  // 4. Saved custom host: adjust on-prem backend port :5001 to frontend port :3001
+  if (typeof window !== 'undefined') {
+    try {
       const customHost = localStorage.getItem('shuffle_custom_host_url');
       if (customHost && customHost.trim().length > 0) {
         const cleaned = customHost.trim().replace(/\/+$/, '');
@@ -113,21 +126,18 @@ export const getShuffleCoreBaseUrl = (): string => {
         if (cleaned.includes(':5001')) {
           return cleaned.replace(':5001', ':3001');
         }
-        return cleaned;
+        // Note: Do NOT return cleaned directly if it lacks :5001!
+        // `shuffle_custom_host_url` is specifically the backend API server URL (e.g.
+        // https://tunnel.schemaless.org or https://api.mycorp.internal), which does
+        // not serve the Shuffle Core frontend web app or /workflows/... routes.
       }
     } catch { /* ignore */ }
   }
 
-  // 3. Baseline Left Sidebar Resolution
+  // 5. Baseline Left Sidebar Resolution (On-Premises / self-hosted Docker / local dev)
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
-    const isManaged = isManagedDomain();
 
-    if (isManaged) {
-      return 'https://shuffler.io';
-    }
-
-    // On-Premises / self-hosted Docker
     // If the browser is already accessing port 3001, use origin directly
     if (window.location.port === '3001') {
       return window.location.origin;

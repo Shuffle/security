@@ -25,6 +25,7 @@ import {
   isTocHeading,
   type TocHeading,
 } from '@/components/docs/tocUtils';
+import { getDocGroup, getDocDisplayLabel } from '@/components/docs/docGroups';
 
 interface PrintDocsDialogProps {
   /** Slug of the currently viewed doc. */
@@ -35,6 +36,8 @@ interface PrintDocsDialogProps {
   currentMarkdown: string;
   /** Disabled while the page is still loading. */
   disabled?: boolean;
+  /** API folder to fetch from (defaults to docs). */
+  folder?: string;
 }
 
 const PRINT_CSS = `
@@ -596,9 +599,11 @@ export const PrintDocsDialog = ({
   title,
   currentMarkdown,
   disabled,
+  folder,
 }: PrintDocsDialogProps) => {
   const [open, setOpen] = useState(false);
-  const [scope, setScope] = useState<'current' | 'all'>('current');
+  const group = getDocGroup(slug);
+  const [scope, setScope] = useState<'current' | 'category' | 'all'>('current');
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -608,7 +613,7 @@ export const PrintDocsDialog = ({
     setError(null);
     try {
       if (scope === 'current') {
-        const resolvedName = (await resolveDocName(slug)) ?? slug;
+        const resolvedName = (await resolveDocName(slug, false, folder)) ?? slug;
         const doc = await prepareDoc(currentMarkdown, resolvedName, title);
         const ok = openPrintWindow(
           `${doc.title} - Shuffle Documentation`,
@@ -619,13 +624,40 @@ export const PrintDocsDialog = ({
         return;
       }
 
-      const list = await fetchDocsList();
+      if (scope === 'category' && group) {
+        setProgress({ done: 0, total: group.slugs.length });
+        const sections: string[] = [];
+        for (let i = 0; i < group.slugs.length; i += 1) {
+          const docSlugValue = group.slugs[i];
+          let markdown = '';
+          let docTitle = getDocDisplayLabel(docSlugValue);
+          if (docSlugValue === slug && currentMarkdown) {
+            markdown = currentMarkdown;
+            docTitle = title || docTitle;
+          } else {
+            const resolvedName = (await resolveDocName(docSlugValue, false, folder)) ?? docSlugValue;
+            markdown = (await fetchDocMarkdown(resolvedName, false, folder)) || '';
+          }
+          if (markdown) {
+            const doc = await prepareDoc(markdown, docSlugValue, docTitle);
+            sections.push(doc.html);
+          }
+          setProgress({ done: i + 1, total: group.slugs.length });
+        }
+        if (sections.length === 0) throw new Error('no-docs');
+        const ok = openPrintWindow(`Shuffle Documentation - ${group.label}`, sections.join(''));
+        if (!ok) throw new Error('popup-blocked');
+        setOpen(false);
+        return;
+      }
+
+      const list = await fetchDocsList(false, folder);
       if (list.length === 0) throw new Error('no-docs');
       setProgress({ done: 0, total: list.length });
       const sections: string[] = [];
       for (let i = 0; i < list.length; i += 1) {
         const entry = list[i];
-        const markdown = await fetchDocMarkdown(entry.name);
+        const markdown = await fetchDocMarkdown(entry.name, false, folder);
         if (markdown) {
           const doc = await prepareDoc(markdown, entry.name);
           sections.push(doc.html);
@@ -670,13 +702,24 @@ export const PrintDocsDialog = ({
       <Dialog open={open} onClose={() => (busy ? null : setOpen(false))} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontSize: '1rem', fontWeight: 600 }}>Print / Export documentation</DialogTitle>
         <DialogContent>
-          <RadioGroup value={scope} onChange={(e) => setScope(e.target.value as 'current' | 'all')}>
+          <RadioGroup
+            value={scope}
+            onChange={(e) => setScope(e.target.value as 'current' | 'category' | 'all')}
+          >
             <FormControlLabel
               value="current"
               control={<Radio size="small" />}
               disabled={busy}
               label={<Typography variant="body2">This page only</Typography>}
             />
+            {group ? (
+              <FormControlLabel
+                value="category"
+                control={<Radio size="small" />}
+                disabled={busy}
+                label={<Typography variant="body2">All pages in {group.label}</Typography>}
+              />
+            ) : null}
             <FormControlLabel
               value="all"
               control={<Radio size="small" />}

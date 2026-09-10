@@ -185,6 +185,7 @@ export const MarkdownRenderer = ({
         title={title}
         currentMarkdown={content}
         disabled={loading || resetting}
+        folder={folder}
       />
     </Stack>
   );

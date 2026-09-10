@@ -228,13 +228,15 @@ const openInShuffle = async () => {
     if (url) await navigateToShuffleCore(url, { newTab: true });
   };
 
-const copyExecutionLink = () => {
-    if (!exec?.workflow?.id || !exec?.execution_id) return;
+  const copyExecutionLink = () => {
+    if (!exec?.execution_id) return;
     const auth = authorization || exec.execution_id;
-    const url = getShuffleCoreWorkflowUrl(exec.workflow.id, {
-      execution_id: exec.execution_id,
-      authorization: auth,
-    });
+    const url = exec.workflow?.id
+      ? getShuffleCoreWorkflowUrl(exec.workflow.id, {
+          execution_id: exec.execution_id,
+          authorization: auth,
+        })
+      : getShuffleCoreUrl(`/admin?admin_tab=workflow_runs&execution_id=${encodeURIComponent(exec.execution_id)}`);
     navigator.clipboard.writeText(url).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -387,7 +389,7 @@ const copyExecutionLink = () => {
               <IconButton
                 size="small"
                 onClick={copyExecutionLink}
-                disabled={!exec.workflow?.id || !exec.execution_id}
+                disabled={!exec.execution_id}
               >
                 <ContentCopyIcon fontSize="small" />
               </IconButton>

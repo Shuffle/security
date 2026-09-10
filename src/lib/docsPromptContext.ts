@@ -221,35 +221,65 @@ export const composeDocPromptInput = (
   ).trim();
   const title = normalizeDocPromptTitle(rawTitle);
 
-  const rawMarkdown = activeDoc?.content || '';
-  const sanitizedMarkdown = sanitizeDocMarkdown(rawMarkdown, 25000);
-
   const groupLabel = activeDoc?.groupLabel;
-  const siblings = (activeDoc?.groupDocs || []).filter(
-    (g) => g.slug !== activeDoc?.slug && g.content && g.content.trim().length > 0,
-  );
+  const groupId = activeDoc?.groupId;
+  const currentSlug = (activeDoc?.slug || '').toLowerCase().replace(/_+/g, '-');
+
+  // 1. Gather all documents from this category
+  let categoryDocs = activeDoc?.groupDocs || [];
+  if (categoryDocs.length === 0 && groupId) {
+    categoryDocs = getCachedGroupDocs(groupId);
+  }
+  if (categoryDocs.length === 0 && currentSlug) {
+    const groupDef = getDocGroup(currentSlug);
+    if (groupDef) {
+      categoryDocs = getCachedGroupDocs(groupDef.id);
+    }
+  }
+
+  const groupDef = currentSlug ? getDocGroup(currentSlug) : null;
+  const categoryName = groupLabel || groupDef?.label || title;
+
+  // 2. Build list of all documents in the category
+  const rawMarkdown = activeDoc?.content || '';
+  const renderedDocs: Array<{ title: string; slug?: string; content: string; isCurrent: boolean }> = [];
+
+  if (categoryDocs.length > 0) {
+    for (const doc of categoryDocs) {
+      const docSlugClean = (doc.slug || '').toLowerCase().replace(/_+/g, '-');
+      const isCurrent = docSlugClean === currentSlug;
+      const contentToUse = isCurrent && rawMarkdown ? rawMarkdown : doc.content;
+      renderedDocs.push({
+        title: doc.title || title,
+        slug: doc.slug,
+        content: sanitizeDocMarkdown(contentToUse, 16000),
+        isCurrent,
+      });
+    }
+  } else if (rawMarkdown) {
+    renderedDocs.push({
+      title,
+      slug: activeDoc?.slug,
+      content: sanitizeDocMarkdown(rawMarkdown, 30000),
+      isCurrent: true,
+    });
+  }
 
   let docSection = '';
-  if (sanitizedMarkdown) {
-    if (siblings.length > 0 && groupLabel) {
-      const siblingSections = siblings
-        .map((s) => `## Related Document in ${groupLabel}: ${s.title}\n\n${sanitizeDocMarkdown(s.content, 10000)}`)
-        .join('\n\n---\n\n');
-      docSection = `# Documentation Group: ${groupLabel}\n\n## Primary Document: ${title}\n\n${sanitizedMarkdown}\n\n---\n\n${siblingSections}`;
-    } else {
-      docSection = sanitizedMarkdown;
-    }
-  } else if (siblings.length > 0 && groupLabel) {
-    docSection = `# Documentation Group: ${groupLabel}\n\n${siblings
-      .map((s) => `## Document: ${s.title}\n\n${sanitizeDocMarkdown(s.content, 12000)}`)
-      .join('\n\n---\n\n')}`;
+  if (renderedDocs.length > 0) {
+    const docBlocks = renderedDocs
+      .filter((d) => d.content && d.content.trim().length > 0)
+      .map((d) => {
+        const marker = d.isCurrent ? ' (Currently Viewed)' : '';
+        return `## Document: ${d.title}${marker}\n\n${d.content}`;
+      })
+      .join('\n\n---\n\n');
+
+    docSection = `# Documentation Category: ${categoryName}\n\n${docBlocks}`;
   }
 
   if (docSection) {
-    const groupSuffix = groupLabel && !title.toLowerCase().includes(groupLabel.toLowerCase())
-      ? ` (${groupLabel})`
-      : '';
-    return `Answer the users question about ${title}${groupSuffix} based on the following documentation content:
+    return `Answer the users question about Shuffle ${categoryName} based on the following complete documentation for the ${categoryName} category:
 ${DOC_PROMPT_DELIMITER_START}
 ${docSection}
 ${DOC_PROMPT_DELIMITER_END}
@@ -259,7 +289,7 @@ ${trimmedQuestion}`;
   }
 
   // Fallback when markdown is empty or still loading
-  return `Answer the users question about ${title}:
+  return `Answer the users question about Shuffle ${categoryName}:
 
 ${trimmedQuestion}`;
 };
