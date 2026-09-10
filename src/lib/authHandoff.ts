@@ -8,6 +8,7 @@
 import { toast } from '@/lib/toast';
 import { getApiUrl, getAuthHeader, getSessionToken } from '@/Shuffle-MCPs/api';
 import { getShuffleCoreBaseUrl } from '@/lib/shuffleUrls';
+import { checkDomainHealth, extractHostname } from '@/lib/domainHealth';
 
 export interface HandoffOptions {
   /** Open in a new browser tab/window instead of navigating the current tab. */
@@ -51,7 +52,8 @@ export const resolveShuffleCoreTargetUrl = (destinationUrlOrPath: string): strin
  * Requests an auth handoff ticket from the current backend and navigates to Shuffle Core
  * via the ticket exchange endpoint.
  *
- * If handoff fails or auth is missing, an error toast is displayed and navigation is blocked.
+ * If handoff fails, auth is missing, or the destination domain does not exist/is being set up,
+ * a clear error toast is displayed and navigation is prevented.
  *
  * @param destinationUrlOrPath The target path (e.g. `/new-dashboard`) or full URL on Shuffle Core.
  * @param options Navigation options (e.g. `{ newTab: true }`).
@@ -68,6 +70,19 @@ export async function navigateToShuffleCore(
   let popupWindow: Window | null = null;
   if (isNewTab && typeof window !== 'undefined') {
     popupWindow = window.open('about:blank', '_blank');
+  }
+
+  // Pre-flight domain existence check for cloud domains (e.g. frankfurt.shuffler.io)
+  const targetHost = extractHostname(targetUrl);
+  if (targetHost && (targetHost.endsWith('.shuffler.io') || targetHost.endsWith('.shuffle.security'))) {
+    const health = await checkDomainHealth(targetUrl);
+    if (!health.exists) {
+      if (popupWindow) popupWindow.close();
+      toast.error(
+        health.error || `The domain '${health.domain}' does not exist or is currently being set up.`
+      );
+      return false;
+    }
   }
 
   try {
@@ -112,9 +127,16 @@ export async function navigateToShuffleCore(
       return false;
     }
 
-    // Construct exchange URL on the target Core base
-    const coreBase = getShuffleCoreBaseUrl();
-    const exchangeUrl = `${coreBase}/api/v1/auth/exchange?ticket=${encodeURIComponent(data.ticket)}&redirect=${encodeURIComponent(targetUrl)}`;
+    // Determine target Core base for exchange (use specific subdomain if requested e.g. frankfurt.shuffler.io)
+    let targetCoreBase = getShuffleCoreBaseUrl();
+    try {
+      const u = new URL(targetUrl);
+      if (u.hostname === 'shuffler.io' || u.hostname.endsWith('.shuffler.io')) {
+        targetCoreBase = `https://${u.hostname}`;
+      }
+    } catch { /* ignore */ }
+
+    const exchangeUrl = `${targetCoreBase}/api/v1/auth/exchange?ticket=${encodeURIComponent(data.ticket)}&redirect=${encodeURIComponent(targetUrl)}`;
 
     if (popupWindow) {
       popupWindow.location.href = exchangeUrl;
@@ -125,7 +147,13 @@ export async function navigateToShuffleCore(
     return true;
   } catch (err: any) {
     if (popupWindow) popupWindow.close();
-    toast.error(`Failed to navigate to Shuffle Core: ${err?.message || 'Network error'}`);
+    const isNetwork = err instanceof TypeError || String(err?.message || '').toLowerCase().includes('failed to fetch');
+    if (isNetwork) {
+      const host = extractHostname(targetUrl);
+      toast.error(`Domain '${host}' does not exist or is unreachable. It may still be setting up.`);
+    } else {
+      toast.error(`Failed to navigate to Shuffle Core: ${err?.message || 'Network error'}`);
+    }
     return false;
   }
 }

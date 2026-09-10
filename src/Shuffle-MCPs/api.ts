@@ -11,6 +11,11 @@
  */
 
 import { installFetchBreaker, registerProtectedOrigin } from '@/Shuffle-MCPs/fetchBreaker';
+import {
+  isDomainCachedUnavailable,
+  checkDomainHealth,
+  broadcastRegionHealth,
+} from '@/lib/domainHealth';
 
 // Install the global fetch breaker as soon as api.ts is imported. Idempotent —
 // safe to call multiple times.
@@ -362,6 +367,28 @@ export const setRegionUrl = (regionUrl: string | undefined | null, orgId: string
         _regionUrl = normalized;
         persistRegion(_regionUrl, _trackedOrgId);
         console.log(`[API] Region URL set to: ${_regionUrl}`);
+
+        if (typeof window !== 'undefined') {
+          checkDomainHealth(_regionUrl).then((health) => {
+            if (!health.exists) {
+              console.warn(`[API] Configured region domain '${health.domain}' does not exist or is currently being set up. Requests will use default cloud backend.`);
+              broadcastRegionHealth({
+                domain: health.domain,
+                regionUrl: normalized,
+                exists: false,
+                error: health.error,
+                fallbackUrl: PROD_BACKEND,
+              });
+            } else {
+              broadcastRegionHealth({
+                domain: health.domain,
+                regionUrl: normalized,
+                exists: true,
+                fallbackUrl: PROD_BACKEND,
+              });
+            }
+          }).catch(() => {});
+        }
         return;
       }
     } else {
@@ -491,12 +518,34 @@ export const setSessionToken = (token: string | null) => {
   }
 };
 
+export const isOnShuffleSecurity = (): boolean => {
+  if (typeof window === 'undefined') return true;
+  const host = window.location.hostname.toLowerCase();
+  return (
+    host === 'shuffle.security' ||
+    host.endsWith('.shuffle.security') ||
+    host === 'localhost' ||
+    host === '127.0.0.1' ||
+    host.includes('lovable')
+  );
+};
+
+export const ensureShuffleSecurityApiUrl = (url: string): string => {
+  if (!url || typeof url !== 'string') return url;
+  if (!isOnShuffleSecurity()) return url;
+  return mapCloudRegionUrl(url) || url;
+};
+
 export const API_CONFIG = {
   // Shuffle backend URL — host override beats region URL beats default.
   get baseUrl(): string {
     // In test/dev environments (Lovable preview, VITE_SHUFFLE_API_URL) the
     // test backend always wins — region_url must not redirect us to prod.
-    const url = _hostBaseUrl || (isDevEnvironment() || getEnvVar('VITE_SHUFFLE_API_URL') ? getDefaultBaseUrl() : (_regionUrl || getDefaultBaseUrl()));
+    let effectiveRegion = _regionUrl;
+    if (effectiveRegion && isDomainCachedUnavailable(effectiveRegion)) {
+      effectiveRegion = null;
+    }
+    const url = _hostBaseUrl || (isDevEnvironment() || getEnvVar('VITE_SHUFFLE_API_URL') ? getDefaultBaseUrl() : (effectiveRegion || getDefaultBaseUrl()));
     // Register origin once so the breaker watches it. registerProtectedOrigin
     // is idempotent.
     try { registerProtectedOrigin(url); } catch { /* noop */ }

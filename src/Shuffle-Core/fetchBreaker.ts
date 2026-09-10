@@ -1,22 +1,57 @@
+import { markDomainUnavailable } from '@/lib/domainHealth';
+
 /**
- * Global fetch circuit breaker.
- *
- * Installs a one-time wrapper around `window.fetch` that protects the Shuffle
- * backend from infinite-loop spam. If the same endpoint (method + URL pathname,
- * scoped to a Shuffle backend origin) fails repeatedly inside a short window,
- * subsequent calls fail-fast with a synthetic 503 for a cooldown period.
- *
- * The breaker is "half-open": shortly after tripping it lets a single probe
- * request through. If that probe succeeds the endpoint is restored immediately
- * instead of staying blocked for the full cooldown.
- *
- * This is a safety net — components and hooks should still throttle / cache
- * their own requests. The breaker only kicks in when something has gone wrong
- * (a useEffect missing deps, a render loop, an unreachable backend).
- *
- * Both Shuffle-Core and Shuffle-MCPs install this — it is idempotent so the
- * first call wins and the second is a no-op.
+ * Rewrites any backend API request pointing to *.shuffler.io to *.shuffle.security
+ * while running on Shuffle Security.
  */
+const rewriteShufflerApiToShuffleSecurity = (input: RequestInfo | URL): RequestInfo | URL => {
+  if (typeof window === 'undefined') return input;
+  const currentHost = window.location.hostname.toLowerCase();
+  const isOnShuffleSecurity =
+    currentHost === 'shuffle.security' ||
+    currentHost.endsWith('.shuffle.security') ||
+    currentHost === 'localhost' ||
+    currentHost === '127.0.0.1' ||
+    currentHost.includes('lovable');
+
+  if (!isOnShuffleSecurity) return input;
+
+  let urlStr: string | null = null;
+  if (typeof input === 'string') urlStr = input;
+  else if (input instanceof URL) urlStr = input.toString();
+  else if (input && typeof (input as any).url === 'string') urlStr = (input as any).url;
+
+  if (!urlStr) return input;
+
+  // Only rewrite backend API requests (e.g. /api/*), never auth exchange or static assets
+  if (!urlStr.includes('/api/') || urlStr.includes('/api/v1/auth/exchange')) {
+    return input;
+  }
+
+  try {
+    const u = new URL(urlStr, window.location.href);
+    const host = u.hostname.toLowerCase();
+    if (host === 'shuffler.io' || host === 'www.shuffler.io') {
+      u.protocol = 'https:';
+      u.hostname = 'uk.shuffle.security';
+      const rewritten = u.toString();
+      if (typeof input === 'string') return rewritten;
+      if (input instanceof URL) return new URL(rewritten);
+      if (typeof Request !== 'undefined' && input instanceof Request) return new Request(rewritten, input);
+    } else if (host.endsWith('.shuffler.io')) {
+      const subdomain = host.slice(0, -'.shuffler.io'.length);
+      u.protocol = 'https:';
+      u.hostname = `${subdomain}.shuffle.security`;
+      const rewritten = u.toString();
+      if (typeof input === 'string') return rewritten;
+      if (input instanceof URL) return new URL(rewritten);
+      if (typeof Request !== 'undefined' && input instanceof Request) return new Request(rewritten, input);
+    }
+  } catch { /* ignore */ }
+
+  return input;
+};
+
 
 const FAIL_THRESHOLD = 12;     // failures inside the rolling window
 const ROLLING_WINDOW_MS = 5_000;
@@ -206,9 +241,10 @@ export const installFetchBreaker = () => {
   const original = window.fetch.bind(window);
 
   window.fetch = (async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-    const authenticatedInit = withStoredAuth(input, init);
-    const key = keyFor(input, authenticatedInit);
-    if (!key) return original(input, authenticatedInit);
+    const finalInput = rewriteShufflerApiToShuffleSecurity(input);
+    const authenticatedInit = withStoredAuth(finalInput, init);
+    const key = keyFor(finalInput, authenticatedInit);
+    if (!key) return original(finalInput, authenticatedInit);
 
     const entry = getEntry(key);
     const now = Date.now();
@@ -254,12 +290,23 @@ export const installFetchBreaker = () => {
 
     let response: Response;
     try {
-      response = await original(input, authenticatedInit);
-    } catch (err) {
+      response = await original(finalInput, authenticatedInit);
+    } catch (err: any) {
       const ts = Date.now();
       entry.failures.push(ts);
       prune(entry.failures, ts, ROLLING_WINDOW_MS);
       onProbeFailure(ts);
+
+      if (err instanceof TypeError || String(err?.message || '').toLowerCase().includes('failed to fetch')) {
+        try {
+          const rawUrl = typeof finalInput === 'string' ? finalInput : (finalInput as any).url || '';
+          const u = new URL(rawUrl, window.location.href);
+          if (u.hostname.endsWith('.shuffle.security') && u.hostname !== 'uk.shuffle.security') {
+            markDomainUnavailable(u.hostname, `Domain '${u.hostname}' does not exist or is currently being set up.`);
+          }
+        } catch { /* ignore */ }
+      }
+
       if (!isProbe && entry.failures.length >= FAIL_THRESHOLD) {
         trip(entry, ts);
         if (!entry.warned) {

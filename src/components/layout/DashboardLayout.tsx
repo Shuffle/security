@@ -14,6 +14,7 @@ import { useAuth } from '@/context/AuthContext';
 import { loadAgentToolsFromDatastore } from '@/lib/agentTools';
 import { IosWebViewNavHeader } from './IosWebViewNavHeader';
 import { MobilePageTitleHider } from './MobilePageTitleHider';
+import { useDomainHealth, REGION_HEALTH_EVENT, type RegionHealthEventDetail } from '@/lib/domainHealth';
 
 const drawerWidth = 260;
 const collapsedWidth = 64;
@@ -39,6 +40,34 @@ export const DashboardLayout = ({ children, defaultCollapsed }: DashboardLayoutP
   const location = useLocation();
   const { orgMismatchWarning, dismissOrgMismatch, setActiveOrg, userInfo } = useAuth();
   const isOnboarding = location.pathname === '/onboarding' || location.pathname.startsWith('/onboarding/');
+
+  const activeRegionUrl = userInfo?.active_org?.region_url;
+  const activeRegionHealth = useDomainHealth(activeRegionUrl);
+  const [dismissedRegionNotice, setDismissedRegionNotice] = useState(false);
+  const [eventNotice, setEventNotice] = useState<RegionHealthEventDetail | null>(null);
+
+  useEffect(() => {
+    const handleRegionEvent = (e: any) => {
+      if (e?.detail && !e.detail.exists) {
+        setEventNotice(e.detail);
+      } else {
+        setEventNotice(null);
+      }
+    };
+    window.addEventListener(REGION_HEALTH_EVENT as any, handleRegionEvent);
+    return () => window.removeEventListener(REGION_HEALTH_EVENT as any, handleRegionEvent);
+  }, []);
+
+  useEffect(() => {
+    setDismissedRegionNotice(false);
+  }, [userInfo?.active_org?.id, activeRegionUrl]);
+
+  const showRegionWarning =
+    !dismissedRegionNotice &&
+    ((eventNotice && !eventNotice.exists) ||
+      (Boolean(activeRegionUrl) && !activeRegionHealth.checking && !activeRegionHealth.exists));
+
+  const unavailableDomain = eventNotice?.domain || activeRegionHealth.domain || '';
   
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     // Always collapse on onboarding page regardless of saved state
@@ -173,6 +202,28 @@ export const DashboardLayout = ({ children, defaultCollapsed }: DashboardLayoutP
                 Your active tenant has changed in another tab. Refresh to sync.
               </Alert>
             )}
+
+            {showRegionWarning && unavailableDomain && (
+              <Alert
+                severity="warning"
+                sx={{
+                  mb: 2,
+                  borderRadius: 1,
+                  fontSize: '0.85rem',
+                  backgroundColor: 'hsl(var(--warning) / 0.12)',
+                  color: 'hsl(var(--foreground))',
+                  border: '1px solid hsl(var(--warning) / 0.3)',
+                }}
+                action={
+                  <Button color="inherit" size="small" onClick={() => setDismissedRegionNotice(true)}>
+                    Dismiss
+                  </Button>
+                }
+              >
+                <strong>Region Notice:</strong> The region domain <code>{unavailableDomain}</code> does not exist or is currently being set up. Operating safely in fallback mode via the primary UK region.
+              </Alert>
+            )}
+
             {/* Local Suspense boundary: route chunks resolve here so the
                 sidebar stays mounted and clickable, and the content area
                 paints a skeleton immediately instead of appearing frozen. */}

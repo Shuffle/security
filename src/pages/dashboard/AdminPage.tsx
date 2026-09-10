@@ -19,6 +19,7 @@ import { toast } from '@/lib/toast';
 import { getApiUrl, getAuthHeader, resetRegionUrl, applyRegionFromPayload, mapCloudRegionUrl } from '@/Shuffle-MCPs/api';
 import { useAuth } from '@/context/AuthContext';
 import { getRegionFlag } from '@/lib/regionFlag';
+import { useDomainHealth } from '@/lib/domainHealth';
 import UsersPage from './UsersPage';
 import OrgPreferencesPage from './OrgPreferencesPage';
 import RuntimeLocationsTab from '@/components/settings/RuntimeLocationsTab';
@@ -33,7 +34,7 @@ const REGION_OPTIONS = [
   { value: '', label: 'Default (UK)' },
   { value: 'https://uk.shuffle.security', label: 'UK' },
   { value: 'https://us.shuffle.security', label: 'US' },
-  { value: 'https://frankfurt.shuffle.security', label: 'DE' },
+  { value: 'https://frankfurt.shuffle.security', label: 'DE (Setup in progress)' },
   { value: 'https://eu.shuffle.security', label: 'EU' },
   { value: 'https://ca.shuffle.security', label: 'CA' },
   { value: 'https://au.shuffle.security', label: 'AUS' },
@@ -88,12 +89,13 @@ const AdminPage = () => {
   const [orgRegionUrl, setOrgRegionUrl] = useState('');
   const [changingOrg, setChangingOrg] = useState(false);
 
-
   // Track original values to detect changes
   const [originalName, setOriginalName] = useState('');
   const [originalDescription, setOriginalDescription] = useState('');
   const [originalImage, setOriginalImage] = useState('');
   const [originalRegionUrl, setOriginalRegionUrl] = useState('');
+
+  const regionHealth = useDomainHealth(orgRegionUrl);
 
   // Auto-open create tenant dialog trigger
   const [createTenantTrigger, setCreateTenantTrigger] = useState(0);
@@ -510,6 +512,22 @@ const AdminPage = () => {
                   </Select>
                 </FormControl>
               </Box>
+
+              {orgRegionUrl && !regionHealth.checking && !regionHealth.exists && (
+                <Alert
+                  severity="warning"
+                  sx={{
+                    mb: 3,
+                    borderRadius: 1,
+                    fontSize: '0.85rem',
+                    backgroundColor: 'hsl(var(--warning) / 0.12)',
+                    color: 'hsl(var(--foreground))',
+                    border: '1px solid hsl(var(--warning) / 0.3)',
+                  }}
+                >
+                  <strong>Domain Notice:</strong> The domain <code>{regionHealth.hostname}</code> does not exist or is currently being set up. While pending, all requests for this tenant will safely fall back to the primary UK region.
+                </Alert>
+              )}
 
               {/* Description */}
               <TextField

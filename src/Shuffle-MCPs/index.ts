@@ -57,6 +57,7 @@ const withMcpThemeRef = <P extends object, R>(Inner: React.ForwardRefExoticCompo
 
 import { ShuffleMCP as ShuffleMCPRaw } from '@/Shuffle-MCPs/views/ShuffleMCP';
 import AppDetailDrawerRaw, { checkAppNameMatch } from '@/Shuffle-MCPs/views/AppDetailDrawer';
+import AppDetailContentRaw, { type AppDetailContentProps, type AppInfo } from '@/Shuffle-MCPs/views/AppDetailContent';
 import AppSearchDrawerRaw from '@/Shuffle-MCPs/views/AppSearchDrawer';
 import AiAgentPromptsEditorRaw from '@/Shuffle-MCPs/components/AiAgentPromptsEditor';
 import ShufflePipelinesBannerRaw from '@/Shuffle-MCPs/components/ShufflePipelinesBanner';
@@ -90,6 +91,8 @@ export const ShuffleMCP = withMcpThemeRef(ShuffleMCPRaw as React.ForwardRefExoti
 export default ShuffleMCP;
 export type { ShuffleMCPHandle } from '@/Shuffle-MCPs/views/ShuffleMCP';
 export const AppDetailDrawer = withMcpTheme(AppDetailDrawerRaw as React.ComponentType<any>, 'AppDetailDrawer');
+export const AppDetailContent = withMcpTheme(AppDetailContentRaw as React.ComponentType<any>, 'AppDetailContent');
+export type { AppDetailContentProps, AppInfo } from '@/Shuffle-MCPs/views/AppDetailContent';
 export { checkAppNameMatch } from '@/Shuffle-MCPs/views/AppDetailDrawer';
 export const AppSearchDrawer = withMcpTheme(AppSearchDrawerRaw as React.ComponentType<any>, 'AppSearchDrawer');
 export const AiAgentPromptsEditor = withMcpTheme(AiAgentPromptsEditorRaw as React.ComponentType<any>, 'AiAgentPromptsEditor');
