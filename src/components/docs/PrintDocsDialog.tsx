@@ -24,6 +24,12 @@ interface PrintDocsDialogProps {
   currentMarkdown: string;
   /** Disabled while the page is still loading. */
   disabled?: boolean;
+  /** Custom button label. Defaults to 'Print / Export PDF'. */
+  label?: string;
+  /** Whether the trigger button should stretch to 100% width. */
+  fullWidth?: boolean;
+  /** Custom sx for trigger button. */
+  sx?: any;
 }
 
 const PRINT_CSS = `
@@ -79,7 +85,14 @@ const openPrintWindow = (title: string, bodyHtml: string) => {
   return true;
 };
 
-export const PrintDocsDialog = ({ slug, currentMarkdown, disabled }: PrintDocsDialogProps) => {
+export const PrintDocsDialog = ({
+  slug,
+  currentMarkdown,
+  disabled,
+  label = 'Print / Export PDF',
+  fullWidth = false,
+  sx,
+}: PrintDocsDialogProps) => {
   const [open, setOpen] = useState(false);
   const [scope, setScope] = useState<'current' | 'all'>('current');
   const [busy, setBusy] = useState(false);
@@ -136,6 +149,7 @@ export const PrintDocsDialog = ({ slug, currentMarkdown, disabled }: PrintDocsDi
       <Button
         variant="outlined"
         size="small"
+        fullWidth={fullWidth}
         onClick={() => setOpen(true)}
         disabled={disabled}
         startIcon={<PrinterIcon size={14} />}
@@ -144,10 +158,12 @@ export const PrintDocsDialog = ({ slug, currentMarkdown, disabled }: PrintDocsDi
           height: 36,
           borderColor: 'hsl(var(--border))',
           color: 'text.primary',
+          justifyContent: fullWidth ? 'center' : undefined,
           '&:hover': { borderColor: 'primary.main', color: 'primary.main' },
+          ...(sx as object),
         }}
       >
-        Print
+        {label}
       </Button>
 
       <Dialog open={open} onClose={() => (busy ? null : setOpen(false))} maxWidth="xs" fullWidth>

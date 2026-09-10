@@ -16,7 +16,7 @@ import {
   MenuItem,
 } from '@mui/material';
 import { toast } from '@/lib/toast';
-import { getApiUrl, getAuthHeader, resetRegionUrl, applyRegionFromPayload, mapCloudRegionUrl } from '@/Shuffle-MCPs/api';
+import { getApiUrl, getAuthHeader, mapCloudRegionUrl } from '@/Shuffle-MCPs/api';
 import { useAuth } from '@/context/AuthContext';
 import { getRegionFlag } from '@/lib/regionFlag';
 import { useDomainHealth } from '@/lib/domainHealth';
@@ -116,10 +116,9 @@ const AdminPage = () => {
   }, [getTabFromPath]);
 
   // Deep link: /admin?org_id=<org id or email> switches the active tenant.
-  // The value can be an org id or an email, so we only require a non-empty
-  // string here and let the backend do the real validation. This is a custom
-  // support-user flow: we run the change, verify the active org actually
-  // changed, and only then refresh the UI.
+  // The value can be an org id or an email. We delegate directly to setActiveOrg
+  // so deep-link switches use the exact same reliable mechanism and auth cache
+  // cleanup as the sidebar switcher.
   const orgSwitchHandledRef = useRef(false);
   useEffect(() => {
     if (orgSwitchHandledRef.current) return;
@@ -136,58 +135,13 @@ const AdminPage = () => {
 
     if (requestedOrg === orgId) return;
 
-    const previousOrgId = orgId;
     setChangingOrg(true);
-    const run = async () => {
-      try {
-        const response = await fetch(getApiUrl(`/api/v1/orgs/${requestedOrg}/change`), {
-          method: 'POST',
-          credentials: 'include',
-          headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
-          body: JSON.stringify({ org_id: requestedOrg }),
-        });
-
-        if (!response.ok) {
-          toast.error(`Failed to change organization (${response.status})`);
-          setChangingOrg(false);
-          return;
-        }
-
-        // Region URL and theme may differ for the new org.
-        resetRegionUrl();
-        localStorage.removeItem('shuffle-theme');
-
-        // /change responds with the new tenant's region_url — apply it via the
-        // shared setter so the getinfo below already targets the right region.
-        const changeData = await response.json().catch(() => null);
-        applyRegionFromPayload(changeData, requestedOrg);
-
-        // Validate the switch actually took effect before refreshing the UI.
-        const infoRes = await fetch(getApiUrl('/api/v1/getinfo'), {
-          credentials: 'include',
-          headers: { ...getAuthHeader() },
-        });
-        const info = infoRes.ok ? await infoRes.json() : null;
-        applyRegionFromPayload(info);
-        const newOrgId = info?.active_org?.id;
-        if (newOrgId && previousOrgId && newOrgId === previousOrgId) {
-          toast.error('Organization did not change');
-          setChangingOrg(false);
-          return;
-        }
-
-        await refreshUserInfo();
-        toast.success(`Switched organization to ${info?.active_org?.name || requestedOrg}`);
-        window.location.reload();
-
-      } catch (err) {
-        console.error('Custom org change failed:', err);
-        toast.error('Failed to change organization');
-        setChangingOrg(false);
-      }
-    };
-    run();
-  }, [location.search, location.pathname, navigate, orgId, refreshUserInfo]);
+    setActiveOrg(requestedOrg).catch(err => {
+      console.error('Custom org change failed:', err);
+      toast.error('Failed to change organization');
+      setChangingOrg(false);
+    });
+  }, [location.search, location.pathname, navigate, orgId, setActiveOrg]);
 
 
 

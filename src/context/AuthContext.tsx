@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
-import { getApiUrl, getAuthHeader, setRegionUrl, resetRegionUrl, getTrackedOrgId, applyRegionFromPayload, setHostBaseUrl, getHostBaseUrl, setSessionToken as persistSessionToken, clearAuthTokens, getSessionToken, isDevEnvironment, isCloud, mapCloudRegionUrl } from '@/Shuffle-MCPs/api';
+import { getApiUrl, getAuthHeader, getSessionAuthHeader, setRegionUrl, resetRegionUrl, getTrackedOrgId, applyRegionFromPayload, setHostBaseUrl, getHostBaseUrl, setSessionToken as persistSessionToken, clearAuthTokens, getSessionToken, isDevEnvironment, isCloud, mapCloudRegionUrl } from '@/Shuffle-MCPs/api';
 import { setRuntimeOrgId } from '@/Shuffle-MCPs/datastore';
+import { invalidateAuthenticatedAppsCache } from '@/Shuffle-MCPs/authenticatedApps';
 import { isCapacitorNative } from '@/Shuffle-MCPs/api';
 
 const TAB_FOCUS_GETINFO_COOLDOWN_MS = 60 * 1000; // 60 seconds cooldown between tab-in getinfo audits
@@ -378,6 +379,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
       console.trace('[Auth] setActiveOrg call site');
 
+      // Clean tenant-specific local caches so stale data is never preserved across tenants
+      try {
+        localStorage.removeItem('apps');
+        localStorage.removeItem('workflows');
+        localStorage.removeItem('userinfo');
+        localStorage.removeItem('shuffle-theme');
+      } catch { /* ignore */ }
+
+      try {
+        invalidateAuthenticatedAppsCache();
+      } catch { /* ignore */ }
+
       // Optimistically resolve target org from existing org list
       const targetOrg = userInfo?.orgs?.find(o => o.id === orgId);
       if (targetOrg) {
@@ -407,14 +420,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           return next;
         });
       } else {
+        // Target org not yet in userInfo.orgs (e.g. support pivot via email/ID or deep link before list loaded)
+        setRuntimeOrgId(orgId);
         resetRegionUrl();
+        // Clear cached userInfo so on reload it won't resurrect the old tenant
+        try {
+          localStorage.removeItem('shuffle_user_info');
+        } catch { /* ignore */ }
       }
 
+      // Important: Use getSessionAuthHeader() so we DO NOT attach a stale Org-Id header.
+      // Org-Id is explicitly passed in the URL path and body.
       const response = await fetch(getApiUrl('/api/v1/orgs/' + orgId + '/change'), {
         method: 'POST',
         credentials: 'include',
         headers: {
-          ...getAuthHeader(),
+          ...getSessionAuthHeader(),
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ org_id: orgId }),
@@ -423,11 +444,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!response.ok) {
         console.warn('Org change API returned non-OK:', response.status);
       } else {
-        // /change responds with the new tenant's region_url — apply it through
-        // the same setter/broadcast path as getinfo so later calls (including
-        // the getinfo below) already hit the right region.
+        // /change responds with the new tenant's region_url and resolved org_id (e.g. support pivot UUID)
         const changeData = await response.json().catch(() => null);
-        applyRegionFromPayload(changeData, orgId);
+        const resolvedOrgId = changeData?.org_id || orgId;
+        if (resolvedOrgId) {
+          setRuntimeOrgId(resolvedOrgId);
+        }
+        applyRegionFromPayload(changeData, resolvedOrgId);
       }
 
       // Always call getinfo after org change to resolve latest details and update userInfo
