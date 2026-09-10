@@ -232,3 +232,272 @@ export const getShuffleSecurityUrl = (path?: string): string => {
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
   return `${base}${cleanPath}`;
 };
+
+export type ShuffleProduct = 'security' | 'core' | 'automation';
+
+/**
+ * Determines whether the current application environment is Shuffle Security
+ * or Shuffle Core (Automation).
+ */
+export const getCurrentShuffleProduct = (override?: string | null): 'security' | 'core' => {
+  if (override) {
+    const o = override.trim().toLowerCase();
+    if (o === 'core' || o === 'automation') return 'core';
+    if (o === 'security') return 'security';
+  }
+
+  // 1. URL search parameter override (e.g. ?product=core or ?product=security)
+  if (typeof window !== 'undefined') {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const param = urlParams.get('product') || urlParams.get('shuffle_product');
+      if (param) {
+        const p = param.trim().toLowerCase();
+        if (p === 'core' || p === 'automation') return 'core';
+        if (p === 'security') return 'security';
+      }
+    } catch { /* ignore */ }
+  }
+
+  // 2. Global runtime config / env
+  const envProduct = readEnv('VITE_SHUFFLE_PRODUCT') || readEnv('SHUFFLE_PRODUCT');
+  if (envProduct) {
+    const p = envProduct.trim().toLowerCase();
+    if (p === 'core' || p === 'automation') return 'core';
+    if (p === 'security') return 'security';
+  }
+
+  if (typeof window !== 'undefined') {
+    const win = window as any;
+    if (win.__SHUFFLE_PRODUCT__) {
+      const p = String(win.__SHUFFLE_PRODUCT__).trim().toLowerCase();
+      if (p === 'core' || p === 'automation') return 'core';
+      if (p === 'security') return 'security';
+    }
+
+    // 3. Hostname / Port detection
+    const hostname = window.location.hostname.toLowerCase();
+    const port = window.location.port;
+
+    if (port === '3001') return 'core';
+    if (port === '3002') return 'security';
+
+    // Managed cloud hosts
+    if (hostname.includes('shuffler.io')) {
+      if (hostname.startsWith('security.') || hostname.includes('.security.')) {
+        return 'security';
+      }
+      return 'core';
+    }
+
+    if (hostname.includes('shuffle.security')) {
+      return 'security';
+    }
+  }
+
+  // Default in this repository is security
+  return 'security';
+};
+
+/** Paths that exclusively exist in Shuffle Core / Automation */
+const CORE_EXCLUSIVE_PATH_PREFIXES = [
+  '/workflows',
+  '/new-dashboard',
+  '/apps/new',
+];
+
+/** Admin tabs that exclusively exist in Shuffle Core */
+const CORE_ADMIN_TABS = ['datastore', 'files', 'locations', 'runtime_locations'];
+
+/** Paths that exclusively exist in Shuffle Security */
+const SECURITY_EXCLUSIVE_PATH_PREFIXES = [
+  '/incidents',
+  '/incidents-simple',
+  '/alerts',
+  '/cases',
+  '/monitors',
+  '/vulnerabilities',
+  '/detection',
+  '/assets',
+  '/tickets',
+];
+
+/**
+ * Checks if a relative path belongs exclusively to Shuffle Core (Automation).
+ */
+export const isCoreExclusivePath = (path: string): boolean => {
+  if (!path) return false;
+  const clean = path.startsWith('/') ? path : `/${path}`;
+  const [pathname, search] = clean.split('?');
+
+  if (CORE_EXCLUSIVE_PATH_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))) {
+    return true;
+  }
+
+  if (pathname === '/admin' && search) {
+    const params = new URLSearchParams(search);
+    const tab = params.get('tab');
+    if (tab && CORE_ADMIN_TABS.includes(tab.toLowerCase())) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
+/**
+ * Checks if a relative path belongs exclusively to Shuffle Security.
+ */
+export const isSecurityExclusivePath = (path: string): boolean => {
+  if (!path) return false;
+  const clean = path.startsWith('/') ? path : `/${path}`;
+  const [pathname] = clean.split('?');
+
+  return SECURITY_EXCLUSIVE_PATH_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+};
+
+export interface ResolvedProductLink {
+  /** The final URL to navigate or link to */
+  url: string;
+  /** Whether the link is internal to the current app's router */
+  isInternal: boolean;
+  /** Which product the link targets */
+  targetProduct: 'core' | 'security' | 'external' | 'doc';
+  /** Whether this cross-domain link points to Shuffle Core (candidate for auth handoff) */
+  isCrossDomainToCore: boolean;
+}
+
+/**
+ * Resolves a markdown link based on the current product environment (Shuffle Security vs Shuffle Core / Automation).
+ *
+ * Rules:
+ * - If in Shuffle Security:
+ *   - Links to `/workflows`, `/workflows/debug`, etc. resolve to Shuffle Core base URL (external).
+ *   - Links to `/incidents`, `/alerts`, etc. resolve as internal router paths.
+ * - If in Shuffle Core / Automation:
+ *   - Links to `/workflows`, `/workflows/debug` resolve as internal router paths.
+ *   - Links to `/incidents`, `/alerts`, etc. resolve to Shuffle Security base URL (external).
+ * - Relative doc links (`/docs/*`, `*.md`) remain internal documentation links.
+ * - Shared links (`/agents`, `/apps`, `/usecases`, `/dashboard`) remain internal to the current product.
+ */
+export const resolveProductLink = (
+  href: string,
+  currentProductOverride?: string | null
+): ResolvedProductLink => {
+  const currentProduct = getCurrentShuffleProduct(currentProductOverride);
+  const trimmed = (href || '').trim();
+
+  if (!trimmed) {
+    return { url: '', isInternal: false, targetProduct: 'external', isCrossDomainToCore: false };
+  }
+
+  if (trimmed.startsWith('#')) {
+    return { url: trimmed, isInternal: true, targetProduct: 'doc', isCrossDomainToCore: false };
+  }
+
+  // Parse path and origin
+  let pathname = '';
+  let searchAndHash = '';
+  let isAbsolute = false;
+  let isShufflerIoDomain = false;
+  let isShuffleSecurityDomain = false;
+
+  try {
+    if (/^[a-z][a-z\d+.-]*:/i.test(trimmed)) {
+      isAbsolute = true;
+      const parsed = new URL(trimmed);
+      pathname = parsed.pathname;
+      searchAndHash = `${parsed.search}${parsed.hash}`;
+      const host = parsed.hostname.toLowerCase();
+      if (host === 'shuffler.io' || (host.endsWith('.shuffler.io') && !host.includes('security.'))) {
+        isShufflerIoDomain = true;
+      } else if (host.includes('shuffle.security') || host.includes('security.shuffler.io')) {
+        isShuffleSecurityDomain = true;
+      }
+    } else {
+      const splitIdx = trimmed.search(/[?#]/);
+      if (splitIdx !== -1) {
+        pathname = trimmed.slice(0, splitIdx);
+        searchAndHash = trimmed.slice(splitIdx);
+      } else {
+        pathname = trimmed;
+      }
+    }
+  } catch {
+    pathname = trimmed;
+  }
+
+  const fullRelativePath = `${pathname}${searchAndHash}`;
+
+  // 1. Is this a doc path or markdown file link?
+  const isDocPath = /^\/docs(?:\/|$)/i.test(pathname) || /(?:^|\/)\.?\.?\/?[^/#?]+\.md(?:$|[?#])/i.test(trimmed);
+  if (isDocPath) {
+    return {
+      url: fullRelativePath,
+      isInternal: true,
+      targetProduct: 'doc',
+      isCrossDomainToCore: false,
+    };
+  }
+
+  // 2. Check if the path is exclusive to Core / Automation
+  const targetsCore = isCoreExclusivePath(fullRelativePath) || isShufflerIoDomain;
+  // 3. Check if the path is exclusive to Security
+  const targetsSecurity = isSecurityExclusivePath(fullRelativePath) || isShuffleSecurityDomain;
+
+  if (targetsCore) {
+    if (currentProduct === 'core') {
+      return {
+        url: fullRelativePath,
+        isInternal: true,
+        targetProduct: 'core',
+        isCrossDomainToCore: false,
+      };
+    }
+    // We are in Security -> Route out to Shuffle Core
+    const targetUrl = getShuffleCoreUrl(fullRelativePath);
+    return {
+      url: targetUrl,
+      isInternal: false,
+      targetProduct: 'core',
+      isCrossDomainToCore: true,
+    };
+  }
+
+  if (targetsSecurity) {
+    if (currentProduct === 'security') {
+      return {
+        url: fullRelativePath,
+        isInternal: true,
+        targetProduct: 'security',
+        isCrossDomainToCore: false,
+      };
+    }
+    // We are in Core -> Route out to Shuffle Security
+    const targetUrl = getShuffleSecurityUrl(fullRelativePath);
+    return {
+      url: targetUrl,
+      isInternal: false,
+      targetProduct: 'security',
+      isCrossDomainToCore: false,
+    };
+  }
+
+  // 4. Shared platform paths or root-relative paths
+  if (trimmed.startsWith('/')) {
+    return {
+      url: trimmed,
+      isInternal: true,
+      targetProduct: currentProduct,
+      isCrossDomainToCore: false,
+    };
+  }
+
+  // 5. Genuine external URL
+  return {
+    url: trimmed,
+    isInternal: false,
+    targetProduct: 'external',
+    isCrossDomainToCore: false,
+  };
+};

@@ -805,7 +805,7 @@ const AgentRunRow = ({ run, onClick, sx, appIcons, onAppClick, apiKey, apiBaseUr
                     sx={{
                       cursor: 'pointer',
                       borderColor: `${ring} !important`,
-                      borderWidth: t.status === 'unknown' ? '1px' : '2px',
+                      borderWidth: '1px',
                       borderStyle: 'solid',
                       transition: 'transform 0.15s ease, border-color 0.15s ease',
                       '&:hover': {

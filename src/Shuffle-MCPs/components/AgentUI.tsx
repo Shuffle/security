@@ -116,6 +116,7 @@ import JsonView from 'react18-json-view';
 import 'react18-json-view/src/style.css';
 import 'react18-json-view/src/dark.css';
 import { defaultCollapsed } from '@/lib/jsonView';
+import { extractCleanDisplayPrompt } from '@/lib/docsPromptContext';
 import { ActionOutputView } from '@/Shuffle-Core/views/monitors/ActionOutputView';
 
 
@@ -857,6 +858,11 @@ export interface AgentUIProps {
    * - Provides independent scroll container for middle content without top clipping
    */
   sidebarLayout?: boolean;
+  /**
+   * Optional callback to transform/compose raw prompt input before submitting to the backend
+   * (e.g. pre-injecting dynamic documentation markdown).
+   */
+  composeSubmitInput?: (raw: string) => string;
 }
 
 /** Set of confirmed live built-in Shuffle services that are always available in the platform */
@@ -2146,6 +2152,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   isSupport,
   presetCtas,
   sidebarLayout = false,
+  composeSubmitInput: propComposeSubmitInput,
 }) => {
   const isEffectiveSupport = isSupport !== undefined ? isSupport : isSupportUser();
 
@@ -2482,9 +2489,16 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
 
   const activePromptPrefix = savedPromptPrefix;
-  // Send exactly what the user typed — no prefix, no auto-generated
-  // scheduling paragraph appended to the prompt.
-  const composeSubmitInput = useCallback((raw: string) => raw, []);
+  // Send prompt input — passes through propComposeSubmitInput if provided (e.g. for docs context injection)
+  const composeSubmitInput = useCallback(
+    (raw: string) => {
+      if (typeof propComposeSubmitInput === 'function') {
+        return propComposeSubmitInput(raw);
+      }
+      return raw;
+    },
+    [propComposeSubmitInput],
+  );
 
 
   // ── Prompt autocomplete ─────────────────────────────────────────
@@ -3608,6 +3622,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     appsOverride?: AgentUIApp[],
   ) => {
     if (!text.trim()) return;
+    const composed = composeSubmitInput(text);
     // `undefined` means "use current selection"; `null` explicitly clears it.
     const effectivePreset = presetOverride !== undefined ? presetOverride : selectedPreset;
     setError(null);
@@ -3646,7 +3661,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     executionPollGenerationRef.current += 1;
     activeExecutionIdRef.current = null;
     setExecution(null);
-    setAgentData({ original_input: text.trim() });
+    setAgentData({ original_input: composed.trim() });
     setAgentActionResult(null);
     setExecutionApps([]);
     setResolvedToolApps({});
@@ -3681,7 +3696,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     }
 
     const result = await runAgent({
-      input: text.trim(),
+      input: composed.trim(),
       skipPolling: true,
       signal: controller.signal,
       ...(apiKey ? { apiKey } : {}),
@@ -3996,7 +4011,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     // the new execution loads (see effect below).
     setRerunAgentPending(true);
     if (input) {
-      setActionInput(input);
+      setActionInput(extractCleanDisplayPrompt(input));
     }
     if (executionApps.length > 0) {
       setChosenApps(executionApps);
@@ -4722,7 +4737,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
       // user can tweak and resubmit instead of starting from a blank slate.
       const runInput = resolveRunInput();
       if (runInput && typeof runInput === 'string') {
-        setActionInput(runInput);
+        setActionInput(extractCleanDisplayPrompt(runInput));
       }
       if (executionApps.length > 0) {
         setChosenApps(executionApps);
@@ -4867,7 +4882,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // run*, not the live textarea — the textarea is cleared after submit (and
   // may hold an unrelated draft), which is why the block used to disappear and
   // then reappear with unrelated suggestions after switching tabs.
-  const finishedRunInput = useMemo(() => resolveRunInput(), [resolveRunInput]);
+  const finishedRunInput = useMemo(() => extractCleanDisplayPrompt(resolveRunInput()), [resolveRunInput]);
 
   const postRunScheduleHint = useMemo(() => {
     const parsed = parseScheduleHint(finishedRunInput);
@@ -6857,7 +6872,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
               </AvatarGroup>
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography sx={{ fontSize: '0.85rem', color: 'hsl(var(--foreground))', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {agentData?.original_input || actionInput || 'Agent run'}
+                  {extractCleanDisplayPrompt(agentData?.original_input) || actionInput || 'Agent run'}
                 </Typography>
                 <Typography sx={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))' }}>
                   Status: {execution?.status || agentData?.status || '—'} · {execution?.execution_id?.slice(0, 8) || ''}

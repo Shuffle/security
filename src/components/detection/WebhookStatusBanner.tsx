@@ -23,7 +23,7 @@ export const WebhookActiveChip = () => {
         fontWeight: 700,
         bgcolor: 'hsl(var(--severity-low) / 0.12)',
         color: 'hsl(var(--severity-low))',
-        border: '1.5px solid hsl(var(--severity-low) / 0.45)',
+        border: '1px solid hsl(var(--severity-low) / 0.45)',
         '& .MuiChip-label': { px: 0.75 },
       }}
     />

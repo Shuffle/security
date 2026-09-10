@@ -200,11 +200,11 @@ export const AutomationReadinessCard: React.FC<AutomationReadinessCardProps> = (
         borderRadius: 2,
         bgcolor: isAllActive ? 'hsl(var(--severity-low) / 0.04)' : 'transparent',
         border: isAllActive
-          ? '2px solid hsl(var(--severity-low))'
+          ? '1px solid hsl(var(--severity-low))'
           : atTop
             ? '1px solid hsl(var(--primary) / 0.5)'
             : '1px solid hsl(var(--border))',
-        boxShadow: isAllActive ? '0 0 0 1px hsl(var(--severity-low) / 0.15)' : 'none',
+        boxShadow: 'none',
         display: 'flex',
         flexDirection: 'column',
         ...sx,

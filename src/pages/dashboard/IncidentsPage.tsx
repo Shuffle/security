@@ -3392,7 +3392,7 @@ const IncidentsPage = () => {
               <RadixPopover>
                 <PopoverTrigger asChild>
                   <button
-                    className={`flex-1 text-left text-xs px-2 py-1.5 rounded-md border-2 transition-all ${dateFrom ? 'border-blue-500/60 bg-blue-500/10 text-foreground ring-1 ring-blue-500/20' : 'border-blue-500/20 text-muted-foreground hover:border-blue-500/40 hover:bg-blue-500/5'} bg-background`}
+                    className={`flex-1 text-left text-xs px-2 py-1.5 rounded-md border transition-all ${dateFrom ? 'border-blue-500/60 bg-blue-500/10 text-foreground' : 'border-blue-500/20 text-muted-foreground hover:border-blue-500/40 hover:bg-blue-500/5'} bg-background`}
                   >
                     {dateFrom ? format(dateFrom, dateFrom.getHours() || dateFrom.getMinutes() || dateFrom.getSeconds() ? 'MMM d, yyyy HH:mm:ss' : 'MMM d, yyyy') : 'From'}
                   </button>
@@ -3436,7 +3436,7 @@ const IncidentsPage = () => {
               <RadixPopover>
                 <PopoverTrigger asChild>
                   <button
-                    className={`flex-1 text-left text-xs px-2 py-1.5 rounded-md border-2 transition-all ${dateTo ? 'border-emerald-500/60 bg-emerald-500/10 text-foreground ring-1 ring-emerald-500/20' : 'border-emerald-500/20 text-muted-foreground hover:border-emerald-500/40 hover:bg-emerald-500/5'} bg-background`}
+                    className={`flex-1 text-left text-xs px-2 py-1.5 rounded-md border transition-all ${dateTo ? 'border-emerald-500/60 bg-emerald-500/10 text-foreground' : 'border-emerald-500/20 text-muted-foreground hover:border-emerald-500/40 hover:bg-emerald-500/5'} bg-background`}
                   >
                     {dateTo ? format(dateTo, dateTo.getHours() || dateTo.getMinutes() || dateTo.getSeconds() ? 'MMM d, yyyy HH:mm:ss' : 'MMM d, yyyy') : 'To'}
                   </button>

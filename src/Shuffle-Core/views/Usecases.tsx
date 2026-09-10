@@ -4311,9 +4311,9 @@ function UsecaseDetailContent({
       <Box sx={{
         p: 3,
         borderRadius: 2,
-        border: effectiveEnabled ? '2px solid hsl(var(--severity-low))' : CARD_BORDER,
+        border: effectiveEnabled ? '1px solid hsl(var(--severity-low))' : CARD_BORDER,
         bgcolor: effectiveEnabled ? 'hsl(var(--severity-low) / 0.04)' : CARD_BG,
-        boxShadow: effectiveEnabled ? '0 0 0 1px hsl(var(--severity-low) / 0.2), 0 2px 8px hsl(var(--severity-low) / 0.08)' : 'none',
+        boxShadow: effectiveEnabled ? '0 2px 8px hsl(var(--severity-low) / 0.08)' : 'none',
         mb: 3,
       }}>
         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2.5 }}>
@@ -7047,12 +7047,12 @@ function UsecaseCard({
         height: '100%',
         bgcolor: effectiveEnabled ? 'hsl(var(--severity-low) / 0.05)' : 'hsl(var(--card))',
         border: effectiveEnabled
-          ? '2px solid hsl(var(--severity-low))'
+          ? '1px solid hsl(var(--severity-low))'
           : showDrift
             ? `1px solid ${driftColor.replace(')', ' / 0.5)')}`
             : '1px solid hsl(var(--border))',
         boxShadow: effectiveEnabled
-          ? '0 0 0 1px hsl(var(--severity-low) / 0.2), 0 2px 8px hsl(var(--severity-low) / 0.12)'
+          ? '0 2px 8px hsl(var(--severity-low) / 0.12)'
           : undefined,
         transition: 'border-color 0.15s, box-shadow 0.15s, background-color 0.15s',
         '&:hover': {

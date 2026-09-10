@@ -24,6 +24,7 @@ import 'react18-json-view/src/style.css';
 import 'react18-json-view/src/dark.css';
 import { defaultCollapsed } from '@/lib/jsonView';
 import { VideoEmbed, resolveVideoUrl } from './VideoEmbed';
+import { resolveProductLink } from '@/lib/shuffleUrls';
 
 /** Parse a string into an object/array, or return null when it is not JSON. */
 const tryParseJson = (raw: string): object | null => {
@@ -141,10 +142,13 @@ const defaultComponents: MarkdownComponentOverrides = {
       const label = typeof children === 'string' ? children : undefined;
       return <VideoEmbed video={video} title={label} />;
     }
+    const resolved = typeof href === 'string' ? resolveProductLink(href) : null;
+    const targetUrl = resolved ? resolved.url : href;
+    const openExternal = resolved ? !resolved.isInternal : !isInternal;
     return (
       <a
-        href={href}
-        {...(isInternal ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
+        href={targetUrl}
+        {...(openExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
         onClick={(e) => e.stopPropagation()}
         {...props}
       >

@@ -7,7 +7,9 @@ import { DocsSidebar } from '@/components/docs/DocsSidebar';
 import { MarkdownRenderer } from '@/components/docs/MarkdownRenderer';
 import { DocsTableOfContents, MobileTableOfContents } from '@/components/docs/DocsTableOfContents';
 import { useDocContent, type RemoteDocMeta } from '@/components/docs/useDocContent';
+import { setActiveDocPromptContext, clearActiveDocPromptContext } from '@/lib/docsPromptContext';
 import { usePageMeta } from '@/hooks/usePageMeta';
+import type { ShuffleProduct } from '@/lib/shuffleUrls';
 
 const SIDEBAR_WIDTH_MD = 260;
 const SIDEBAR_WIDTH_XL = 280;
@@ -24,6 +26,8 @@ interface DocsPageProps {
   /** Hide read time, contributors and "Edit on GitHub" metadata. Print stays. */
   hideMeta?: boolean;
   initialMeta?: RemoteDocMeta | null;
+  /** Explicitly declare whether docs are viewed within Shuffle Security or Shuffle Core/Automation */
+  currentProduct?: ShuffleProduct;
 }
 
 const DocsPage = ({
@@ -33,6 +37,7 @@ const DocsPage = ({
   basePath = '/docs',
   sectionTitle = 'Documentation',
   hideMeta,
+  currentProduct,
 }: DocsPageProps) => {
   const { slug = 'index' } = useParams<{ slug: string }>();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -67,16 +72,22 @@ const DocsPage = ({
     },
   });
 
-  // Keep global entity title in sync with current doc title for Ask AI contextual handles
+  // Keep global entity title and doc context in sync with current doc for Ask AI contextual handles
   useEffect(() => {
     if (typeof window === 'undefined') return;
     (window as any).__shuffleActiveEntityTitle = docTitle;
+    setActiveDocPromptContext({
+      title: docTitle,
+      content: doc.content,
+      slug,
+      basePath,
+      pathname: `${basePath}/${slug}`,
+    });
     return () => {
-      if ((window as any).__shuffleActiveEntityTitle === docTitle) {
-        delete (window as any).__shuffleActiveEntityTitle;
-      }
+      delete (window as any).__shuffleActiveEntityTitle;
+      clearActiveDocPromptContext();
     };
-  }, [docTitle]);
+  }, [docTitle, doc.content, slug, basePath]);
 
   const hasHeadings = doc.headings.length > 0;
   const theme = useTheme();
@@ -233,6 +244,7 @@ const DocsPage = ({
                   slug={slug}
                   folder={folder}
                   basePath={basePath}
+                  currentProduct={currentProduct}
                   content={doc.content}
                   meta={doc.meta}
                   loading={doc.loading}
@@ -276,7 +288,7 @@ const DocsPage = ({
                     alignSelf: 'flex-start',
                     maxHeight: 'calc(100vh - 100px)',
                     overflowY: 'auto',
-                    pr: 1,
+                    pr: { lg: 2, xl: 2.5 },
                     // subtle scrollbar
                     '&::-webkit-scrollbar': { width: 4 },
                     '&::-webkit-scrollbar-thumb': {

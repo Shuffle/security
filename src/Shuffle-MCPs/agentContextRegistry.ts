@@ -9,6 +9,7 @@
  */
 
 import { getCachedConnectedTools, mergeConnectedTools, MAX_AUTO_ASSIGNED_TOOLS } from './connectedSourcesService';
+import { composeDocPromptInput, isDocsRoute } from '@/lib/docsPromptContext';
 
 export interface AgentContextApp {
   name: string;
@@ -53,6 +54,8 @@ export interface AgentContextRule {
   missingConfig?: boolean;
   /** Whether opening the panel should sideshift the page layout. Default: true */
   sideshift?: boolean;
+  /** Optional function to transform/compose user prompt input before submission (e.g. injecting markdown context for doc pages) */
+  composeInput?: (rawInput: string, params: Record<string, string>, pathname: string) => string;
 }
 
 export interface AgentResolvedContext {
@@ -86,6 +89,8 @@ export interface AgentResolvedContext {
   missingConfig: boolean;
   /** Whether opening the panel should sideshift the page layout */
   sideshift?: boolean;
+  /** Optional function to transform/compose user prompt input before submission */
+  composeInput?: (rawInput: string) => string;
 }
 
 export interface PageContextChoice {
@@ -210,11 +215,8 @@ export const getActivePageEntityName = (): string | undefined => {
   return undefined;
 };
 
-/** Helper to extract a user-friendly page name from documentation path or active entity */
+/** Helper to extract a user-friendly page name from documentation path */
 export const getDocPageDisplayName = (pathname: string, entityOverride?: string): string => {
-  if (entityOverride && entityOverride.trim().length > 0) {
-    return entityOverride.trim();
-  }
   const parts = pathname.split('/').filter(Boolean);
   if (parts.length <= 1) {
     return 'Documentation';
@@ -677,11 +679,11 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: (pathname) => pathname.startsWith('/docs') && /workflow|automation|subflow|trigger/i.test(pathname),
     defaultApps: [{ name: 'shuffle_workflows_builder' }, { name: 'shuffle_apps' }],
     defaultPresetId: 'build-workflows',
-    buttonLabel: (params, pathname, entity) => `Ask about ${getDocPageDisplayName(pathname, entity)}`,
-    headerTitle: (params, pathname, entity) => `Ask about ${getDocPageDisplayName(pathname, entity)}`,
-    title: (params, pathname, entity) => `How can we help with ${getDocPageDisplayName(pathname, entity)}?`,
+    buttonLabel: (params, pathname) => `Ask about ${getDocPageDisplayName(pathname)}`,
+    headerTitle: (params, pathname) => `Ask about ${getDocPageDisplayName(pathname)}`,
+    title: (params, pathname) => `How can we help with ${getDocPageDisplayName(pathname)}?`,
     subtitle: () => 'Shuffle Workflows Builder & Apps',
-    defaultPrompt: (params, pathname, entity) => `Help me understand ${getDocPageDisplayName(pathname, entity)}: `,
+    defaultPrompt: (params, pathname) => `Help me understand ${getDocPageDisplayName(pathname)}: `,
     placeholder: 'Ask questions about workflows, nodes, triggers, or building automations...',
     getStorageKey: (params, pathname) => `docs_${pathname.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
     description: 'Documentation for Shuffle Workflows & Automations with Workflows Builder tools',
@@ -694,11 +696,11 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     defaultApps: [{ name: 'shuffle_incidents' }],
     defaultPresetId: 'incident-response',
     sourceCategory: 'incidents',
-    buttonLabel: (params, pathname, entity) => `Ask about ${getDocPageDisplayName(pathname, entity)}`,
-    headerTitle: (params, pathname, entity) => `Ask about ${getDocPageDisplayName(pathname, entity)}`,
-    title: (params, pathname, entity) => `How can we help with ${getDocPageDisplayName(pathname, entity)}?`,
+    buttonLabel: (params, pathname) => `Ask about ${getDocPageDisplayName(pathname)}`,
+    headerTitle: (params, pathname) => `Ask about ${getDocPageDisplayName(pathname)}`,
+    title: (params, pathname) => `How can we help with ${getDocPageDisplayName(pathname)}?`,
     subtitle: () => 'Shuffle Incidents MCP',
-    defaultPrompt: (params, pathname, entity) => `Help me understand ${getDocPageDisplayName(pathname, entity)}: `,
+    defaultPrompt: (params, pathname) => `Help me understand ${getDocPageDisplayName(pathname)}: `,
     placeholder: 'Ask questions about incident response, alert feeds, or investigations...',
     getStorageKey: (params, pathname) => `docs_${pathname.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
     description: 'Documentation for Shuffle Incidents with Incident Response tools',
@@ -711,11 +713,11 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     defaultApps: [{ name: 'shuffle_vulnerabilities' }, { name: 'shuffle_assets' }],
     defaultPresetId: 'vulnerability',
     sourceCategory: 'vulnerabilities',
-    buttonLabel: (params, pathname, entity) => `Ask about ${getDocPageDisplayName(pathname, entity)}`,
-    headerTitle: (params, pathname, entity) => `Ask about ${getDocPageDisplayName(pathname, entity)}`,
-    title: (params, pathname, entity) => `How can we help with ${getDocPageDisplayName(pathname, entity)}?`,
+    buttonLabel: (params, pathname) => `Ask about ${getDocPageDisplayName(pathname)}`,
+    headerTitle: (params, pathname) => `Ask about ${getDocPageDisplayName(pathname)}`,
+    title: (params, pathname) => `How can we help with ${getDocPageDisplayName(pathname)}?`,
     subtitle: () => 'Shuffle Vulnerabilities & Assets',
-    defaultPrompt: (params, pathname, entity) => `Help me understand ${getDocPageDisplayName(pathname, entity)}: `,
+    defaultPrompt: (params, pathname) => `Help me understand ${getDocPageDisplayName(pathname)}: `,
     placeholder: 'Ask questions about vulnerability management, CVEs, or asset posture...',
     getStorageKey: (params, pathname) => `docs_${pathname.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
     description: 'Documentation for Vulnerabilities & Assets',
@@ -727,11 +729,11 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: (pathname) => pathname.startsWith('/docs') && /monitor|terminal|computer-use|host/i.test(pathname),
     defaultApps: [{ name: 'shuffle_host_monitors' }],
     defaultPresetId: 'host-monitor-control',
-    buttonLabel: (params, pathname, entity) => `Ask about ${getDocPageDisplayName(pathname, entity)}`,
-    headerTitle: (params, pathname, entity) => `Ask about ${getDocPageDisplayName(pathname, entity)}`,
-    title: (params, pathname, entity) => `How can we help with ${getDocPageDisplayName(pathname, entity)}?`,
+    buttonLabel: (params, pathname) => `Ask about ${getDocPageDisplayName(pathname)}`,
+    headerTitle: (params, pathname) => `Ask about ${getDocPageDisplayName(pathname)}`,
+    title: (params, pathname) => `How can we help with ${getDocPageDisplayName(pathname)}?`,
     subtitle: () => 'Shuffle Host Monitors MCP',
-    defaultPrompt: (params, pathname, entity) => `Help me understand ${getDocPageDisplayName(pathname, entity)}: `,
+    defaultPrompt: (params, pathname) => `Help me understand ${getDocPageDisplayName(pathname)}: `,
     placeholder: 'Ask questions about host monitors, agent execution, or terminal controls...',
     getStorageKey: (params, pathname) => `docs_${pathname.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
     description: 'Documentation for Host Monitors',
@@ -743,11 +745,11 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: (pathname) => pathname.startsWith('/docs') && /detection|sigma|rule|pipeline/i.test(pathname),
     defaultApps: [{ name: 'shuffle_detection' }],
     defaultPresetId: 'detection',
-    buttonLabel: (params, pathname, entity) => `Ask about ${getDocPageDisplayName(pathname, entity)}`,
-    headerTitle: (params, pathname, entity) => `Ask about ${getDocPageDisplayName(pathname, entity)}`,
-    title: (params, pathname, entity) => `How can we help with ${getDocPageDisplayName(pathname, entity)}?`,
+    buttonLabel: (params, pathname) => `Ask about ${getDocPageDisplayName(pathname)}`,
+    headerTitle: (params, pathname) => `Ask about ${getDocPageDisplayName(pathname)}`,
+    title: (params, pathname) => `How can we help with ${getDocPageDisplayName(pathname)}?`,
     subtitle: () => 'Shuffle Detection MCP',
-    defaultPrompt: (params, pathname, entity) => `Help me understand ${getDocPageDisplayName(pathname, entity)}: `,
+    defaultPrompt: (params, pathname) => `Help me understand ${getDocPageDisplayName(pathname)}: `,
     placeholder: 'Ask questions about detection engineering, Sigma rules, or alerts...',
     getStorageKey: (params, pathname) => `docs_${pathname.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
     description: 'Documentation for Detection & Sigma',
@@ -759,11 +761,11 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: (pathname) => pathname.startsWith('/docs') && /app|integration|connector|openapi/i.test(pathname),
     defaultApps: [{ name: 'shuffle_apps' }, { name: 'shuffle_workflows_builder' }],
     defaultPresetId: 'build-workflows',
-    buttonLabel: (params, pathname, entity) => `Ask about ${getDocPageDisplayName(pathname, entity)}`,
-    headerTitle: (params, pathname, entity) => `Ask about ${getDocPageDisplayName(pathname, entity)}`,
-    title: (params, pathname, entity) => `How can we help with ${getDocPageDisplayName(pathname, entity)}?`,
+    buttonLabel: (params, pathname) => `Ask about ${getDocPageDisplayName(pathname)}`,
+    headerTitle: (params, pathname) => `Ask about ${getDocPageDisplayName(pathname)}`,
+    title: (params, pathname) => `How can we help with ${getDocPageDisplayName(pathname)}?`,
     subtitle: () => 'Shuffle Apps & Integrations',
-    defaultPrompt: (params, pathname, entity) => `Help me understand ${getDocPageDisplayName(pathname, entity)}: `,
+    defaultPrompt: (params, pathname) => `Help me understand ${getDocPageDisplayName(pathname)}: `,
     placeholder: 'Ask questions about building or configuring Shuffle apps...',
     getStorageKey: (params, pathname) => `docs_${pathname.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
     description: 'Documentation for Apps & Integrations',
@@ -775,11 +777,11 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     match: (pathname) => pathname === '/docs' || pathname.startsWith('/docs/') || pathname.startsWith('/legal/'),
     defaultApps: [{ name: 'shuffle_tools' }],
     defaultPresetId: 'support',
-    buttonLabel: (params, pathname, entity) => `Ask about ${getDocPageDisplayName(pathname, entity)}`,
-    headerTitle: (params, pathname, entity) => `Ask about ${getDocPageDisplayName(pathname, entity)}`,
-    title: (params, pathname, entity) => `How can we help with ${getDocPageDisplayName(pathname, entity)}?`,
+    buttonLabel: (params, pathname) => `Ask about ${getDocPageDisplayName(pathname)}`,
+    headerTitle: (params, pathname) => `Ask about ${getDocPageDisplayName(pathname)}`,
+    title: (params, pathname) => `How can we help with ${getDocPageDisplayName(pathname)}?`,
     subtitle: 'Documentation & Knowledge Assistant',
-    defaultPrompt: (params, pathname, entity) => `Help me understand ${getDocPageDisplayName(pathname, entity)}: `,
+    defaultPrompt: (params, pathname) => `Help me understand ${getDocPageDisplayName(pathname)}: `,
     placeholder: 'Ask questions about Shuffle features, guides, or API...',
     getStorageKey: (params, pathname) => `docs_${pathname.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
     description: 'Documentation assistant for Shuffle guides, features, and API references',
@@ -988,6 +990,12 @@ export const resolveAgentContext = (
 
   const missingConfig = Boolean(matchedRule.missingConfig ?? (matchedRule.id === 'default'));
 
+  const composeInput = matchedRule.composeInput
+    ? (rawInput: string) => matchedRule!.composeInput!(rawInput, matchedParams, normPath)
+    : isDocsRoute(normPath)
+      ? (rawInput: string) => composeDocPromptInput(rawInput, normPath, getActivePageEntityName())
+      : undefined;
+
   return {
     ruleId: matchedRule.id,
     apps: effectiveApps,
@@ -1010,5 +1018,6 @@ export const resolveAgentContext = (
     originalDefaultPresetId: matchedRule.defaultPresetId,
     missingConfig,
     sideshift: matchedRule.sideshift,
+    composeInput,
   };
 };

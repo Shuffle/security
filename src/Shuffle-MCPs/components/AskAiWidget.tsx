@@ -108,6 +108,11 @@ export const AskAiWidget: React.FC<AskAiWidgetProps> = ({
   // Track resolved context reported from side panel / drawer
   const [currentContext, setCurrentContext] = useState<AgentResolvedContext | null>(null);
 
+  // Clear child-reported context whenever route changes so resolvedContext takes immediate effect without lag
+  useEffect(() => {
+    setCurrentContext(null);
+  }, [currentPath, search]);
+
   const activeContext = currentContext || resolvedContext;
 
   const handleContextResolved = useCallback(

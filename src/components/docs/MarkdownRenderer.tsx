@@ -23,6 +23,12 @@ import { useIsSupport } from '@/hooks/useIsSupport';
 import PrintDocsDialog from '@/components/docs/PrintDocsDialog';
 import { anchorKey, isTocHeading, stripMarkdownInline } from './tocUtils';
 import {
+  resolveProductLink,
+  type ShuffleProduct,
+} from '@/lib/shuffleUrls';
+import { navigateToShuffleCore } from '@/lib/authHandoff';
+import { getSessionToken } from '@/Shuffle-MCPs/api';
+import {
   useDocContent,
   type RemoteDocMeta,
   type Contributor,
@@ -55,6 +61,8 @@ export interface MarkdownRendererProps {
   suggestions?: DocSuggestion[];
   suggestLoading?: boolean;
   onResetCache?: () => Promise<void>;
+  /** Explicitly set or override the current product ('security' vs 'core' / 'automation'). Defaults to auto-detected. */
+  currentProduct?: ShuffleProduct;
 }
 
 const normalizeDocPath = (pathname: string, basePath = '/docs') => {
@@ -81,6 +89,7 @@ export const MarkdownRenderer = ({
   suggestions: propSuggestions,
   suggestLoading: propSuggestLoading,
   onResetCache: propOnResetCache,
+  currentProduct,
 }: MarkdownRendererProps) => {
   const isControlled = propContent !== undefined;
 
@@ -267,10 +276,15 @@ export const MarkdownRenderer = ({
         },
         '& h2': {
           color: 'text.primary',
-          fontSize: '1.5rem',
+          fontSize: { xs: '1.4rem', sm: '1.65rem' },
           fontWeight: 600,
-          mt: 6,
-          mb: 3,
+          mt: { xs: '3.5rem !important', md: '5rem !important' },
+          mb: 2.5,
+          letterSpacing: '-0.015em',
+          lineHeight: 1.3,
+        },
+        '& h1 + h2': {
+          mt: '2rem !important',
         },
         '& h3': {
           color: 'text.primary',
@@ -464,7 +478,7 @@ export const MarkdownRenderer = ({
       {(() => {
         const segments = parseMarkdownSegments(content);
         const linkComponent = {
-          a: ({ href, children }: any) => {
+          a: ({ href, children, ...restProps }: any) => {
             // In-page anchors update the URL as well as scrolling. Explicitly
             // scroll too, because selecting the same hash twice does not cause
             // React Router's location state to change.
@@ -477,6 +491,7 @@ export const MarkdownRenderer = ({
                     navigate(`${location.pathname}${location.search}${href}`);
                     scrollToDocAnchor(href);
                   }}
+                  {...restProps}
                 >
                   {children}
                 </a>
@@ -487,32 +502,69 @@ export const MarkdownRenderer = ({
             // relative `./name.md` links. Route all of those through the SPA
             // and preserve their heading hash.
             if (href) {
-              // window.location is unavailable during SSR — use the canonical
-              // origin so same-origin/doc links still resolve server-side.
-              const baseUrl =
-                typeof window !== 'undefined' && window.location?.origin
-                  ? window.location.href
-                  : 'https://shuffle.security/docs';
-              const parsed = new URL(href, baseUrl);
-              const isSameOrigin =
-                parsed.origin === new URL(baseUrl).origin;
-              const isRelativeDoc = !/^[a-z][a-z\d+.-]*:/i.test(href) && /(?:^|\/)\.?\.?\/?[^/#?]+\.md(?:$|[?#])/i.test(href);
-              const isDocsPath = /^\/docs(?:\/|$)/i.test(parsed.pathname);
-              if ((isSameOrigin && isDocsPath) || isRelativeDoc) {
-                const relativeName = parsed.pathname.split('/').filter(Boolean).pop()?.replace(/\.md$/i, '');
-                const path = isRelativeDoc && !isDocsPath && relativeName
-                  ? `${basePath}/${docSlug(relativeName)}`
-                  : normalizeDocPath(parsed.pathname, basePath);
-                return <Link to={`${path}${parsed.search}${parsed.hash}`}>{children}</Link>;
+              const trimmed = href.trim();
+              const isRelativeDoc =
+                !/^[a-z][a-z\d+.-]*:/i.test(trimmed) &&
+                /(?:^|\/)\.?\.?\/?[^/#?]+\.md(?:$|[?#])/i.test(trimmed);
+
+              // Product-aware link resolution: detects whether current platform is
+              // Shuffle Security or Shuffle Core / Automation and resolves paths like
+              // /workflows, /workflows/debug, /incidents, /alerts accordingly.
+              const resolved = resolveProductLink(trimmed, currentProduct);
+
+              if (resolved.targetProduct === 'doc' || isRelativeDoc) {
+                const baseUrl =
+                  typeof window !== 'undefined' && window.location?.origin
+                    ? window.location.href
+                    : 'https://shuffle.security/docs';
+                const parsed = new URL(trimmed, baseUrl);
+                const isDocsPath = /^\/docs(?:\/|$)/i.test(parsed.pathname);
+                const relativeName = parsed.pathname
+                  .split('/')
+                  .filter(Boolean)
+                  .pop()
+                  ?.replace(/\.md$/i, '');
+                const path =
+                  isRelativeDoc && !isDocsPath && relativeName
+                    ? `${basePath}/${docSlug(relativeName)}`
+                    : normalizeDocPath(parsed.pathname, basePath);
+                return (
+                  <Link to={`${path}${parsed.search}${parsed.hash}`}>
+                    {children}
+                  </Link>
+                );
               }
-              if (href.startsWith('/') && isSameOrigin) {
-                return <Link to={`${parsed.pathname}${parsed.search}${parsed.hash}`}>{children}</Link>;
+
+              // Internal SPA link for the current platform
+              if (resolved.isInternal) {
+                return <Link to={resolved.url}>{children}</Link>;
               }
+
+              // Cross-platform link (e.g. from Shuffle Security to Shuffle Core) or external
+              return (
+                <a
+                  href={resolved.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={async (e) => {
+                    if (resolved.isCrossDomainToCore && getSessionToken()) {
+                      const isNewTab = e.ctrlKey || e.metaKey || e.button === 1;
+                      e.preventDefault();
+                      await navigateToShuffleCore(resolved.url, {
+                        newTab: isNewTab || true,
+                      });
+                    }
+                  }}
+                  {...restProps}
+                >
+                  {children}
+                </a>
+              );
             }
 
-            // External links
+            // External links fallback
             return (
-              <a href={href} target="_blank" rel="noopener noreferrer">
+              <a href={href} target="_blank" rel="noopener noreferrer" {...restProps}>
                 {children}
               </a>
             );
@@ -525,7 +577,16 @@ export const MarkdownRenderer = ({
               <ShuffleMarkdown
                 key={`md-${idx}`}
                 disableBreaks
-                sx={{ '& p': { mb: 2 } }}
+                sx={{
+                  '& p': { mb: 2 },
+                  '& > h2:first-of-type': {
+                    mt: idx === 0 ? 0 : { xs: '3.5rem !important', md: '5rem !important' },
+                  },
+                  '& h2': {
+                    mt: { xs: '3.5rem !important', md: '5rem !important' },
+                    mb: 2.5,
+                  },
+                }}
                 components={linkComponent}
               >
                 {segment.content}

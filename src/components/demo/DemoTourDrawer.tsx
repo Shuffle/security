@@ -1167,7 +1167,7 @@ export const DemoTourDrawer = () => {
                               position: 'absolute',
                               inset: -2,
                               borderRadius: 8,
-                              border: '2px solid hsl(var(--severity-low))',
+                              border: '1px solid hsl(var(--severity-low))',
                               pointerEvents: 'none',
                             }}
                           />

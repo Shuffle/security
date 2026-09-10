@@ -59,6 +59,9 @@ interface RemoteDoc {
 const toLabel = (name: string) =>
   name.replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
+// Documents that should not clutter the sidebar (consolidated or special purpose)
+const HIDDEN_DOC_SLUGS = new Set(['triggers', 'liquid', 'onboarding']);
+
 export const DocsSidebar = ({ onNavigate, folder, basePath = '/docs', title = 'Documentation', hideExternal = false }: DocsSidebarProps) => {
   const { slug = 'index' } = useParams<{ slug: string }>();
   const navigate = useNavigate();
@@ -80,8 +83,9 @@ export const DocsSidebar = ({ onNavigate, folder, basePath = '/docs', title = 'D
     let cancelled = false;
     (async () => {
       const list = await fetchDocsList(false, folder);
+      const isDocsFolder = !folder || folder === 'docs';
       const mapped: RemoteDoc[] = list
-        .filter((d) => d?.name)
+        .filter((d) => d?.name && (!isDocsFolder || !HIDDEN_DOC_SLUGS.has(docSlug(d.name))))
         .map((d) => ({
           name: d.name,
           slug: docSlug(d.name),

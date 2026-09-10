@@ -1229,9 +1229,9 @@ Use case: ${aiPrompt}`,
                         }}
                         sx={{
                           border: deployedAndRunning
-                            ? '2px solid hsl(var(--severity-low))'
+                            ? '1px solid hsl(var(--severity-low))'
                             : dp.recommended
-                              ? '1.5px solid hsl(var(--primary) / 0.6)'
+                              ? '1px solid hsl(var(--primary) / 0.6)'
                               : '1px solid hsl(var(--border))',
                           borderRadius: 1.5,
                           px: 1.5,

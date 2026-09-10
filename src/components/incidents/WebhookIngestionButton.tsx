@@ -147,7 +147,7 @@ export const WebhookIngestionButton = ({ webhook, onToggled, workflowLabel = 'In
           sx={{
             width: 30,
             height: 30,
-            border: isEnabled ? '2px solid hsl(var(--severity-low))' : '1px solid hsl(var(--border))',
+            border: isEnabled ? '1px solid hsl(var(--severity-low))' : '1px solid hsl(var(--border))',
             bgcolor: isEnabled ? 'hsl(var(--severity-low) / 0.14)' : 'hsl(var(--card))',
             borderRadius: 1,
             opacity: isEnabled ? 1 : 0.45,

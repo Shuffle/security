@@ -1341,7 +1341,7 @@ export const AppAuthCard = ({
       <Card
         sx={{
           background: 'transparent',
-          border: borderless ? 'none' : '2px solid',
+          border: borderless ? 'none' : '1px solid',
           borderColor: borderless
             ? 'transparent'
             : isTested

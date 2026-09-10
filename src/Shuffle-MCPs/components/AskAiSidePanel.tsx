@@ -852,6 +852,7 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
                 placeholder={context.placeholder}
                 contextCategory={context.sourceCategory}
                 contextStorageKey={context.storageKey}
+                composeSubmitInput={context.composeInput}
                 onAppsChange={handleAppsChange}
                 onSelectPreset={handleSelectPreset}
                 onChooseLLM={() => handleTabChange('localLLM')}

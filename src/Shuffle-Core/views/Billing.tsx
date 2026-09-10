@@ -167,7 +167,7 @@ const ProductionStatus = ({ selectedOrganization, userdata, isCloud, theme }) =>
                 padding: '8px 16px',
                 borderRadius: 20,
                 background: isProdStatusOn ? colors.successBg : colors.warningBg,
-                border: `2px solid ${isProdStatusOn ? colors.success : colors.warning}`,
+                border: `1px solid ${isProdStatusOn ? colors.success : colors.warning}`,
                 boxShadow: isProdStatusOn
                   ? `0 2px 8px ${colors.success}30`
                   : `0 2px 8px ${colors.warning}30`,

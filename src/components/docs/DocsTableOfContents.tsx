@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Box, Collapse, Stack, Typography } from '@mui/material';
+import { Box, Collapse, Stack, Typography, type SxProps, type Theme } from '@mui/material';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { type TocHeading } from './tocUtils';
 import { useScrollSpy } from './useScrollSpy';
@@ -8,10 +8,13 @@ import { useLocation, useNavigate } from '@/lib/router-compat';
 export interface DocsTableOfContentsProps {
   /** Hierarchical headings list (H2 with nested H3). */
   headings: TocHeading[];
+  /** Optional sx prop overrides */
+  sx?: SxProps<Theme>;
 }
 
 export const DocsTableOfContents: React.FC<DocsTableOfContentsProps> = ({
   headings,
+  sx,
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -125,7 +128,16 @@ export const DocsTableOfContents: React.FC<DocsTableOfContentsProps> = ({
   if (headings.length === 0) return null;
 
   return (
-    <Box sx={{ width: '100%' }}>
+    <Box
+      sx={[
+        {
+          width: '100%',
+          pr: { xs: 1, md: 1.5 },
+          pb: '150px',
+        },
+        ...(Array.isArray(sx) ? sx : [sx]),
+      ]}
+    >
       <Typography
         sx={{
           color: 'text.primary',
@@ -147,7 +159,11 @@ export const DocsTableOfContents: React.FC<DocsTableOfContentsProps> = ({
           const isActive = isH2Active || isChildActive;
 
           return (
-            <Box key={h2.id} ref={isH2Active ? activeItemRef : undefined}>
+            <Box
+              key={h2.id}
+              ref={isH2Active ? activeItemRef : undefined}
+              sx={{ scrollMarginBottom: '150px' }}
+            >
               {/* H2 Row */}
               <Box
                 onClick={() => handleHeadingClick(h2, hasChildren)}
@@ -220,6 +236,7 @@ export const DocsTableOfContents: React.FC<DocsTableOfContentsProps> = ({
                           ref={isH3Active ? activeItemRef : undefined}
                           onClick={() => handleHeadingClick(h3, false)}
                           sx={{
+                            scrollMarginBottom: '150px',
                             py: 0.25,
                             cursor: 'pointer',
                             color: isH3Active ? 'primary.main' : 'text.secondary',
