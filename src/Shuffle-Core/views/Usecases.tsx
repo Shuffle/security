@@ -1386,6 +1386,37 @@ function getActiveOrgId(): string | null {
   }
 }
 
+const DEFAULT_INCIDENT_AI_AGENT_PROMPT = `Triage, investigate, and respond holistically to this incident. Choose the appropriate response path:
+
+1. AUTO-RESOLVE / CLOSE: If this alert is a false positive, benign administrative activity, authorized test/scan, routine noise, or a duplicate of an existing incident:
+- Set "status" to "resolved".
+- Add an activity entry: {"ai_handled": true, "id": "status-\${timenow-unix}", "type": "status", "user": "@AIAgent", "timestamp": \${timenow-unix}, "content": "Resolved: [Specific evidence and rationale explaining why this is benign/FP/duplicate]"}.
+- Do NOT generate unnecessary open tasks.
+
+2. ESCALATE: If this is a high/critical severity threat, active compromise, ransomware, credential theft, lateral movement, or high ambiguity requiring human judgment:
+- Update "severity" to "high" or "critical".
+- Set "status" to "escalated".
+- Add an activity entry: {"ai_handled": true, "id": "status-\${timenow-unix}", "type": "status", "user": "@AIAgent", "timestamp": \${timenow-unix}, "content": "Escalated: High-priority threat detected. [Executive threat summary, affected assets/users, and recommended human actions]"}.
+
+3. CONTAINMENT (BLOCK / ISOLATE / REVOKE):
+- For compromised endpoints: propose or execute host isolation via available EDR tools.
+- For malicious external IPs, domains, or hashes: propose or execute perimeter firewall/DNS blocks.
+- For compromised accounts: propose or execute session revocation or account lock.
+- For disruptive actions, set approval_required: true and request analyst confirmation.
+
+4. FIX SPAMMY DETECTIONS:
+- If this alert is from a noisy or misconfigured detection rule firing repeatedly on benign operations, propose specific rule tuning/exclusions in the activity log or create a task: {"assignee": "AI Agent", "title": "Tune detection rule: [Rule Name] to exclude [Pattern]", "category": "triage", "completed": false, "createdBy": "ai-agent@shuffler.io"}.
+
+5. TOOL REQUESTS:
+- Utilize available tools (shuffle-datastore, shuffle_incidents, etc.). If an essential tool (EDR, SIEM, Threat Intel, Firewall) is missing or unauthenticated, explicitly state what tool is required, why, and the specific query/action needed.
+
+6. INVESTIGATION & DOCUMENTATION:
+- If ongoing investigation is needed, set "status" to "in_progress" and update "severity" to info/low/medium/high/critical.
+- Generate structured tasks in JSON format: {"tasks": [{"assignee": "AI Agent", "title": "Title of task", "category": "triage/investigation/containment/recovery/communication/documentation", "completed": false, "createdBy": "ai-agent@shuffler.io"}]}.
+- Document findings, timeline, and MITRE ATT&CK techniques in activity and comments. Tackle tasks one by one, self-assigning and completing them as progress is made.
+
+Update the internal shuffle datastore with the same key and category 'shuffle-security_incidents'. ONLY send the modified fields in JSON format. Do NOT overwrite unrelated fields.`;
+
 export const setAiAgentIncidentAutomation = async (enabled: boolean): Promise<boolean> => {
   const orgId = getActiveOrgId();
   if (!orgId) throw new Error('No active organization found');
@@ -1418,7 +1449,7 @@ export const setAiAgentIncidentAutomation = async (enabled: boolean): Promise<bo
           description: 'Runs an AI Agent to process the updated value. Uses built-in ShuffleAI configs. Learn more: https://shuffler.io/docs/AI',
           type: 'singul',
           enabled: true,
-          options: [{ key: 'action', value: 'Triage, enrich, and assess severity for this incident.', apps: null }],
+          options: [{ key: 'action', value: DEFAULT_INCIDENT_AI_AGENT_PROMPT, apps: '48793430d21468f9e371ace402efcd8e,b82668d868f6dc7ac1dc14caa92c674b' }],
         },
       ];
     }

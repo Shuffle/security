@@ -1,13 +1,24 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 
-interface AppDetailContextType {
+export interface AppDetailContextType {
   openApp: (appName: string) => void;
   closeApp: () => void;
   currentAppName: string | null;
   isOpen: boolean;
 }
 
-const AppDetailContext = createContext<AppDetailContextType | undefined>(undefined);
+const fallbackContext: AppDetailContextType = {
+  openApp: (appName: string) => {
+    if (typeof window !== 'undefined' && appName) {
+      window.location.href = `/apps/${encodeURIComponent(appName)}`;
+    }
+  },
+  closeApp: () => {},
+  currentAppName: null,
+  isOpen: false,
+};
+
+const AppDetailContext = createContext<AppDetailContextType>(fallbackContext);
 
 export const AppDetailProvider = ({ children }: { children: ReactNode }) => {
   const [currentAppName, setCurrentAppName] = useState<string | null>(null);
@@ -27,15 +38,14 @@ export const AppDetailProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-export const useAppDetail = () => {
-  const context = useContext(AppDetailContext);
-  if (!context) {
-    throw new Error('useAppDetail must be used within an AppDetailProvider');
-  }
-  return context;
+/** Safe hook: returns context if inside AppDetailProvider, or a graceful fallback (navigating to /apps/:name on openApp) if outside. Never throws. */
+export const useAppDetail = (): AppDetailContextType => {
+  return useContext(AppDetailContext);
 };
 
 /** Safe variant: returns null if no provider is mounted. Useful for components used both inside and outside the dashboard. */
-export const useAppDetailOptional = () => {
-  return useContext(AppDetailContext) ?? null;
+export const useAppDetailOptional = (): AppDetailContextType | null => {
+  const ctx = useContext(AppDetailContext);
+  return ctx === fallbackContext ? null : ctx;
 };
+

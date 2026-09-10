@@ -32,6 +32,8 @@ import { DemoResumePill } from "@/components/demo/DemoResumePill";
 import GlobalAgentDrawer from "@/components/agent/GlobalAgentDrawer";
 import GlobalWorkflowRunDrawer from "@/components/agent/GlobalWorkflowRunDrawer";
 import GlobalNotificationsDrawer from "@/components/notifications/GlobalNotificationsDrawer";
+import { AppDetailProvider } from "@/Shuffle-MCPs/AppDetailContext";
+import { GlobalAppDetailDrawer } from "@/components/shared/AppDetailDrawer";
 import NotFound from "@/pages/NotFound";
 import { useCapacitorMobile } from "@/hooks/useCapacitorMobile";
 import { GlobalErrorBoundary } from "@/components/common/GlobalErrorBoundary";
@@ -254,29 +256,32 @@ function ThemedShell({ children }: { children: ReactNode }) {
         style={{ width: "auto", maxWidth: 420 }}
       />
       <AuthProvider>
-        <ScrollToTop />
-        <DemoProvider>
-          <AuthenticatedDrawers />
-          <Suspense
-            fallback={
-              <Box
-                sx={{
-                  position: "fixed",
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: 2,
-                  zIndex: 2000,
-                  backgroundColor: "hsl(var(--primary))",
-                  opacity: 0.85,
-                  animation: "shuffle-route-progress 1s ease-in-out infinite",
-                }}
-              />
-            }
-          >
-            {children}
-          </Suspense>
-        </DemoProvider>
+        <AppDetailProvider>
+          <ScrollToTop />
+          <DemoProvider>
+            <AuthenticatedDrawers />
+            <GlobalAppDetailDrawer />
+            <Suspense
+              fallback={
+                <Box
+                  sx={{
+                    position: "fixed",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: 2,
+                    zIndex: 2000,
+                    backgroundColor: "hsl(var(--primary))",
+                    opacity: 0.85,
+                    animation: "shuffle-route-progress 1s ease-in-out infinite",
+                  }}
+                />
+              }
+            >
+              {children}
+            </Suspense>
+          </DemoProvider>
+        </AppDetailProvider>
       </AuthProvider>
     </MuiThemeProvider>
   );

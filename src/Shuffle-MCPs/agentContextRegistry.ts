@@ -97,6 +97,11 @@ export interface AgentResolvedContext {
 export interface PageContextChoice {
   apps?: AgentContextApp[];
   presetId?: string | null;
+  draftPrompt?: string;
+  executionId?: string | null;
+  authorization?: string | null;
+  executionStatus?: string | null;
+  viewMode?: 'start' | 'simple' | 'detailed' | null;
   updatedAt: number;
 }
 
@@ -972,10 +977,10 @@ export const getPageContextChoice = (storageKey: string): PageContextChoice | nu
   }
 };
 
-/** Save user's customized apps and preset for a specific page storage key */
+/** Save user's customized apps, preset, draft prompt, and execution for a specific page storage key */
 export const setPageContextChoice = (
   storageKey: string,
-  choice: { apps?: AgentContextApp[]; presetId?: string | null },
+  choice: Partial<Omit<PageContextChoice, 'updatedAt'>>,
 ): void => {
   try {
     const existing = getPageContextChoice(storageKey) || { updatedAt: Date.now() };
@@ -1060,9 +1065,22 @@ export const resolveAgentContext = (
     : [];
   const baseDefaultApps = mergeConnectedTools(matchedRule.defaultApps, cachedConnected, MAX_AUTO_ASSIGNED_TOOLS);
 
-  const effectiveApps = savedChoice?.apps ?? baseDefaultApps;
+  let effectiveApps = savedChoice?.apps ?? baseDefaultApps;
+  // If this is a documentation route that defaults to no tools, sanitize legacy auto-injected shuffle_tools
+  if (matchedRule.id === 'docs' && matchedRule.defaultApps.length === 0 && effectiveApps.length > 0) {
+    const cleaned = effectiveApps.filter(
+      (a) => !['shuffle_tools', 'shuffle tools', 'shuffle_tool', 'shuffletools'].includes((a.name || '').toLowerCase().replace(/[-_]/g, '').trim())
+    );
+    if (cleaned.length !== effectiveApps.length) {
+      effectiveApps = cleaned;
+      if (savedChoice?.apps) {
+        setPageContextChoice(storageKey, { ...savedChoice, apps: cleaned });
+      }
+    }
+  }
+
   const effectivePresetId = savedChoice?.presetId !== undefined
-    ? (savedChoice.presetId ?? undefined)
+    ? savedChoice.presetId
     : matchedRule.defaultPresetId;
 
   const title = typeof matchedRule.title === 'function'

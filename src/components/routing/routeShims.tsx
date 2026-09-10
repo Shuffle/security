@@ -6,7 +6,6 @@
 import { lazy, useState } from 'react';
 import { Box } from '@mui/material';
 import { Navigate, Outlet, useNavigate, useParams } from '@/lib/router-compat';
-import { AppDetailProvider } from '@/Shuffle-MCPs/AppDetailContext';
 import { API_CONFIG } from '@/Shuffle-MCPs';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -35,15 +34,15 @@ export const IncidentDetailPage = () => {
 /** Layout that conditionally shows sidebar for authenticated users, navbar + content for guests */
 export const ConditionalDashboardLayout = () => {
   const { isAuthenticated, isLoading } = useAuth();
-  if (isLoading) return <AppDetailProvider><Outlet /></AppDetailProvider>;
+  if (isLoading) return <Outlet />;
   if (isAuthenticated) return <DashboardLayout />;
   return (
-    <AppDetailProvider>
+    <>
       <LandingNavbar />
       <Box sx={{ pt: '72px', mr: { xs: 0, md: 'var(--ask-ai-panel-width, 0px)' }, transition: 'margin 0.2s ease' }}>
         <Outlet />
       </Box>
-    </AppDetailProvider>
+    </>
   );
 };
 

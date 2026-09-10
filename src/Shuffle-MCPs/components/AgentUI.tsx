@@ -660,7 +660,7 @@ import {
   MAX_AUTO_ASSIGNED_TOOLS,
   type ConnectedToolApp,
 } from '@/Shuffle-MCPs/connectedSourcesService';
-import { getPageContextChoice } from '@/Shuffle-MCPs/agentContextRegistry';
+import { getPageContextChoice, setPageContextChoice } from '@/Shuffle-MCPs/agentContextRegistry';
 
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -2176,8 +2176,29 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // When mobileView is explicitly provided, it overrides the viewport check.
   const isPhoneScreen = useMediaQuery('(max-width:600px)', { noSsr: true });
   const isPhone = mobileView !== undefined ? mobileView : isPhoneScreen;
-  const navigate = useNavigate();
-  const [actionInput, setActionInput] = useState(defaultInput);
+  const [actionInput, setActionInput] = useState<string>(() => {
+    if (contextStorageKey) {
+      const saved = getPageContextChoice(contextStorageKey);
+      if (saved?.draftPrompt !== undefined && saved.draftPrompt !== '') {
+        return saved.draftPrompt;
+      }
+    }
+    return defaultInput || '';
+  });
+  const lastStorageKeyRef = useRef(contextStorageKey);
+  useEffect(() => {
+    if (lastStorageKeyRef.current !== contextStorageKey) {
+      lastStorageKeyRef.current = contextStorageKey;
+      if (contextStorageKey) {
+        const saved = getPageContextChoice(contextStorageKey);
+        if (saved?.draftPrompt !== undefined && saved.draftPrompt !== '') {
+          setActionInput(saved.draftPrompt);
+        } else {
+          setActionInput(defaultInput || '');
+        }
+      }
+    }
+  }, [contextStorageKey, defaultInput]);
   // Editable per-user prompt prefix rendered as a chip at the start of the
   // input. Prepended to the submitted text so it feels like the user is
   // "typing to" the Shuffle Tools MCP without the prefix filling the box.
@@ -2262,7 +2283,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
       if (!match || match.enabled === false) return;
       setSelectedPreset(match);
       // Restoring a template must also restore ITS tools — unless custom tools were already provided
-      if (!defaultApps && !apps) {
+      if (defaultApps === undefined && !apps) {
         const override = readPresetAppsOverride(match.id);
         if (override) {
           // An empty override is a real choice ("I removed every tool") — honor it.
@@ -2531,6 +2552,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const acceptSuggestion = useCallback((s: string) => {
     programmaticInputRef.current = true;
     setActionInput(s);
+    if (contextStorageKey) {
+      setPageContextChoice(contextStorageKey, { draftPrompt: s });
+    }
     setSuggestionsDismissed(true);
     setSuggestionIndex(-1);
     // A text template from the prompt list acts as its own skill, so clear
@@ -2564,6 +2588,8 @@ const AgentUI: React.FC<AgentUIProps> = ({
     if (saved) return saved;
     return BUILTIN_DEFAULT_APPS;
   });
+  const isInitialMountChosenAppsRef = useRef(true);
+  const isInitialMountPresetOverrideRef = useRef(true);
 
   // Apps the caller has authenticated — used to resolve icons by name and as
   // suggestions in the picker. NOT auto-selected as `chosenApps`.
@@ -2599,7 +2625,20 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const [rerunAgentPending, setRerunAgentPending] = useState(false);
   const [abortLoading, setAbortLoading] = useState(false);
 
-  const [execution, setExecution] = useState<ExecutionData | null>(null);
+  const [execution, setExecution] = useState<ExecutionData | null>(() => {
+    if (initialExecution) return initialExecution as ExecutionData;
+    if (contextStorageKey) {
+      const saved = getPageContextChoice(contextStorageKey);
+      if (saved?.executionId) {
+        return {
+          execution_id: saved.executionId,
+          authorization: saved.authorization || undefined,
+          status: saved.executionStatus || 'EXECUTING',
+        } as ExecutionData;
+      }
+    }
+    return null;
+  });
   const [agentData, setAgentData] = useState<{ decisions?: AgentDecision[]; original_input?: string; status?: string; started_at?: number; completed_at?: number; [k: string]: any }>({});
   const [agentActionResult, setAgentActionResult] = useState<any>(null);
   // Images attached to the run's `llm_requests` (deep-walked, deduped).
@@ -2607,7 +2646,16 @@ const AgentUI: React.FC<AgentUIProps> = ({
     () => collectLlmImageAttachments(agentData),
     [agentData],
   );
-  const [showStarter, setShowStarter] = useState(true);
+  const [showStarter, setShowStarter] = useState(() => {
+    if (initialExecution?.execution_id) return false;
+    if (contextStorageKey) {
+      const saved = getPageContextChoice(contextStorageKey);
+      if (saved?.executionId && saved.viewMode !== 'start') {
+        return false;
+      }
+    }
+    return true;
+  });
 
   const handleRemovePreset = useCallback(() => {
     try { localStorage.removeItem(LAST_PRESET_STORAGE_KEY); } catch { /* ignore */ }
@@ -2718,6 +2766,12 @@ const AgentUI: React.FC<AgentUIProps> = ({
 
   const readStoredViewMode = (): 'simple' | 'detailed' => {
     if (initialViewParam === 'detailed') return 'detailed';
+    if (contextStorageKey) {
+      const saved = getPageContextChoice(contextStorageKey);
+      if (saved?.viewMode === 'detailed' || saved?.viewMode === 'simple') {
+        return saved.viewMode;
+      }
+    }
     if (typeof window === 'undefined') return 'simple';
     try {
       const stored = window.localStorage.getItem('shuffle-agents-view-mode');
@@ -2780,7 +2834,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
   // Tracks the execution_id we currently want to display. Used to discard
   // stale poll responses from a previous run after the user has started a
   // new one (otherwise an in-flight fetch can repaint the old execution).
-  const activeExecutionIdRef = useRef<string | null>(null);
+  const activeExecutionIdRef = useRef<string | null>(
+    initialExecution?.execution_id ||
+    (contextStorageKey ? getPageContextChoice(contextStorageKey)?.executionId || null : null),
+  );
   // Separates poll generations even when a failed rerun restores the same
   // execution ID. An older response must never become valid again merely
   // because its ID was restored.
@@ -3450,6 +3507,13 @@ const AgentUI: React.FC<AgentUIProps> = ({
       }
 
       setExecution({ ...json, execution_id: executionId, authorization: auth });
+      if (contextStorageKey) {
+        setPageContextChoice(contextStorageKey, {
+          executionId,
+          authorization: auth || undefined,
+          executionStatus: json.status,
+        });
+      }
       if (actionResult) setAgentActionResult(actionResult);
       if (v.valid) {
         setAgentData({ ...v.result, started_at: json.started_at, completed_at: json.completed_at, status: json.status });
@@ -3516,6 +3580,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
   useEffect(() => {
     let eid: string | null = null;
     let auth: string | null = null;
+    let initialStatus: string = 'EXECUTING';
+    let savedViewMode: 'start' | 'simple' | 'detailed' | null = null;
+
     if (executionId && authorization) {
       eid = executionId;
       auth = authorization;
@@ -3523,14 +3590,30 @@ const AgentUI: React.FC<AgentUIProps> = ({
       const params = new URLSearchParams(window.location.search);
       eid = params.get('execution_id');
       auth = params.get('authorization');
+    } else if (contextStorageKey) {
+      const saved = getPageContextChoice(contextStorageKey);
+      if (saved?.executionId) {
+        eid = saved.executionId;
+        auth = saved.authorization || null;
+        if (saved.executionStatus) initialStatus = saved.executionStatus;
+        if (saved.viewMode) savedViewMode = saved.viewMode;
+      }
     }
-    if (eid && auth) {
-      if (!userPickedStartRef.current) setShowStarter(false);
+    if (eid) {
+      if (savedViewMode === 'start') {
+        setShowStarter(true);
+        userPickedStartRef.current = true;
+      } else {
+        if (!userPickedStartRef.current) setShowStarter(false);
+        if (savedViewMode === 'simple' || savedViewMode === 'detailed') {
+          setViewMode(savedViewMode);
+        }
+      }
       activeExecutionIdRef.current = eid;
-      setExecution({ execution_id: eid, authorization: auth, status: 'EXECUTING' });
-      getExecution(eid, auth);
+      setExecution({ execution_id: eid, authorization: auth || undefined, status: initialStatus });
+      getExecution(eid, auth || undefined);
     }
-  }, [readUrlParams, executionId, authorization, getExecution]);
+  }, [readUrlParams, executionId, authorization, getExecution, contextStorageKey]);
 
   // Attach to a pre-loaded execution (e.g. embedded inside a list/drawer
   // that already has the run data). Skips the starter and seeds Simple/
@@ -3622,6 +3705,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
     appsOverride?: AgentUIApp[],
   ) => {
     if (!text.trim()) return;
+    if (contextStorageKey) {
+      setPageContextChoice(contextStorageKey, { draftPrompt: '' });
+    }
     const composed = composeSubmitInput(text);
     // `undefined` means "use current selection"; `null` explicitly clears it.
     const effectivePreset = presetOverride !== undefined ? presetOverride : selectedPreset;
@@ -3752,6 +3838,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
     setAgentRequestLoading(false);
 
     if (!result.success) {
+      if (contextStorageKey) {
+        setPageContextChoice(contextStorageKey, { draftPrompt: text });
+      }
       // Restore the previous run so the user can try Rerun again.
       setError(result.error || 'Agent run failed.');
       activeExecutionIdRef.current = prevActiveExecutionId;
@@ -3785,6 +3874,15 @@ const AgentUI: React.FC<AgentUIProps> = ({
       // Seed an EXECUTING stub so the poll effect starts immediately,
       // then kick off the first fetch. The poller continues until terminal.
       activeExecutionIdRef.current = eid;
+      if (contextStorageKey) {
+        setPageContextChoice(contextStorageKey, {
+          draftPrompt: '',
+          executionId: eid,
+          authorization: auth,
+          executionStatus: 'EXECUTING',
+          viewMode: viewMode === 'detailed' ? 'detailed' : 'simple',
+        });
+      }
       setExecution({ execution_id: eid, authorization: auth, status: 'EXECUTING' });
       // Reflect the new execution in the URL so the run is shareable/refreshable.
       if (readUrlParams) {
@@ -3798,6 +3896,15 @@ const AgentUI: React.FC<AgentUIProps> = ({
       getExecution(eid, auth);
       onRun?.({ input: text, success: true, executionId: eid });
     } else {
+      if (contextStorageKey && eid) {
+        setPageContextChoice(contextStorageKey, {
+          draftPrompt: '',
+          executionId: eid,
+          authorization: auth || undefined,
+          executionStatus: 'FINISHED',
+          viewMode: viewMode === 'detailed' ? 'detailed' : 'simple',
+        });
+      }
       // Direct response (no async execution): synthesize a single-step view
       setExecution({
         execution_id: eid || crypto.randomUUID(),
@@ -4085,6 +4192,14 @@ const AgentUI: React.FC<AgentUIProps> = ({
       setAgentData({});
       setAgentRequestLoading(false);
       setShowStarter(true);
+      if (contextStorageKey) {
+        setPageContextChoice(contextStorageKey, {
+          executionId: null,
+          authorization: null,
+          executionStatus: null,
+          viewMode: 'start',
+        });
+      }
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev);
         next.delete('agentView');
@@ -4719,25 +4834,33 @@ const AgentUI: React.FC<AgentUIProps> = ({
     onViewChange?.(activeTab);
   }, [activeTab, onViewChange]);
   useEffect(() => {
+    if (isInitialMountChosenAppsRef.current) {
+      isInitialMountChosenAppsRef.current = false;
+      return;
+    }
     onAppsChange?.(chosenApps);
   }, [chosenApps, onAppsChange]);
   // Remember tool customisations per template so a template's defaults are a
   // starting point, not a forced set.
   useEffect(() => {
+    if (isInitialMountPresetOverrideRef.current) {
+      isInitialMountPresetOverrideRef.current = false;
+      return;
+    }
     const key = selectedPreset?.id ?? NO_PRESET_KEY;
     // Do not write the previous template's tools onto the newly selected one.
     if (selectedPreset && seededPresetIdRef.current !== selectedPreset.id) return;
     writePresetAppsOverride(key, chosenApps.filter((a) => !!a?.name));
-
-
   }, [chosenApps, selectedPreset]);
   const goToTab = (t: TabKey) => {
     if (t === 'start') {
       // Seed the starter form with the current run's prompt + tools so the
       // user can tweak and resubmit instead of starting from a blank slate.
       const runInput = resolveRunInput();
+      let cleanPrompt = '';
       if (runInput && typeof runInput === 'string') {
-        setActionInput(extractCleanDisplayPrompt(runInput));
+        cleanPrompt = extractCleanDisplayPrompt(runInput);
+        setActionInput(cleanPrompt);
       }
       if (executionApps.length > 0) {
         setChosenApps(executionApps);
@@ -4747,6 +4870,12 @@ const AgentUI: React.FC<AgentUIProps> = ({
       // initialExecution is re-attached, until they explicitly start a new run
       // or click Simple/Detailed themselves.
       userPickedStartRef.current = true;
+      if (contextStorageKey) {
+        setPageContextChoice(contextStorageKey, {
+          viewMode: 'start',
+          ...(cleanPrompt ? { draftPrompt: cleanPrompt } : {}),
+        });
+      }
       if (readUrlParams) {
         setSearchParams((prev) => {
           const next = new URLSearchParams(prev);
@@ -4760,6 +4889,11 @@ const AgentUI: React.FC<AgentUIProps> = ({
       setShowStarter(false);
       userPickedStartRef.current = false;
       setViewMode(t);
+      if (contextStorageKey) {
+        setPageContextChoice(contextStorageKey, {
+          viewMode: t,
+        });
+      }
       if (readUrlParams) {
         setSearchParams((prev) => {
           const next = new URLSearchParams(prev);
@@ -5953,6 +6087,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 onChange={(e) => {
                   const nextValue = e.target.value;
                   setActionInput(nextValue);
+                  if (contextStorageKey) {
+                    setPageContextChoice(contextStorageKey, { draftPrompt: nextValue });
+                  }
                   if (nextValue.length === 0) {
                     setPromptSingleLine(true);
                     setInputScrolled(false);
@@ -5962,6 +6099,9 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 }}
                 onBlur={(e) => {
                   const node = e.target as HTMLTextAreaElement;
+                  if (contextStorageKey) {
+                    setPageContextChoice(contextStorageKey, { draftPrompt: node.value || '' });
+                  }
                   // Only an empty prompt collapses back to the single-line
                   // pill on blur. Any remaining text keeps whatever the wrap
                   // measurement decided, so wrapped text can never be clipped

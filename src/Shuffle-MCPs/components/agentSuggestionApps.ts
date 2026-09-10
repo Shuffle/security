@@ -84,7 +84,7 @@ const RULES: Rule[] = [
 
 /**
  * Resolve the apps / app categories a suggestion needs.
- * Always returns at least one requirement (falls back to Shuffle Tools).
+ * Returns matching requirements, or an empty list when no specific tools are needed.
  */
 export const getSuggestionAppRequirements = (
   suggestion: string,
@@ -103,7 +103,6 @@ export const getSuggestionAppRequirements = (
     }
     if (out.length >= limit) break;
   }
-  if (out.length === 0) out.push(SHUFFLE_TOOLS);
   return out.slice(0, limit);
 };
 

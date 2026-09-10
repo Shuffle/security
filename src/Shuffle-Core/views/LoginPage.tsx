@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   Box,
-  Paper,
+  Card,
+  CardContent,
   Typography,
   TextField,
   Button,
@@ -12,6 +13,7 @@ import {
   Checkbox,
   FormControlLabel,
   Collapse,
+  useTheme,
 } from '@mui/material';
 import {
   Eye,
@@ -1013,6 +1015,33 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     }
   };
 
+  const theme = useTheme();
+  const primaryColor = theme.palette.primary.main;
+
+  const inputSx = {
+    '& .MuiOutlinedInput-root': {
+      bgcolor: 'background.paper',
+      borderRadius: 1.5,
+      '& fieldset': {
+        borderColor: 'divider',
+      },
+      '&:hover fieldset': {
+        borderColor: 'primary.main',
+      },
+      '&.Mui-focused fieldset': {
+        borderColor: 'primary.main',
+      },
+    },
+    '& .MuiInputBase-input': {
+      color: 'text.primary',
+      fontSize: '0.925rem',
+      '&::placeholder': {
+        color: 'text.disabled',
+        opacity: 1,
+      },
+    },
+  };
+
   // Branding text defaults
   const effectiveTitle =
     productName || (product === 'security' ? 'Shuffle Security' : 'Shuffle');
@@ -1024,1117 +1053,1159 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const effectiveLogo =
     logo ||
     (product === 'security' ? (
-      <ShuffleSecurityLogo size={52} />
+      <ShuffleSecurityLogo size={56} color={primaryColor} />
     ) : (
-      <ShuffleCompanyLogo size={52} />
+      <ShuffleCompanyLogo size={56} color={primaryColor} />
     ));
 
   return (
-    <Box sx={{ minHeight: '100dvh', bgcolor: 'hsl(var(--background))', position: 'relative' }}>
-      {header && !isCapacitorNative() && (
-        <Box sx={{ display: { xs: 'none', md: 'block' } }}>{header}</Box>
-      )}
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', position: 'relative' }}>
+      {header && !isCapacitorNative() && header}
 
       <Box
         sx={{
-          minHeight: '100dvh',
-          width: '100%',
-          maxWidth: '100vw',
-          overflowX: 'hidden',
-          overflowY: 'auto',
-          WebkitOverflowScrolling: 'touch',
-          boxSizing: 'border-box',
-          bgcolor: 'hsl(var(--background))',
-          color: 'hsl(var(--foreground))',
+          minHeight: '100vh',
           display: 'flex',
-          flexDirection: 'column',
-          justifyContent: { xs: 'flex-start', md: 'center' },
-          alignItems: 'center',
-          px: { xs: 2, sm: 2.5 },
-          py: { xs: 2, sm: 4 },
-          pt: {
-            xs: 'max(4.5rem, calc(2.5rem + env(safe-area-inset-top, 40px)))',
-            sm: 5,
-            md: 'max(6rem, 80px)',
-          },
-          pb: {
-            xs: 'max(2.5rem, calc(2rem + env(safe-area-inset-bottom, 24px)))',
-            sm: 4,
-            md: 6,
-          },
+          alignItems: { xs: 'flex-start', sm: 'center' },
+          justifyContent: 'center',
+          p: { xs: 2, sm: 3 },
+          pt: { xs: 'max(6rem, calc(4.5rem + env(safe-area-inset-top, 20px)))', sm: 3 },
+          pb: { xs: 'calc(2rem + env(safe-area-inset-bottom, 0px))', sm: 3 },
+          mt: { xs: 0, sm: -6 },
         }}
       >
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, ease: 'easeOut' }}
-          style={{ width: '100%', maxWidth: 'min(440px, 100%)', boxSizing: 'border-box' }}
+          transition={{ duration: 0.4 }}
+          key={`${authMode}-${serverMode}`}
+          style={{ width: '100%', maxWidth: 440 }}
         >
-          {/* Brand Header */}
-          <Box sx={{ textAlign: 'center', mb: { xs: 2.5, sm: 3 } }}>
-            <Box
-              sx={{
-                display: 'inline-flex',
-                p: 0.5,
-                borderRadius: 3,
-                mb: 1.5,
-                boxShadow: '0 8px 24px rgba(255, 102, 0, 0.2)',
-              }}
-            >
-              {effectiveLogo}
-            </Box>
-            <Typography
-              variant="h5"
-              sx={{
-                fontWeight: 800,
-                letterSpacing: '-0.5px',
-                color: 'hsl(var(--foreground))',
-                fontSize: { xs: '1.35rem', sm: '1.5rem' },
-              }}
-            >
-              {effectiveTitle}
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                color: 'hsl(var(--muted-foreground))',
-                fontSize: '0.825rem',
-                mt: 0.5,
-              }}
-            >
-              {isAdminSetup
-                ? 'Initialize Administrator Account'
-                : effectiveSubtitle}
-            </Typography>
-          </Box>
-
-          {/* Main Card */}
-          <Paper
-            elevation={0}
+          <Card
             sx={{
-              p: { xs: 2.5, sm: 3.5 },
-              borderRadius: 3,
-              border: '1px solid hsl(var(--border))',
-              bgcolor: 'hsl(var(--card))',
-              color: 'hsl(var(--card-foreground))',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
+              bgcolor: 'background.paper',
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 2,
+              boxShadow: (theme) =>
+                theme.palette.mode === 'dark'
+                  ? '0 4px 20px rgba(0, 0, 0, 0.4)'
+                  : '0 4px 20px rgba(0, 0, 0, 0.05)',
             }}
           >
-            {/* Server Mode Segmented Switcher (Persisted between visits) */}
-            {allowSelfHosted && !mfaRequired && !isResetPasswordMode && !isAdminSetup && (
-              <Box
-                sx={{
-                  display: 'flex',
-                  p: 0.5,
-                  mb: 2.5,
-                  borderRadius: 2,
-                  bgcolor: 'hsl(var(--muted) / 0.5)',
-                  border: '1px solid hsl(var(--border))',
-                }}
-              >
-                <Button
-                  fullWidth
-                  size="small"
-                  onClick={() => handleServerModeChange('cloud')}
-                  startIcon={<Cloud size={15} />}
-                  sx={{
-                    borderRadius: 1.5,
-                    py: 0.75,
-                    textTransform: 'none',
-                    fontWeight: 600,
-                    fontSize: '0.825rem',
-                    color:
-                      serverMode === 'cloud'
-                        ? '#fff'
-                        : 'hsl(var(--muted-foreground))',
-                    bgcolor:
-                      serverMode === 'cloud'
-                        ? '#ff6600'
-                        : 'transparent',
-                    boxShadow:
-                      serverMode === 'cloud'
-                        ? '0 2px 8px rgba(255, 102, 0, 0.3)'
-                        : 'none',
-                    '&:hover': {
-                      bgcolor:
-                        serverMode === 'cloud'
-                          ? '#e65c00'
-                          : 'hsl(var(--muted) / 0.8)',
-                    },
-                  }}
-                >
-                  Shuffle Cloud
-                </Button>
-                <Button
-                  fullWidth
-                  size="small"
-                  onClick={() => handleServerModeChange('self-hosted')}
-                  startIcon={<Server size={15} />}
-                  sx={{
-                    borderRadius: 1.5,
-                    py: 0.75,
-                    textTransform: 'none',
-                    fontWeight: 600,
-                    fontSize: '0.825rem',
-                    color:
-                      serverMode === 'self-hosted'
-                        ? '#fff'
-                        : 'hsl(var(--muted-foreground))',
-                    bgcolor:
-                      serverMode === 'self-hosted'
-                        ? '#ff6600'
-                        : 'transparent',
-                    boxShadow:
-                      serverMode === 'self-hosted'
-                        ? '0 2px 8px rgba(255, 102, 0, 0.3)'
-                        : 'none',
-                    '&:hover': {
-                      bgcolor:
-                        serverMode === 'self-hosted'
-                          ? '#e65c00'
-                          : 'hsl(var(--muted) / 0.8)',
-                    },
-                  }}
-                >
-                  Self-Hosted
-                </Button>
-              </Box>
-            )}
-
-            {/* Notice / Alert banners */}
-            {notice && (
-              <Alert
-                severity="info"
-                onClose={() => setNotice('')}
-                sx={{ mb: 2, borderRadius: 2, fontSize: '0.825rem' }}
-              >
-                {notice}
-              </Alert>
-            )}
-
-            {error && (
-              <Alert
-                severity="error"
-                onClose={() => setError('')}
-                sx={{ mb: 2, borderRadius: 2, fontSize: '0.825rem' }}
-              >
-                {error}
-              </Alert>
-            )}
-
-            {ssoError && (
-              <Alert
-                severity="warning"
-                onClose={() => setSsoError('')}
-                sx={{ mb: 2, borderRadius: 2, fontSize: '0.825rem' }}
-              >
-                {ssoError}
-              </Alert>
-            )}
-
-            {/* ---------------------------------------------------------------- */}
-            {/* "WAITING FOR BACKEND / DATABASE" STATE (ON-PREM SELF-HOSTED)    */}
-            {/* ---------------------------------------------------------------- */}
-            {isWaitingForBackend ? (
-              <Box sx={{ textAlign: 'center', py: 2 }}>
+            <CardContent sx={{ p: { xs: 3, sm: 5 } }}>
+              {/* Brand Header */}
+              <Box sx={{ textAlign: 'center', mb: 4 }}>
                 <Box
                   sx={{
-                    display: 'inline-flex',
-                    p: 2,
-                    borderRadius: '50%',
-                    bgcolor: 'hsl(var(--muted))',
-                    mb: 2,
-                    color: '#ff6600',
+                    width: 56,
+                    height: 56,
+                    mx: 'auto',
+                    mb: 3,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}
                 >
-                  <Database size={32} />
+                  {effectiveLogo}
                 </Box>
-
-                <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1, color: 'hsl(var(--foreground))' }}>
-                  Waiting for Shuffle Database
+                <Typography
+                  variant="h5"
+                  component="h1"
+                  sx={{
+                    fontWeight: 600,
+                    color: 'text.primary',
+                    mb: 1,
+                  }}
+                >
+                  {isAdminSetup
+                    ? 'Administrator Setup'
+                    : isResetPasswordMode
+                    ? 'Reset Password'
+                    : isRegister
+                    ? 'Create Account'
+                    : 'Welcome Back!'}
                 </Typography>
-
                 <Typography
                   variant="body2"
                   sx={{
-                    color: 'hsl(var(--muted-foreground))',
-                    fontSize: '0.825rem',
-                    lineHeight: 1.5,
-                    mb: 2.5,
-                    px: 1,
+                    color: 'text.secondary',
+                    lineHeight: 1.6,
                   }}
                 >
-                  Waiting for the Shuffle backend and database to become available. This may take up to two minutes on first startup while migrations run.
+                  {isAdminSetup
+                    ? 'Initialize root administrator credentials for this server'
+                    : isResetPasswordMode
+                    ? "Enter your work email address and we'll send a password reset link."
+                    : isRegister
+                    ? 'Get started with your security operations'
+                    : 'Sign in to manage your cases and alerts'}
                 </Typography>
+              </Box>
 
-                <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-                  <CircularProgress size={32} sx={{ color: '#ff6600' }} />
-                </Box>
-
-                {waitingErrorMessage && (
-                  <Box
-                    sx={{
-                      p: 1.25,
-                      mb: 2.5,
-                      borderRadius: 1.5,
-                      bgcolor: 'hsl(var(--muted) / 0.5)',
-                      border: '1px solid hsl(var(--border))',
-                      fontFamily: 'monospace',
-                      fontSize: '0.75rem',
-                      color: 'hsl(var(--muted-foreground))',
-                      wordBreak: 'break-all',
-                    }}
-                  >
-                    Backend response: {waitingErrorMessage}
-                  </Box>
-                )}
-
-                {/* Troubleshooting instructions box (Classic Shuffle on-prem guide) */}
+              {/* Server Mode Segmented Switcher */}
+              {allowSelfHosted && !mfaRequired && !isResetPasswordMode && !isAdminSetup && (
                 <Box
                   sx={{
-                    textAlign: 'left',
-                    p: 2,
-                    mb: 2.5,
+                    display: 'flex',
+                    p: 0.5,
+                    mb: 3,
                     borderRadius: 2,
-                    bgcolor: 'hsl(var(--muted) / 0.4)',
-                    border: '1px solid hsl(var(--border))',
+                    bgcolor: (t) =>
+                      t.palette.mode === 'dark'
+                        ? 'rgba(255, 255, 255, 0.06)'
+                        : 'rgba(0, 0, 0, 0.04)',
+                    border: '1px solid',
+                    borderColor: 'divider',
                   }}
                 >
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      cursor: 'pointer',
-                    }}
-                    onClick={() => setShowTroubleshooting(!showTroubleshooting)}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <HelpCircle size={16} style={{ color: '#ff6600' }} />
-                      <Typography variant="caption" sx={{ fontWeight: 700, color: 'hsl(var(--foreground))' }}>
-                        Is Shuffle installed correctly?
-                      </Typography>
-                    </Box>
-                    <IconButton size="small" sx={{ p: 0.5 }}>
-                      {showTroubleshooting ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                    </IconButton>
-                  </Box>
-
-                  <Collapse in={showTroubleshooting}>
-                    <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px dashed hsl(var(--border))' }}>
-                      <Typography variant="caption" sx={{ display: 'block', color: 'hsl(var(--muted-foreground))', mb: 1 }}>
-                        <b>1.</b> Make sure the database directory has permissions and you have at least <b>4GB RAM</b>:
-                      </Typography>
-                      <Box
-                        sx={{
-                          p: 1,
-                          mb: 1.5,
-                          borderRadius: 1,
-                          bgcolor: 'hsl(var(--background))',
-                          fontFamily: 'monospace',
-                          fontSize: '0.725rem',
-                          color: '#ff6600',
-                          userSelect: 'all',
-                        }}
-                      >
-                        sudo chown -R 1000:1000 shuffle-database
-                      </Box>
-
-                      <Typography variant="caption" sx={{ display: 'block', color: 'hsl(var(--muted-foreground))', mb: 1 }}>
-                        <b>2.</b> Check that Docker services are running:
-                      </Typography>
-                      <Box
-                        sx={{
-                          p: 1,
-                          mb: 1.5,
-                          borderRadius: 1,
-                          bgcolor: 'hsl(var(--background))',
-                          fontFamily: 'monospace',
-                          fontSize: '0.725rem',
-                          color: '#ff6600',
-                          userSelect: 'all',
-                        }}
-                      >
-                        docker compose ps
-                      </Box>
-                    </Box>
-                  </Collapse>
-                </Box>
-
-                {/* Actions */}
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                   <Button
                     fullWidth
-                    variant="contained"
                     size="small"
-                    onClick={() => checkBackendStatus(true)}
-                    disabled={isPingingHost}
-                    startIcon={<RefreshCw size={15} />}
+                    onClick={() => handleServerModeChange('cloud')}
+                    startIcon={<Cloud size={15} />}
                     sx={{
-                      bgcolor: '#ff6600',
-                      '&:hover': { bgcolor: '#e65c00' },
-                      color: '#fff',
-                      py: 0.9,
+                      borderRadius: 1.5,
+                      py: 0.75,
+                      textTransform: 'none',
                       fontWeight: 600,
-                      textTransform: 'none',
-                    }}
-                  >
-                    {isPingingHost ? 'Checking...' : 'Check Connection Again'}
-                  </Button>
-
-                  <Button
-                    fullWidth
-                    variant="text"
-                    size="small"
-                    onClick={() => {
-                      setIsWaitingForBackend(false);
-                      setWaitingErrorMessage('');
-                    }}
-                    sx={{
-                      textTransform: 'none',
-                      color: 'hsl(var(--muted-foreground))',
-                      fontSize: '0.8rem',
-                    }}
-                  >
-                    Change Server URL or Mode
-                  </Button>
-                </Box>
-              </Box>
-            ) : serverMode === 'self-hosted' && !isAdminSetup && !mfaRequired ? (
-              /* ---------------------------------------------------------------- */
-              /* SELF-HOSTED SERVER CONFIGURATION BAR                             */
-              /* ---------------------------------------------------------------- */
-              <Box
-                sx={{
-                  mb: 2.5,
-                  p: 2,
-                  borderRadius: 2,
-                  bgcolor: 'hsl(var(--muted) / 0.3)',
-                  border: '1px solid hsl(var(--border))',
-                }}
-              >
-                <Typography
-                  variant="caption"
-                  sx={{
-                    display: 'block',
-                    fontWeight: 700,
-                    mb: 1,
-                    color: 'hsl(var(--foreground))',
-                  }}
-                >
-                  Shuffle Server URL
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    placeholder="https://shuffle.example.com:3443"
-                    value={customHostUrl}
-                    onChange={(e) => {
-                      setCustomHostUrl(e.target.value);
-                      setHostPingStatus('idle');
-                      setHostPingMessage('');
-                      setInstanceSsoUrl(null);
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        bgcolor: 'hsl(var(--background))',
-                        fontSize: '0.825rem',
+                      fontSize: '0.825rem',
+                      color: serverMode === 'cloud' ? 'text.primary' : 'text.secondary',
+                      bgcolor: serverMode === 'cloud' ? 'background.paper' : 'transparent',
+                      boxShadow:
+                        serverMode === 'cloud' ? '0 1px 3px rgba(0, 0, 0, 0.12)' : 'none',
+                      border: '1px solid',
+                      borderColor: serverMode === 'cloud' ? 'divider' : 'transparent',
+                      '&:hover': {
+                        bgcolor: serverMode === 'cloud' ? 'background.paper' : 'action.hover',
                       },
                     }}
-                  />
+                  >
+                    Shuffle Cloud
+                  </Button>
                   <Button
-                    variant="outlined"
+                    fullWidth
                     size="small"
-                    onClick={() => handlePingHost()}
-                    disabled={isPingingHost || !customHostUrl.trim()}
+                    onClick={() => handleServerModeChange('self-hosted')}
+                    startIcon={<Server size={15} />}
                     sx={{
-                      minWidth: 80,
+                      borderRadius: 1.5,
+                      py: 0.75,
                       textTransform: 'none',
                       fontWeight: 600,
-                      fontSize: '0.8rem',
-                      borderColor: 'hsl(var(--border))',
-                      color: 'hsl(var(--foreground))',
+                      fontSize: '0.825rem',
+                      color: serverMode === 'self-hosted' ? 'text.primary' : 'text.secondary',
+                      bgcolor: serverMode === 'self-hosted' ? 'background.paper' : 'transparent',
+                      boxShadow:
+                        serverMode === 'self-hosted' ? '0 1px 3px rgba(0, 0, 0, 0.12)' : 'none',
+                      border: '1px solid',
+                      borderColor: serverMode === 'self-hosted' ? 'divider' : 'transparent',
+                      '&:hover': {
+                        bgcolor: serverMode === 'self-hosted' ? 'background.paper' : 'action.hover',
+                      },
                     }}
                   >
-                    {isPingingHost ? <CircularProgress size={16} /> : 'Test'}
+                    Self-Hosted
                   </Button>
                 </Box>
+              )}
 
-                {/* Server Status Feedback */}
-                {hostPingMessage && (
-                  <Box sx={{ mt: 1.5 }}>
-                    {hostPingStatus === 'needs-admin' ? (
-                      <Alert
-                        severity="warning"
-                        sx={{ borderRadius: 1.5, fontSize: '0.8rem' }}
-                        action={
-                          <Button
-                            color="inherit"
-                            size="small"
-                            onClick={() => setAuthMode('adminsetup')}
-                            sx={{ fontWeight: 700, textTransform: 'none' }}
-                          >
-                            Set Up Admin
-                          </Button>
-                        }
-                      >
-                        {hostPingMessage}
-                      </Alert>
-                    ) : hostPingStatus === 'success' ? (
-                      <Alert severity="success" sx={{ borderRadius: 1.5, fontSize: '0.8rem' }}>
-                        {hostPingMessage}
-                      </Alert>
-                    ) : (
-                      <Alert severity="error" sx={{ borderRadius: 1.5, fontSize: '0.8rem' }}>
-                        {hostPingMessage}
-                      </Alert>
-                    )}
-                  </Box>
-                )}
+              {/* Notice / Alert banners */}
+              {notice && (
+                <Alert
+                  severity="info"
+                  onClose={() => setNotice('')}
+                  sx={{
+                    mb: 3,
+                    bgcolor: (t) => `${t.palette.primary.main}14`,
+                    color: 'primary.main',
+                    border: '1px solid',
+                    borderColor: (t) => `${t.palette.primary.main}4D`,
+                    borderRadius: 1.5,
+                    '& .MuiAlert-icon': { color: 'primary.main' },
+                  }}
+                >
+                  {notice}
+                </Alert>
+              )}
 
-                {/* Instance SSO detected via /api/v1/checkusers */}
-                {instanceSsoUrl && (
-                  <Box sx={{ mt: 1.5, pt: 1, borderTop: '1px dashed hsl(var(--border))' }}>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: '#10b981',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 0.75,
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                      }}
-                    >
-                      <CheckCircle2 size={14} />
-                      Single Sign-On is enabled on this instance
-                    </Typography>
-                  </Box>
-                )}
-              </Box>
-            ) : null}
+              {error && (
+                <Alert
+                  severity="error"
+                  onClose={() => setError('')}
+                  sx={{
+                    mb: 3,
+                    bgcolor: (t) => `${t.palette.error.main}14`,
+                    color: 'error.main',
+                    border: '1px solid',
+                    borderColor: (t) => `${t.palette.error.main}4D`,
+                    borderRadius: 1.5,
+                    '& .MuiAlert-icon': { color: 'error.main' },
+                  }}
+                >
+                  {error}
+                </Alert>
+              )}
 
-            {/* ---------------------------------------------------------------- */}
-            {/* MFA PROMPT SECTION */}
-            {/* ---------------------------------------------------------------- */}
-            {mfaRequired ? (
-              <form onSubmit={handlePrimaryFormSubmit}>
-                <Box sx={{ textAlign: 'center', mb: 3 }}>
+              {ssoError && (
+                <Alert
+                  severity="warning"
+                  onClose={() => setSsoError('')}
+                  sx={{
+                    mb: 3,
+                    bgcolor: (t) => `${t.palette.warning.main}14`,
+                    color: 'warning.main',
+                    border: '1px solid',
+                    borderColor: (t) => `${t.palette.warning.main}4D`,
+                    borderRadius: 1.5,
+                    '& .MuiAlert-icon': { color: 'warning.main' },
+                  }}
+                >
+                  {ssoError}
+                </Alert>
+              )}
+
+              {/* Waiting for Backend state */}
+              {isWaitingForBackend ? (
+                <Box sx={{ textAlign: 'center', py: 2 }}>
                   <Box
                     sx={{
                       display: 'inline-flex',
-                      p: 1.25,
+                      p: 2,
                       borderRadius: '50%',
-                      bgcolor: 'hsl(var(--muted))',
-                      mb: 1.5,
-                      color: '#ff6600',
+                      bgcolor: 'action.hover',
+                      mb: 2,
+                      color: 'primary.main',
                     }}
                   >
-                    <KeyRound size={28} />
+                    <Database size={32} />
                   </Box>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                    Two-Factor Authentication
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.825rem' }}>
-                    Enter the 6-digit code from your authenticator app
-                  </Typography>
-                </Box>
 
-                <Box sx={{ mb: 3 }}>
-                  <TextField
-                    fullWidth
-                    inputRef={mfaInputRef}
-                    size="small"
-                    placeholder="123456"
-                    value={mfaCode}
-                    onChange={(e) => handleMfaChange(e.target.value)}
-                    inputProps={{
-                      maxLength: 6,
-                      inputMode: 'numeric',
-                      pattern: '[0-9]*',
-                      style: { textAlign: 'center', letterSpacing: '0.35em', fontSize: '1.25rem', fontWeight: 700 },
-                    }}
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1, color: 'text.primary' }}>
+                    Waiting for Shuffle Database
+                  </Typography>
+
+                  <Typography
+                    variant="body2"
                     sx={{
-                      '& .MuiOutlinedInput-root': {
-                        bgcolor: 'hsl(var(--background))',
-                      },
+                      color: 'text.secondary',
+                      fontSize: '0.85rem',
+                      lineHeight: 1.5,
+                      mb: 2.5,
+                      px: 1,
                     }}
-                  />
-                </Box>
-
-                <Button
-                  type="submit"
-                  fullWidth
-                  variant="contained"
-                  disabled={loading || mfaCode.length < 6}
-                  sx={{
-                    bgcolor: '#ff6600',
-                    '&:hover': { bgcolor: '#e65c00' },
-                    color: '#fff',
-                    py: 1,
-                    fontWeight: 600,
-                    textTransform: 'none',
-                  }}
-                >
-                  {loading ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Verify & Sign In'}
-                </Button>
-
-                <Box sx={{ textAlign: 'center', mt: 2 }}>
-                  <Button
-                    size="small"
-                    onClick={() => {
-                      setMfaRequired(false);
-                      setMfaCode('');
-                      setError('');
-                    }}
-                    startIcon={<ArrowLeft size={14} />}
-                    sx={{ textTransform: 'none', color: 'hsl(var(--muted-foreground))', fontSize: '0.8rem' }}
                   >
-                    Back to credentials
-                  </Button>
-                </Box>
-              </form>
-            ) : isResetPasswordMode ? (
-              /* -------------------------------------------------------------- */
-              /* CLOUD PASSWORD RESET SECTION */
-              /* -------------------------------------------------------------- */
-              <form onSubmit={handlePrimaryFormSubmit}>
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
-                    Reset your password
+                    Waiting for the Shuffle backend and database to become available. This may take up to two minutes on first startup while migrations run.
                   </Typography>
-                  <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.825rem' }}>
-                    Enter your work email address and we'll send a password reset link.
-                  </Typography>
-                </Box>
 
-                {resetEmailSent ? (
-                  <Box sx={{ textAlign: 'center', py: 2 }}>
-                    <CheckCircle2 size={40} style={{ color: '#22c55e', margin: '0 auto 8px auto' }} />
-                    <Typography variant="body2" sx={{ color: 'hsl(var(--foreground))', mb: 2 }}>
-                      {resetEmailSuccessMsg}
-                    </Typography>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      onClick={() => {
-                        setIsResetPasswordMode(false);
-                        setResetEmailSent(false);
-                      }}
-                      sx={{ textTransform: 'none', fontWeight: 600 }}
-                    >
-                      Return to sign in
-                    </Button>
+                  <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+                    <CircularProgress size={32} color="primary" />
                   </Box>
-                ) : (
-                  <>
-                    <Box sx={{ mb: 2.5 }}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        autoFocus
-                        type="email"
-                        placeholder="user@company.com"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        disabled={loading}
-                        sx={{
-                          '& .MuiOutlinedInput-root': { bgcolor: 'hsl(var(--background))' },
-                        }}
-                      />
-                    </Box>
 
-                    <Button
-                      type="submit"
-                      fullWidth
-                      variant="contained"
-                      disabled={loading || !username.trim()}
+                  {waitingErrorMessage && (
+                    <Box
                       sx={{
-                        bgcolor: '#ff6600',
-                        '&:hover': { bgcolor: '#e65c00' },
-                        color: '#fff',
-                        py: 1,
-                        fontWeight: 600,
-                        textTransform: 'none',
-                        mb: 2,
+                        p: 1.25,
+                        mb: 2.5,
+                        borderRadius: 1.5,
+                        bgcolor: 'action.hover',
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        fontFamily: 'monospace',
+                        fontSize: '0.75rem',
+                        color: 'text.secondary',
+                        wordBreak: 'break-all',
                       }}
                     >
-                      {loading ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Send Reset Link'}
-                    </Button>
-
-                    <Box sx={{ textAlign: 'center' }}>
-                      <Button
-                        size="small"
-                        onClick={() => setIsResetPasswordMode(false)}
-                        startIcon={<ArrowLeft size={14} />}
-                        sx={{ textTransform: 'none', color: 'hsl(var(--muted-foreground))', fontSize: '0.8rem' }}
-                      >
-                        Cancel
-                      </Button>
+                      Backend response: {waitingErrorMessage}
                     </Box>
-                  </>
-                )}
-              </form>
-            ) : isAdminSetup ? (
-              /* -------------------------------------------------------------- */
-              /* ADMINISTRATOR SETUP FORM (SINGLE-PAGE RELEVANT FIELDS)         */
-              /* -------------------------------------------------------------- */
-              <form onSubmit={handlePrimaryFormSubmit}>
-                <Box sx={{ mb: 2.5 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5, color: 'hsl(var(--foreground))' }}>
-                    Create Administrator Account
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.825rem' }}>
-                    Initialize the root administrator credentials for this self-hosted Shuffle server.
-                  </Typography>
-                </Box>
-
-                {/* Administrator Username / Email */}
-                <Box sx={{ mb: 2 }}>
-                  <Typography
-                    variant="caption"
-                    sx={{ display: 'block', mb: 0.75, fontWeight: 600, color: 'hsl(var(--foreground))' }}
-                  >
-                    Administrator Username or Email
-                  </Typography>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    autoFocus
-                    placeholder="admin"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    disabled={loading || adminSetupSuccess}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <User size={16} style={{ color: 'hsl(var(--muted-foreground))' }} />
-                        </InputAdornment>
-                      ),
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': { bgcolor: 'hsl(var(--background))' },
-                    }}
-                  />
-                </Box>
-
-                {/* Administrator Password */}
-                <Box sx={{ mb: 2 }}>
-                  <Typography
-                    variant="caption"
-                    sx={{ display: 'block', mb: 0.75, fontWeight: 600, color: 'hsl(var(--foreground))' }}
-                  >
-                    Password
-                  </Typography>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="••••••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={loading || adminSetupSuccess}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <Lock size={16} style={{ color: 'hsl(var(--muted-foreground))' }} />
-                        </InputAdornment>
-                      ),
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton
-                            size="small"
-                            onClick={() => setShowPassword(!showPassword)}
-                            edge="end"
-                            sx={{ color: 'hsl(var(--muted-foreground))' }}
-                          >
-                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': { bgcolor: 'hsl(var(--background))' },
-                    }}
-                  />
-                </Box>
-
-                {/* Confirm Password */}
-                <Box sx={{ mb: 2.5 }}>
-                  <Typography
-                    variant="caption"
-                    sx={{ display: 'block', mb: 0.75, fontWeight: 600, color: 'hsl(var(--foreground))' }}
-                  >
-                    Confirm Password
-                  </Typography>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    placeholder="••••••••••••"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    disabled={loading || adminSetupSuccess}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <Lock size={16} style={{ color: 'hsl(var(--muted-foreground))' }} />
-                        </InputAdornment>
-                      ),
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton
-                            size="small"
-                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            edge="end"
-                            sx={{ color: 'hsl(var(--muted-foreground))' }}
-                          >
-                            {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': { bgcolor: 'hsl(var(--background))' },
-                    }}
-                  />
-                </Box>
-
-                {/* Submit button */}
-                <Button
-                  type="submit"
-                  fullWidth
-                  variant="contained"
-                  disabled={loading || adminSetupSuccess || !username.trim() || !password}
-                  sx={{
-                    bgcolor: '#ff6600',
-                    '&:hover': { bgcolor: '#e65c00' },
-                    color: '#fff',
-                    py: 1.1,
-                    fontWeight: 600,
-                    textTransform: 'none',
-                    fontSize: '0.9rem',
-                    mb: 2,
-                    boxShadow: '0 4px 14px rgba(255, 102, 0, 0.3)',
-                  }}
-                >
-                  {loading ? (
-                    <CircularProgress size={20} sx={{ color: '#fff' }} />
-                  ) : (
-                    'Create Administrator Account'
                   )}
-                </Button>
 
-                {/* Back to sign in link */}
-                <Box sx={{ textAlign: 'center' }}>
-                  <Button
-                    variant="text"
-                    size="small"
-                    onClick={() => {
-                      setAuthMode('login');
-                      setError('');
-                    }}
-                    startIcon={<ArrowLeft size={14} />}
+                  <Box
                     sx={{
-                      p: 0,
-                      minWidth: 'auto',
-                      textTransform: 'none',
-                      fontWeight: 600,
-                      color: 'hsl(var(--muted-foreground))',
-                      fontSize: '0.8rem',
-                      '&:hover': { color: 'hsl(var(--foreground))' },
+                      textAlign: 'left',
+                      p: 2,
+                      mb: 2.5,
+                      borderRadius: 1.5,
+                      bgcolor: 'action.hover',
+                      border: '1px solid',
+                      borderColor: 'divider',
                     }}
                   >
-                    Back to regular sign in
-                  </Button>
-                </Box>
-              </form>
-            ) : (
-              /* -------------------------------------------------------------- */
-              /* STANDARD LOGIN / REGISTER FORM */
-              /* -------------------------------------------------------------- */
-              <form onSubmit={handlePrimaryFormSubmit}>
-                {/* Username / Email field */}
-                <Box sx={{ mb: 2 }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      display: 'block',
-                      mb: 0.75,
-                      fontWeight: 600,
-                      color: 'hsl(var(--foreground))',
-                    }}
-                  >
-                    {identifierLabel}
-                  </Typography>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    autoFocus
-                    autoComplete={serverMode === 'cloud' ? 'email' : 'username'}
-                    type={serverMode === 'cloud' ? 'email' : 'text'}
-                    placeholder={serverMode === 'cloud' ? 'name@company.com' : 'username or email'}
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    disabled={loading}
-                    error={Boolean(cloudEmailInvalid)}
-                    helperText={cloudEmailInvalid ? 'Please enter a valid work email address' : ''}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          {serverMode === 'cloud' ? (
-                            <Mail size={16} style={{ color: 'hsl(var(--muted-foreground))' }} />
-                          ) : (
-                            <User size={16} style={{ color: 'hsl(var(--muted-foreground))' }} />
-                          )}
-                        </InputAdornment>
-                      ),
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': { bgcolor: 'hsl(var(--background))' },
-                    }}
-                  />
-                </Box>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        cursor: 'pointer',
+                      }}
+                      onClick={() => setShowTroubleshooting(!showTroubleshooting)}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <HelpCircle size={16} style={{ color: primaryColor }} />
+                        <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                          Is Shuffle installed correctly?
+                        </Typography>
+                      </Box>
+                      <IconButton size="small" sx={{ p: 0.5 }}>
+                        {showTroubleshooting ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      </IconButton>
+                    </Box>
 
-                {/* Password field: hidden in Cloud SSO mode */}
-                {!(serverMode === 'cloud' && loginWithSSO) && (
-                  <Box sx={{ mb: 1.5 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.75 }}>
-                      <Typography
-                        variant="caption"
-                        sx={{ fontWeight: 600, color: 'hsl(var(--foreground))' }}
-                      >
-                        Password
-                      </Typography>
-                      {serverMode === 'cloud' && !isRegister && (
-                        <Button
-                          variant="text"
-                          size="small"
-                          onClick={() => {
-                            setIsResetPasswordMode(true);
-                            setError('');
-                          }}
+                    <Collapse in={showTroubleshooting}>
+                      <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px dashed', borderColor: 'divider' }}>
+                        <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', mb: 1 }}>
+                          <b>1.</b> Make sure the database directory has permissions and you have at least <b>4GB RAM</b>:
+                        </Typography>
+                        <Box
                           sx={{
-                            p: 0,
-                            minWidth: 'auto',
-                            textTransform: 'none',
-                            fontSize: '0.75rem',
-                            color: '#ff6600',
-                            '&:hover': { bgcolor: 'transparent', textDecoration: 'underline' },
+                            p: 1,
+                            mb: 1.5,
+                            borderRadius: 1,
+                            bgcolor: 'background.paper',
+                            fontFamily: 'monospace',
+                            fontSize: '0.725rem',
+                            color: 'primary.main',
+                            userSelect: 'all',
                           }}
                         >
-                          Forgot password?
-                        </Button>
-                      )}
-                    </Box>
+                          sudo chown -R 1000:1000 shuffle-database
+                        </Box>
+
+                        <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', mb: 1 }}>
+                          <b>2.</b> Check that Docker services are running:
+                        </Typography>
+                        <Box
+                          sx={{
+                            p: 1,
+                            mb: 1.5,
+                            borderRadius: 1,
+                            bgcolor: 'background.paper',
+                            fontFamily: 'monospace',
+                            fontSize: '0.725rem',
+                            color: 'primary.main',
+                            userSelect: 'all',
+                          }}
+                        >
+                          docker compose ps
+                        </Box>
+                      </Box>
+                    </Collapse>
+                  </Box>
+
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      onClick={() => checkBackendStatus(true)}
+                      disabled={isPingingHost}
+                      startIcon={<RefreshCw size={15} />}
+                      sx={{
+                        py: 1.2,
+                        bgcolor: 'primary.main',
+                        color: 'primary.contrastText',
+                        fontWeight: 600,
+                        textTransform: 'none',
+                        borderRadius: 1.5,
+                        boxShadow: 'none',
+                        '&:hover': { bgcolor: 'primary.dark', boxShadow: 'none' },
+                      }}
+                    >
+                      {isPingingHost ? 'Checking...' : 'Check Connection Again'}
+                    </Button>
+
+                    <Button
+                      fullWidth
+                      variant="text"
+                      size="small"
+                      onClick={() => {
+                        setIsWaitingForBackend(false);
+                        setWaitingErrorMessage('');
+                      }}
+                      sx={{
+                        textTransform: 'none',
+                        color: 'text.secondary',
+                        fontSize: '0.85rem',
+                      }}
+                    >
+                      Change Server URL or Mode
+                    </Button>
+                  </Box>
+                </Box>
+              ) : serverMode === 'self-hosted' && !isAdminSetup && !mfaRequired ? (
+                /* Self-hosted server URL section */
+                <Box
+                  sx={{
+                    mb: 3,
+                    p: 2,
+                    borderRadius: 2,
+                    bgcolor: (t) =>
+                      t.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                  }}
+                >
+                  <Typography
+                    component="label"
+                    sx={{
+                      display: 'block',
+                      fontWeight: 500,
+                      fontSize: '0.875rem',
+                      mb: 1,
+                      color: 'text.primary',
+                    }}
+                  >
+                    Shuffle Server URL
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
                     <TextField
                       fullWidth
                       size="small"
+                      placeholder="https://shuffle.example.com:3443"
+                      value={customHostUrl}
+                      onChange={(e) => {
+                        setCustomHostUrl(e.target.value);
+                        setHostPingStatus('idle');
+                        setHostPingMessage('');
+                        setInstanceSsoUrl(null);
+                      }}
+                      sx={inputSx}
+                    />
+                    <Button
+                      variant="outlined"
+                      onClick={() => handlePingHost()}
+                      disabled={isPingingHost || !customHostUrl.trim()}
+                      sx={{
+                        minWidth: 80,
+                        textTransform: 'none',
+                        fontWeight: 600,
+                        borderColor: 'divider',
+                        color: 'text.primary',
+                        borderRadius: 1.5,
+                        '&:hover': {
+                          borderColor: 'text.primary',
+                          bgcolor: 'action.hover',
+                        },
+                      }}
+                    >
+                      {isPingingHost ? <CircularProgress size={16} /> : 'Test'}
+                    </Button>
+                  </Box>
+
+                  {hostPingMessage && (
+                    <Box sx={{ mt: 1.5 }}>
+                      {hostPingStatus === 'needs-admin' ? (
+                        <Alert
+                          severity="warning"
+                          sx={{ borderRadius: 1.5, fontSize: '0.8rem' }}
+                          action={
+                            <Button
+                              color="inherit"
+                              size="small"
+                              onClick={() => setAuthMode('adminsetup')}
+                              sx={{ fontWeight: 700, textTransform: 'none' }}
+                            >
+                              Set Up Admin
+                            </Button>
+                          }
+                        >
+                          {hostPingMessage}
+                        </Alert>
+                      ) : hostPingStatus === 'success' ? (
+                        <Alert severity="success" sx={{ borderRadius: 1.5, fontSize: '0.8rem' }}>
+                          {hostPingMessage}
+                        </Alert>
+                      ) : (
+                        <Alert severity="error" sx={{ borderRadius: 1.5, fontSize: '0.8rem' }}>
+                          {hostPingMessage}
+                        </Alert>
+                      )}
+                    </Box>
+                  )}
+
+                  {instanceSsoUrl && (
+                    <Box sx={{ mt: 1.5, pt: 1, borderTop: '1px dashed', borderColor: 'divider' }}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: 'success.main',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 0.75,
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                        }}
+                      >
+                        <CheckCircle2 size={14} />
+                        Single Sign-On is enabled on this instance
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+              ) : null}
+
+              {/* MFA PROMPT SECTION */}
+              {mfaRequired ? (
+                <Box component="form" onSubmit={handlePrimaryFormSubmit}>
+                  <Box sx={{ mb: 4 }}>
+                    <Typography
+                      component="label"
+                      sx={{
+                        display: 'block',
+                        mb: 1,
+                        fontSize: '0.875rem',
+                        fontWeight: 500,
+                        color: 'text.primary',
+                        textAlign: 'center',
+                      }}
+                    >
+                      MFA Code
+                    </Typography>
+                    <TextField
+                      fullWidth
+                      autoFocus
+                      inputRef={mfaInputRef}
+                      placeholder="000000"
+                      value={mfaCode}
+                      onChange={(e) => handleMfaChange(e.target.value)}
+                      inputProps={{
+                        maxLength: 6,
+                        inputMode: 'numeric',
+                        pattern: '[0-9]*',
+                        style: {
+                          textAlign: 'center',
+                          letterSpacing: '0.35em',
+                          fontSize: '1.5rem',
+                          fontWeight: 700,
+                        },
+                      }}
+                      sx={inputSx}
+                    />
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        display: 'block',
+                        mt: 1,
+                        color: 'text.secondary',
+                        textAlign: 'center',
+                      }}
+                    >
+                      Enter the 6-digit code from your authenticator app
+                    </Typography>
+                  </Box>
+
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    size="large"
+                    fullWidth
+                    disabled={loading || mfaCode.length < 6}
+                    sx={{
+                      py: 1.5,
+                      bgcolor: 'primary.main',
+                      color: 'primary.contrastText',
+                      fontWeight: 600,
+                      textTransform: 'none',
+                      fontSize: '1rem',
+                      borderRadius: 1.5,
+                      boxShadow: 'none',
+                      '&:hover': { bgcolor: 'primary.dark', boxShadow: 'none' },
+                    }}
+                  >
+                    {loading ? <CircularProgress size={24} color="inherit" /> : 'Verify & Continue'}
+                  </Button>
+
+                  <Box sx={{ textAlign: 'center', mt: 2 }}>
+                    <Button
+                      size="small"
+                      onClick={() => {
+                        setMfaRequired(false);
+                        setMfaCode('');
+                        setError('');
+                      }}
+                      startIcon={<ArrowLeft size={14} />}
+                      sx={{
+                        textTransform: 'none',
+                        fontSize: '0.875rem',
+                        color: 'text.secondary',
+                        '&:hover': { color: 'text.primary' },
+                      }}
+                    >
+                      Back to credentials
+                    </Button>
+                  </Box>
+                </Box>
+              ) : isResetPasswordMode ? (
+                /* PASSWORD RESET SECTION */
+                <Box component="form" onSubmit={handlePrimaryFormSubmit}>
+                  {resetEmailSent ? (
+                    <Box sx={{ textAlign: 'center', py: 2 }}>
+                      <CheckCircle2 size={40} style={{ color: '#22c55e', margin: '0 auto 12px auto' }} />
+                      <Typography variant="body1" sx={{ color: 'text.primary', fontWeight: 600, mb: 1 }}>
+                        Check your email
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
+                        {resetEmailSuccessMsg}
+                      </Typography>
+                      <Button
+                        variant="outlined"
+                        onClick={() => {
+                          setIsResetPasswordMode(false);
+                          setResetEmailSent(false);
+                        }}
+                        sx={{
+                          textTransform: 'none',
+                          fontWeight: 600,
+                          borderRadius: 1.5,
+                          borderColor: 'divider',
+                          color: 'text.primary',
+                        }}
+                      >
+                        Return to sign in
+                      </Button>
+                    </Box>
+                  ) : (
+                    <>
+                      <Box sx={{ mb: 3 }}>
+                        <Typography
+                          component="label"
+                          sx={{
+                            display: 'block',
+                            mb: 1,
+                            fontSize: '0.875rem',
+                            fontWeight: 500,
+                            color: 'text.primary',
+                          }}
+                        >
+                          Work Email
+                        </Typography>
+                        <TextField
+                          fullWidth
+                          autoFocus
+                          type="email"
+                          placeholder="name@company.com"
+                          value={username}
+                          onChange={(e) => setUsername(e.target.value)}
+                          disabled={loading}
+                          required
+                          sx={inputSx}
+                        />
+                      </Box>
+
+                      <Button
+                        type="submit"
+                        variant="contained"
+                        size="large"
+                        fullWidth
+                        disabled={loading || !username.trim()}
+                        sx={{
+                          py: 1.5,
+                          bgcolor: 'primary.main',
+                          color: 'primary.contrastText',
+                          fontWeight: 600,
+                          textTransform: 'none',
+                          fontSize: '1rem',
+                          borderRadius: 1.5,
+                          boxShadow: 'none',
+                          '&:hover': { bgcolor: 'primary.dark', boxShadow: 'none' },
+                        }}
+                      >
+                        {loading ? <CircularProgress size={24} color="inherit" /> : 'Send Reset Link'}
+                      </Button>
+
+                      <Box sx={{ textAlign: 'center', mt: 2 }}>
+                        <Button
+                          size="small"
+                          onClick={() => setIsResetPasswordMode(false)}
+                          startIcon={<ArrowLeft size={14} />}
+                          sx={{
+                            textTransform: 'none',
+                            fontSize: '0.875rem',
+                            color: 'text.secondary',
+                            '&:hover': { color: 'text.primary' },
+                          }}
+                        >
+                          Back to Sign In
+                        </Button>
+                      </Box>
+                    </>
+                  )}
+                </Box>
+              ) : isAdminSetup ? (
+                /* ADMIN SETUP SECTION */
+                <Box component="form" onSubmit={handlePrimaryFormSubmit}>
+                  <Box sx={{ mb: 2.5 }}>
+                    <Typography
+                      component="label"
+                      sx={{
+                        display: 'block',
+                        mb: 1,
+                        fontSize: '0.875rem',
+                        fontWeight: 500,
+                        color: 'text.primary',
+                      }}
+                    >
+                      Administrator Username or Email
+                    </Typography>
+                    <TextField
+                      fullWidth
+                      autoFocus
+                      placeholder="admin"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      disabled={loading || adminSetupSuccess}
+                      required
+                      sx={inputSx}
+                    />
+                  </Box>
+
+                  <Box sx={{ mb: 2.5 }}>
+                    <Typography
+                      component="label"
+                      sx={{
+                        display: 'block',
+                        mb: 1,
+                        fontSize: '0.875rem',
+                        fontWeight: 500,
+                        color: 'text.primary',
+                      }}
+                    >
+                      Password
+                    </Typography>
+                    <TextField
+                      fullWidth
                       type={showPassword ? 'text' : 'password'}
-                      autoComplete={isRegister ? 'new-password' : 'current-password'}
                       placeholder="••••••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      disabled={loading}
+                      disabled={loading || adminSetupSuccess}
+                      required
                       InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Lock size={16} style={{ color: 'hsl(var(--muted-foreground))' }} />
-                          </InputAdornment>
-                        ),
                         endAdornment: (
                           <InputAdornment position="end">
                             <IconButton
-                              size="small"
                               onClick={() => setShowPassword(!showPassword)}
                               edge="end"
-                              sx={{ color: 'hsl(var(--muted-foreground))' }}
+                              sx={{ color: 'text.secondary' }}
                             >
-                              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                             </IconButton>
                           </InputAdornment>
                         ),
                       }}
-                      sx={{
-                        '& .MuiOutlinedInput-root': { bgcolor: 'hsl(var(--background))' },
-                      }}
+                      sx={inputSx}
                     />
                   </Box>
-                )}
 
-                {/* Terms Acceptance (Register Mode Only) */}
-                {isRegister && (
-                  <Box sx={{ mb: 2 }}>
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          size="small"
-                          checked={termsAccepted}
-                          onChange={(e) => setTermsAccepted(e.target.checked)}
-                          sx={{ color: '#ff6600', '&.Mui-checked': { color: '#ff6600' } }}
-                        />
-                      }
-                      label={
-                        <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
-                          I agree to Shuffle's{' '}
-                          <a
-                            href="https://shuffler.io/docs/terms_of_service"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ color: '#ff6600', textDecoration: 'underline' }}
-                          >
-                            Terms of Service
-                          </a>
+                  <Box sx={{ mb: 3 }}>
+                    <Typography
+                      component="label"
+                      sx={{
+                        display: 'block',
+                        mb: 1,
+                        fontSize: '0.875rem',
+                        fontWeight: 500,
+                        color: 'text.primary',
+                      }}
+                    >
+                      Confirm Password
+                    </Typography>
+                    <TextField
+                      fullWidth
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      placeholder="••••••••••••"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      disabled={loading || adminSetupSuccess}
+                      required
+                      InputProps={{
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton
+                              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                              edge="end"
+                              sx={{ color: 'text.secondary' }}
+                            >
+                              {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={inputSx}
+                    />
+                  </Box>
+
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    size="large"
+                    fullWidth
+                    disabled={loading || adminSetupSuccess || !username.trim() || !password}
+                    sx={{
+                      py: 1.5,
+                      bgcolor: 'primary.main',
+                      color: 'primary.contrastText',
+                      fontWeight: 600,
+                      textTransform: 'none',
+                      fontSize: '1rem',
+                      borderRadius: 1.5,
+                      boxShadow: 'none',
+                      '&:hover': { bgcolor: 'primary.dark', boxShadow: 'none' },
+                    }}
+                  >
+                    {loading ? (
+                      <CircularProgress size={24} color="inherit" />
+                    ) : (
+                      'Create Administrator Account'
+                    )}
+                  </Button>
+
+                  <Box sx={{ textAlign: 'center', mt: 2 }}>
+                    <Button
+                      variant="text"
+                      size="small"
+                      onClick={() => {
+                        setAuthMode('login');
+                        setError('');
+                      }}
+                      startIcon={<ArrowLeft size={14} />}
+                      sx={{
+                        textTransform: 'none',
+                        fontWeight: 500,
+                        color: 'text.secondary',
+                        fontSize: '0.875rem',
+                        '&:hover': { color: 'text.primary' },
+                      }}
+                    >
+                      Back to regular sign in
+                    </Button>
+                  </Box>
+                </Box>
+              ) : (
+                /* STANDARD LOGIN / REGISTER FORM */
+                <Box component="form" onSubmit={handlePrimaryFormSubmit}>
+                  {/* Identifier field */}
+                  <Box sx={{ mb: 2.5 }}>
+                    <Typography
+                      component="label"
+                      sx={{
+                        display: 'block',
+                        mb: 1,
+                        fontSize: '0.875rem',
+                        fontWeight: 500,
+                        color: 'text.primary',
+                      }}
+                    >
+                      {serverMode === 'cloud' ? 'Work Email' : 'Username or Email'}
+                    </Typography>
+                    <TextField
+                      fullWidth
+                      autoFocus
+                      autoComplete={serverMode === 'cloud' ? 'email' : 'username'}
+                      type={serverMode === 'cloud' ? 'email' : 'text'}
+                      placeholder={serverMode === 'cloud' ? 'name@company.com' : 'username or email'}
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      disabled={loading}
+                      required
+                      error={Boolean(cloudEmailInvalid)}
+                      helperText={cloudEmailInvalid ? 'Please enter a valid work email address' : ''}
+                      sx={inputSx}
+                    />
+                  </Box>
+
+                  {/* Password field: hidden in Cloud SSO mode */}
+                  {!(serverMode === 'cloud' && loginWithSSO) && (
+                    <Box sx={{ mb: isRegister ? 2.5 : 3.5 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                        <Typography
+                          component="label"
+                          sx={{
+                            display: 'block',
+                            fontSize: '0.875rem',
+                            fontWeight: 500,
+                            color: 'text.primary',
+                          }}
+                        >
+                          Password
                         </Typography>
-                      }
-                    />
-                  </Box>
-                )}
-
-                {/* Submit Button */}
-                <Button
-                  type="submit"
-                  fullWidth
-                  variant="contained"
-                  disabled={
-                    serverMode === 'cloud' && loginWithSSO
-                      ? ssoLoading || !username.trim() || !isValidEmail(username)
-                      : loading || Boolean(cloudEmailInvalid)
-                  }
-                  sx={{
-                    bgcolor: '#ff6600',
-                    '&:hover': { bgcolor: '#e65c00' },
-                    color: '#fff',
-                    py: 1.1,
-                    fontWeight: 600,
-                    textTransform: 'none',
-                    fontSize: '0.9rem',
-                    mb: serverMode === 'cloud' && loginWithSSO ? 1.5 : 2,
-                    boxShadow: '0 4px 14px rgba(255, 102, 0, 0.3)',
-                  }}
-                >
-                  {ssoLoading || loading ? (
-                    <CircularProgress size={20} sx={{ color: '#fff' }} />
-                  ) : serverMode === 'cloud' && loginWithSSO ? (
-                    'Continue with SSO'
-                  ) : isRegister ? (
-                    'Create Account'
-                  ) : (
-                    'Sign In'
+                        {serverMode === 'cloud' && !isRegister && (
+                          <Button
+                            variant="text"
+                            size="small"
+                            onClick={() => {
+                              setIsResetPasswordMode(true);
+                              setError('');
+                              setResetEmailSent(false);
+                            }}
+                            sx={{
+                              p: 0,
+                              minWidth: 'auto',
+                              textTransform: 'none',
+                              fontSize: '0.75rem',
+                              color: 'primary.main',
+                              fontWeight: 500,
+                              '&:hover': { bgcolor: 'transparent', textDecoration: 'underline' },
+                            }}
+                          >
+                            Forgot password?
+                          </Button>
+                        )}
+                      </Box>
+                      <TextField
+                        fullWidth
+                        type={showPassword ? 'text' : 'password'}
+                        autoComplete={isRegister ? 'new-password' : 'current-password'}
+                        placeholder="••••••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        disabled={loading}
+                        required
+                        InputProps={{
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <IconButton
+                                onClick={() => setShowPassword(!showPassword)}
+                                edge="end"
+                                sx={{ color: 'text.secondary' }}
+                              >
+                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                              </IconButton>
+                            </InputAdornment>
+                          ),
+                        }}
+                        sx={inputSx}
+                      />
+                    </Box>
                   )}
-                </Button>
 
-                {/* Back to password sign-in for Cloud SSO */}
-                {serverMode === 'cloud' && loginWithSSO && (
-                  <Box sx={{ textAlign: 'center', mb: 1 }}>
-                    <Button
-                      variant="text"
-                      size="small"
-                      onClick={() => {
-                        setLoginWithSSO(false);
-                        setSsoError('');
-                        setError('');
-                      }}
-                      sx={{
-                        textTransform: 'none',
-                        color: 'hsl(var(--muted-foreground))',
-                        fontSize: '0.8rem',
-                        '&:hover': { color: 'hsl(var(--foreground))', bgcolor: 'transparent', textDecoration: 'underline' },
-                      }}
-                    >
-                      Sign in with password instead
-                    </Button>
-                  </Box>
-                )}
-
-                {/* SSO Button for Cloud: switches to passwordless work email SSO flow */}
-                {serverMode === 'cloud' && !isRegister && !loginWithSSO && (
-                  <>
-                    <Box sx={{ display: 'flex', alignItems: 'center', my: 2 }}>
-                      <Box sx={{ flex: 1, height: '1px', bgcolor: 'hsl(var(--border))' }} />
-                      <Typography variant="caption" sx={{ px: 1.5, color: 'hsl(var(--muted-foreground))' }}>
-                        OR
+                  {/* Confirm Password (Register Mode Only) */}
+                  {isRegister && (
+                    <Box sx={{ mb: 2.5 }}>
+                      <Typography
+                        component="label"
+                        sx={{
+                          display: 'block',
+                          mb: 1,
+                          fontSize: '0.875rem',
+                          fontWeight: 500,
+                          color: 'text.primary',
+                        }}
+                      >
+                        Confirm Password
                       </Typography>
-                      <Box sx={{ flex: 1, height: '1px', bgcolor: 'hsl(var(--border))' }} />
+                      <TextField
+                        fullWidth
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        placeholder="••••••••••••"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        disabled={loading}
+                        required
+                        autoComplete="new-password"
+                        InputProps={{
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <IconButton
+                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                edge="end"
+                                sx={{ color: 'text.secondary' }}
+                              >
+                                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                              </IconButton>
+                            </InputAdornment>
+                          ),
+                        }}
+                        sx={inputSx}
+                      />
                     </Box>
+                  )}
 
-                    <Button
-                      fullWidth
-                      id="sso_button"
-                      variant="outlined"
-                      size="small"
-                      onClick={() => {
-                        setLoginWithSSO(true);
-                        setPassword('');
-                        setError('');
-                        setSsoError('');
-                      }}
-                      startIcon={<ShieldCheck size={16} />}
-                      sx={{
-                        borderColor: 'hsl(var(--border))',
-                        color: 'hsl(var(--foreground))',
-                        textTransform: 'none',
-                        fontWeight: 600,
-                        py: 0.9,
-                        '&:hover': {
-                          borderColor: 'hsl(var(--foreground))',
-                          bgcolor: 'hsl(var(--muted) / 0.5)',
-                        },
-                      }}
-                    >
-                      Use SSO
-                    </Button>
-                  </>
-                )}
-
-                {/* SSO Button for On-Prem / Self-Hosted: exact logic from Classic Shuffle */}
-                {serverMode === 'self-hosted' && !isRegister && Boolean(instanceSsoUrl) && (
-                  <>
-                    <Box sx={{ display: 'flex', alignItems: 'center', my: 2 }}>
-                      <Box sx={{ flex: 1, height: '1px', bgcolor: 'hsl(var(--border))' }} />
-                      <Typography variant="caption" sx={{ px: 1.5, color: 'hsl(var(--muted-foreground))' }}>
-                        OR
-                      </Typography>
-                      <Box sx={{ flex: 1, height: '1px', bgcolor: 'hsl(var(--border))' }} />
-                    </Box>
-
-                    <Button
-                      fullWidth
-                      id="sso_button"
-                      variant="outlined"
-                      size="small"
-                      onClick={() => {
-                        if (typeof window !== 'undefined') {
-                          if (from) sessionStorage.setItem('shuffle_redirect_after_login', from);
-                          window.location.href = instanceSsoUrl!;
+                  {/* Terms Acceptance (Register Mode Only) */}
+                  {isRegister && (
+                    <Box sx={{ mb: 3 }}>
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            size="small"
+                            checked={termsAccepted}
+                            onChange={(e) => setTermsAccepted(e.target.checked)}
+                            sx={{ color: 'primary.main', '&.Mui-checked': { color: 'primary.main' } }}
+                          />
                         }
-                      }}
-                      startIcon={<ShieldCheck size={16} />}
-                      sx={{
-                        borderColor: 'hsl(var(--border))',
-                        color: 'hsl(var(--foreground))',
-                        textTransform: 'none',
-                        fontWeight: 600,
-                        py: 0.9,
-                        '&:hover': {
-                          borderColor: 'hsl(var(--foreground))',
-                          bgcolor: 'hsl(var(--muted) / 0.5)',
-                        },
-                      }}
-                    >
-                      Use SSO
-                    </Button>
-                  </>
-                )}
+                        label={
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                            I agree to Shuffle's{' '}
+                            <a
+                              href="https://shuffler.io/docs/terms_of_service"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ color: primaryColor, textDecoration: 'underline' }}
+                            >
+                              Terms of Service
+                            </a>
+                          </Typography>
+                        }
+                      />
+                    </Box>
+                  )}
 
-                {/* Mode Toggle (Sign In <-> Register) */}
-                <Box sx={{ textAlign: 'center', mt: 2.5 }}>
-                  <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
-                    {isRegister ? 'Already have an account? ' : "Don't have an account? "}
+                  {/* Submit Button */}
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    size="large"
+                    fullWidth
+                    disabled={
+                      serverMode === 'cloud' && loginWithSSO
+                        ? ssoLoading || !username.trim() || !isValidEmail(username)
+                        : loading || Boolean(cloudEmailInvalid)
+                    }
+                    sx={{
+                      py: 1.5,
+                      bgcolor: 'primary.main',
+                      color: 'primary.contrastText',
+                      fontWeight: 600,
+                      textTransform: 'none',
+                      fontSize: '1rem',
+                      borderRadius: 1.5,
+                      boxShadow: 'none',
+                      '&:hover': {
+                        bgcolor: 'primary.dark',
+                        boxShadow: 'none',
+                      },
+                      '&.Mui-disabled': {
+                        bgcolor: 'action.disabledBackground',
+                        color: 'text.disabled',
+                      },
+                    }}
+                  >
+                    {ssoLoading || loading ? (
+                      <CircularProgress size={24} color="inherit" />
+                    ) : serverMode === 'cloud' && loginWithSSO ? (
+                      'Continue with SSO'
+                    ) : isRegister ? (
+                      'Create Account'
+                    ) : (
+                      'Continue'
+                    )}
+                  </Button>
+
+                  {/* Back to password sign-in for Cloud SSO */}
+                  {serverMode === 'cloud' && loginWithSSO && (
+                    <Box sx={{ textAlign: 'center', mt: 2 }}>
+                      <Button
+                        variant="text"
+                        size="small"
+                        onClick={() => {
+                          setLoginWithSSO(false);
+                          setSsoError('');
+                          setError('');
+                        }}
+                        sx={{
+                          textTransform: 'none',
+                          color: 'text.secondary',
+                          fontSize: '0.85rem',
+                          '&:hover': { color: 'text.primary', bgcolor: 'transparent', textDecoration: 'underline' },
+                        }}
+                      >
+                        Sign in with password instead
+                      </Button>
+                    </Box>
+                  )}
+
+                  {/* SSO Button for Cloud */}
+                  {serverMode === 'cloud' && !isRegister && !loginWithSSO && (
+                    <>
+                      <Box sx={{ display: 'flex', alignItems: 'center', my: 2.5 }}>
+                        <Box sx={{ flex: 1, height: '1px', bgcolor: 'divider' }} />
+                        <Typography variant="caption" sx={{ px: 1.5, color: 'text.secondary', fontWeight: 500 }}>
+                          OR
+                        </Typography>
+                        <Box sx={{ flex: 1, height: '1px', bgcolor: 'divider' }} />
+                      </Box>
+
+                      <Button
+                        fullWidth
+                        id="sso_button"
+                        variant="outlined"
+                        onClick={() => {
+                          setLoginWithSSO(true);
+                          setPassword('');
+                          setError('');
+                          setSsoError('');
+                        }}
+                        startIcon={<ShieldCheck size={18} />}
+                        sx={{
+                          borderColor: 'divider',
+                          color: 'text.primary',
+                          textTransform: 'none',
+                          fontWeight: 600,
+                          py: 1.1,
+                          borderRadius: 1.5,
+                          '&:hover': {
+                            borderColor: 'text.secondary',
+                            bgcolor: 'action.hover',
+                          },
+                        }}
+                      >
+                        Sign in with SSO
+                      </Button>
+                    </>
+                  )}
+
+                  {/* SSO Button for On-Prem / Self-Hosted */}
+                  {serverMode === 'self-hosted' && !isRegister && Boolean(instanceSsoUrl) && (
+                    <>
+                      <Box sx={{ display: 'flex', alignItems: 'center', my: 2.5 }}>
+                        <Box sx={{ flex: 1, height: '1px', bgcolor: 'divider' }} />
+                        <Typography variant="caption" sx={{ px: 1.5, color: 'text.secondary', fontWeight: 500 }}>
+                          OR
+                        </Typography>
+                        <Box sx={{ flex: 1, height: '1px', bgcolor: 'divider' }} />
+                      </Box>
+
+                      <Button
+                        fullWidth
+                        id="sso_button"
+                        variant="outlined"
+                        onClick={() => {
+                          if (typeof window !== 'undefined') {
+                            if (from) sessionStorage.setItem('shuffle_redirect_after_login', from);
+                            window.location.href = instanceSsoUrl!;
+                          }
+                        }}
+                        startIcon={<ShieldCheck size={18} />}
+                        sx={{
+                          borderColor: 'divider',
+                          color: 'text.primary',
+                          textTransform: 'none',
+                          fontWeight: 600,
+                          py: 1.1,
+                          borderRadius: 1.5,
+                          '&:hover': {
+                            borderColor: 'text.secondary',
+                            bgcolor: 'action.hover',
+                          },
+                        }}
+                      >
+                        Sign in with SSO
+                      </Button>
+                    </>
+                  )}
+
+                  {/* Mode Toggle (Sign In <-> Register) */}
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      textAlign: 'center',
+                      mt: 4,
+                      color: 'text.secondary',
+                    }}
+                  >
+                    {isRegister ? 'Already have an account? ' : "Don't have an account yet? "}
                     <Button
                       variant="text"
-                      size="small"
                       onClick={() => {
                         const nextMode = isRegister ? 'login' : 'register';
                         setAuthMode(nextMode);
@@ -2144,19 +2215,20 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         p: 0,
                         minWidth: 'auto',
                         textTransform: 'none',
-                        fontWeight: 600,
-                        color: '#ff6600',
-                        fontSize: '0.8rem',
+                        fontWeight: 500,
+                        color: 'primary.main',
+                        fontSize: '0.875rem',
+                        verticalAlign: 'baseline',
                         '&:hover': { bgcolor: 'transparent', textDecoration: 'underline' },
                       }}
                     >
-                      {isRegister ? 'Sign in' : 'Create an account'}
+                      {isRegister ? 'Sign in' : 'Register here'}
                     </Button>
                   </Typography>
                 </Box>
-              </form>
-            )}
-          </Paper>
+              )}
+            </CardContent>
+          </Card>
         </motion.div>
       </Box>
     </Box>

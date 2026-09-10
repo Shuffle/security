@@ -78,12 +78,12 @@ export const AGENT_PRESETS: AgentPreset[] = [
   {
     id: 'incident-response',
     label: 'Incident Handler',
-    description: 'Supports your incident investigation — extracts observables, correlates related alerts, analyzes attack scope, and proposes tiered containment options with human confirmation.',
-    defaultPrompt: 'Investigate this incident and recommend next steps: ',
+    description: 'Holistic incident investigation & response — triages alerts, closes false positives, escalates threats, executes or stages containment, tunes noisy detections, and documents findings.',
+    defaultPrompt: 'Investigate this incident, assess severity, and take appropriate action (resolve, escalate, contain, or document): ',
     icon: <ShieldAlert size={16} />,
     enabled: true,
     tag: 'Beta',
-    defaultApps: [{ name: 'shuffle_incidents' }],
+    defaultApps: [{ name: 'shuffle_incidents' }, { name: 'shuffle_datastore' }],
   },
   {
     id: 'host-monitor-control',
@@ -107,7 +107,7 @@ export const AGENT_PRESETS: AgentPreset[] = [
   },
   {
     id: 'vulnerability',
-    label: 'Vulnerability Mgmt',
+    label: 'Vulnerability Agent',
     description: 'Helps you solve vulnerabilities — demystifies CVEs in plain language, analyzes realistic exploitability (EPSS/KEV), and guides you through exact remediation steps and fixes.',
     defaultPrompt: 'Help me review and solve this vulnerability: ',
     icon: <Bug size={16} />,

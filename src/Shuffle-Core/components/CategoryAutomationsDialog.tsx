@@ -27,6 +27,7 @@ import { API_CONFIG, getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import PopupTextEditor from './PopupTextEditor';
 import AppSearchDrawer from '@/Shuffle-MCPs/views/AppSearchDrawer';
 import AiAgentPromptsEditor from '@/Shuffle-MCPs/components/AiAgentPromptsEditor';
+import { AgentPresets, AGENT_PRESETS, AgentPreset } from '@/Shuffle-MCPs/components/AgentPresets';
 import { useAuthenticatedApps } from '../useAuthenticatedApps';
 import { Tooltip } from '@mui/material';
 
@@ -38,7 +39,7 @@ import { fetchAppsCached, fetchWorkflowsCached } from '../views/appsFetchCache';
 interface AutomationApiFormat {
   name: string;
   description: string;
-  options: { key: string; value: string; apps?: string[] | null }[];
+  options: { key: string; value: string; apps?: string[] | null; template?: string; skill?: string }[];
   icon: string;
   enabled: boolean;
   type?: string;
@@ -181,6 +182,65 @@ const getOrgId = (): string | null => {
   return null;
 };
 
+const DEFAULT_INCIDENT_AI_PROMPTS: string[] = [
+  `Triage, investigate, and respond holistically to this incident. Choose the appropriate response path:
+
+1. AUTO-RESOLVE / CLOSE: If this alert is a false positive, benign administrative activity, authorized test/scan, routine noise, or a duplicate of an existing incident:
+- Set "status" to "resolved".
+- Add an activity entry: {"ai_handled": true, "id": "status-\${timenow-unix}", "type": "status", "user": "@AIAgent", "timestamp": \${timenow-unix}, "content": "Resolved: [Specific evidence and rationale explaining why this is benign/FP/duplicate]"}.
+- Do NOT generate unnecessary open tasks.
+
+2. ESCALATE: If this is a high/critical severity threat, active compromise, ransomware, credential theft, lateral movement, or high ambiguity requiring human judgment:
+- Update "severity" to "high" or "critical".
+- Set "status" to "escalated".
+- Add an activity entry: {"ai_handled": true, "id": "status-\${timenow-unix}", "type": "status", "user": "@AIAgent", "timestamp": \${timenow-unix}, "content": "Escalated: High-priority threat detected. [Executive threat summary, affected assets/users, and recommended human actions]"}.
+
+3. CONTAINMENT (BLOCK / ISOLATE / REVOKE):
+- For compromised endpoints: propose or execute host isolation via available EDR tools.
+- For malicious external IPs, domains, or hashes: propose or execute perimeter firewall/DNS blocks.
+- For compromised accounts: propose or execute session revocation or account lock.
+- For disruptive actions, set approval_required: true and request analyst confirmation.
+
+4. FIX SPAMMY DETECTIONS:
+- If this alert is from a noisy or misconfigured detection rule firing repeatedly on benign operations, propose specific rule tuning/exclusions in the activity log or create a task: {"assignee": "AI Agent", "title": "Tune detection rule: [Rule Name] to exclude [Pattern]", "category": "triage", "completed": false, "createdBy": "ai-agent@shuffler.io"}.
+
+5. TOOL REQUESTS:
+- Utilize available tools (shuffle-datastore, shuffle_incidents, etc.). If an essential tool (EDR, SIEM, Threat Intel, Firewall) is missing or unauthenticated, explicitly state what tool is required, why, and the specific query/action needed.
+
+6. INVESTIGATION & DOCUMENTATION:
+- If ongoing investigation is needed, set "status" to "in_progress" and update "severity" to info/low/medium/high/critical.
+- Generate structured tasks in JSON format: {"tasks": [{"assignee": "AI Agent", "title": "Title of task", "category": "triage/investigation/containment/recovery/communication/documentation", "completed": false, "createdBy": "ai-agent@shuffler.io"}]}.
+- Document findings, timeline, and MITRE ATT&CK techniques in activity and comments. Tackle tasks one by one, self-assigning and completing them as progress is made.
+
+Update the internal shuffle datastore with the same key and category 'shuffle-security_incidents'. ONLY send the modified fields in JSON format. Do NOT overwrite unrelated fields.`,
+];
+const DEFAULT_INCIDENT_AI_APPS: string[][] = [['48793430d21468f9e371ace402efcd8e', 'b82668d868f6dc7ac1dc14caa92c674b']];
+
+const DEFAULT_VULNERABILITY_AI_PROMPTS: string[] = [
+  `Review, analyze, and remediate this vulnerability. Follow this evaluation process:
+
+1. CLARIFY & DEMYSTIFY:
+- Explain what this CVE/vulnerability actually means in plain, direct language.
+- Identify the exploit mechanism (e.g. remote code execution, SQLi, authentication bypass, DoS, privilege escalation) and attack prerequisites (e.g. unauthenticated network access vs. local privileged access).
+
+2. REAL-WORLD RISK & EXPLOITABILITY:
+- Evaluate exploitability beyond theoretical CVSS: check CISA KEV (known exploited in the wild), EPSS score, and availability of public weaponized PoCs.
+- Assess asset context: determine if the affected software/system is internet-facing or isolated internally.
+- Classify urgency: Immediate Patching, Next Maintenance Window, Scheduled Backlog, or False Positive / Not Applicable.
+
+3. ACTIONABLE REMEDIATION & MITIGATION:
+- Provide exact, copy-pasteable update commands for the package/system (e.g. apt, dnf, apk, npm, pip, docker) to reach a patched version.
+- If patching is immediately disruptive or requires a maintenance window, provide concrete temporary workarounds, configuration tweaks, or compensating controls (e.g. firewall/WAF rule, disabling unused vulnerable features).
+
+4. VERIFICATION & DOCUMENTATION:
+- Specify how to verify the fix (package query, service status, vulnerability rescan).
+- Update the internal datastore with category 'shuffle-security_vulns' and key. ONLY update modified fields in JSON format.`,
+];
+const DEFAULT_VULNERABILITY_AI_APPS: string[][] = [['shuffle_vulnerabilities', 'shuffle_software_and_packages', 'b82668d868f6dc7ac1dc14caa92c674b']];
+
+const DEFAULT_AI_PROMPTS = DEFAULT_INCIDENT_AI_PROMPTS;
+const DEFAULT_AI_APPS = DEFAULT_INCIDENT_AI_APPS;
+
 export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps> = ({
   open,
   onClose,
@@ -231,6 +291,56 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
   const [aiAgentPrompts, setAiAgentPrompts] = useState<string[]>(['']);
   /** Per-prompt allow-list of app names. Indices align with aiAgentPrompts. */
   const [aiAgentApps, setAiAgentApps] = useState<string[][]>([[]]);
+  const [aiAgentSkill, setAiAgentSkill] = useState<string>('incident-response');
+
+  const selectedSkillPreset = useMemo(() => {
+    if (!aiAgentSkill) return null;
+    return (
+      AGENT_PRESETS.find(
+        (p) =>
+          p.id === aiAgentSkill ||
+          (aiAgentSkill === 'incident-handler' && p.id === 'incident-response') ||
+          (aiAgentSkill === 'vulnerability-agent' && p.id === 'vulnerability') ||
+          (aiAgentSkill === 'vulnerability-management' && p.id === 'vulnerability') ||
+          (aiAgentSkill === 'workflow-edit' && p.id === 'build-workflows') ||
+          (aiAgentSkill === 'computer-use' && p.id === 'host-monitor-control'),
+      ) || null
+    );
+  }, [aiAgentSkill]);
+
+  const handleSelectSkillPreset = (preset: AgentPreset) => {
+    setAiAgentSkill(preset.id);
+    setHasChanges(true);
+
+    const isEmptyPrompt =
+      aiAgentPrompts.length === 0 ||
+      (aiAgentPrompts.length === 1 && !aiAgentPrompts[0].trim());
+
+    if (preset.id === 'incident-response') {
+      if (isEmptyPrompt) {
+        setAiAgentPrompts([...DEFAULT_INCIDENT_AI_PROMPTS]);
+        setAiAgentApps(DEFAULT_INCIDENT_AI_APPS.map((a) => [...a]));
+      }
+    } else if (preset.id === 'vulnerability') {
+      if (isEmptyPrompt) {
+        setAiAgentPrompts([...DEFAULT_VULNERABILITY_AI_PROMPTS]);
+        setAiAgentApps(DEFAULT_VULNERABILITY_AI_APPS.map((a) => [...a]));
+      }
+    } else {
+      if (isEmptyPrompt && preset.defaultPrompt) {
+        setAiAgentPrompts([preset.defaultPrompt]);
+        if (preset.defaultApps && preset.defaultApps.length > 0) {
+          setAiAgentApps([preset.defaultApps.map((a) => a.name)]);
+        }
+      }
+    }
+  };
+
+  const handleRemoveSkillPreset = () => {
+    setAiAgentSkill('');
+    setHasChanges(true);
+  };
+
   const [appPickerForIdx, setAppPickerForIdx] = useState<number | null>(null);
   const { data: authenticatedApps = [] } = useAuthenticatedApps();
   /** Lookup table for app metadata (image, display name) keyed by both
@@ -335,13 +445,6 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
   const toggleExpanded = (type: string) =>
     setExpandedTypes(prev => ({ ...prev, [type]: !prev[type] }));
 
-  /** Default values for a single automation row. Mirrors the per-row pieces
-   *  of the global "Reset to default" action below, so a user can reset
-   *  one row independently. */
-  const DEFAULT_AI_PROMPTS: string[] = [
-    `Provide a short triage plan for the incident in english and update it in the internal shuffle datastore with the same key and category 'shuffle-security_incidents'. Make sure it is JSON formatted like {"tasks": []} so that we can inject it in existing data. Use the following format for each task, and ONLY update the relevant fields: [{"assignee": "AI Agent", "title": "Title of the task", "category": "triage/containment/recovery/communication/documentation", "completed": false, "createdBy": "ai-agent@shuffler.io"}]. ONLY output as JSON and nothing more.   If the incident has RELEVANT tasks that are not finished, modify them if necessary. Change the incident "severity" to info/low/medium/high/critical if relevant. When done, ALWAYS make sure the "status" is inProgress. Some incidents are fake/tests/not important, so if the incident is irrelevant, set the "status" to "Resolved" and add to the activity array: {"ai_handled": true, "id":"status-{timenow-unix}","type":"status","user":"@AIAgent","timestamp":{timenow-unix},"content":"Resolved: \${close reason}"}. ONLY send the modified fields. Do NOT send everything.When done sending the previous update, start tackling the tasks one by one if there are any, and update them in realtime. When starting them, self-assign @AIAgent to make it clear you are working on it. Go in the order of incident response relevance, which is typically in order. If a task is irrelevant, set "disabled": true as a value for it. Some incidents are fake/tests/not important, so if the incident is irrelevant, set the "status" to "Resolved" and add to the activity array: {"ai_handled": true, "id":"status-{timenow-unix}","type":"status","user":"@AIAgent","timestamp":{timenow-unix},"content":"Resolved: \${close reason}"}. ONLY send the modified fields. Do NOT send everything.\n\nAfter adding the tasks, start performing them one by one, and make changes to their status and details along the way.`,
-  ];
-  const DEFAULT_AI_APPS: string[][] = [['48793430d21468f9e371ace402efcd8e']];
   const DEFAULT_SECURITY_RULES = 'merge if always; deny if has_deleted_field';
 
   const resetRow = (type: string) => {
@@ -358,8 +461,16 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
     } else if (type === 'security_rules') {
       setSecurityRulesText(DEFAULT_SECURITY_RULES);
     } else if (type === 'ai_agent') {
-      setAiAgentPrompts([...DEFAULT_AI_PROMPTS]);
-      setAiAgentApps(DEFAULT_AI_APPS.map(a => [...a]));
+      const isVuln = activeCategory === 'vulnerabilities' || activeCategory.includes('vuln');
+      const defSkill = isVuln ? 'vulnerability' : 'incident-response';
+      setAiAgentSkill(defSkill);
+      if (isVuln) {
+        setAiAgentPrompts([...DEFAULT_VULNERABILITY_AI_PROMPTS]);
+        setAiAgentApps(DEFAULT_VULNERABILITY_AI_APPS.map(a => [...a]));
+      } else {
+        setAiAgentPrompts([...DEFAULT_INCIDENT_AI_PROMPTS]);
+        setAiAgentApps(DEFAULT_INCIDENT_AI_APPS.map(a => [...a]));
+      }
     }
     setHasChanges(true);
   };
@@ -534,6 +645,9 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
 
 
       const aiAutomation = existingByName.get('Run AI Agent');
+      const isVuln = activeCategory === 'vulnerabilities' || activeCategory.includes('vuln');
+      const defaultSkillForCat = isVuln ? 'vulnerability' : 'incident-response';
+
       if (aiAutomation?.options && aiAutomation.options.length > 0) {
         // Options use keys: "action", "action-2", "action-3", etc.
         const actionOptions = aiAutomation.options
@@ -561,9 +675,23 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
             : [];
         });
         setAiAgentApps(appsByIdx.length > 0 ? appsByIdx : [[]]);
+
+        const firstOpt = actionOptions[0] as any;
+        const savedSkill = firstOpt?.template || firstOpt?.skill;
+        if (savedSkill) {
+          setAiAgentSkill(savedSkill);
+        } else {
+          setAiAgentSkill(defaultSkillForCat);
+        }
       } else {
-        setAiAgentPrompts(['']);
-        setAiAgentApps([[]]);
+        setAiAgentSkill(defaultSkillForCat);
+        if (isVuln) {
+          setAiAgentPrompts([...DEFAULT_VULNERABILITY_AI_PROMPTS]);
+          setAiAgentApps(DEFAULT_VULNERABILITY_AI_APPS.map(a => [...a]));
+        } else {
+          setAiAgentPrompts(['']);
+          setAiAgentApps([[]]);
+        }
       }
     }
   }, [open, activeCategory, activeEntry]);
@@ -602,7 +730,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
         const isEnabled = automation?.enabled || false;
 
         // Build options based on type
-        let options: { key: string; value: string; apps?: string[] | null }[] = [];
+        let options: { key: string; value: string; apps?: string[] | null; template?: string; skill?: string }[] = [];
         if (config.type === 'workflow') {
           options = [{ key: config.optionKey || '', value: selectedWorkflows.map(w => w.id).join(',') }];
         } else if (config.type === 'webhook') {
@@ -612,6 +740,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
         } else if (config.type === 'ai_agent') {
           // Use "action", "action-2", "action-3" format. The per-prompt app
           // allow-list lives INSIDE the same option object as `apps`.
+          const effectiveSkill = aiAgentSkill || (activeCategory.includes('vuln') ? 'vulnerability' : 'incident-response');
           const pairs = aiAgentPrompts
             .map((prompt, idx) => ({ prompt, apps: aiAgentApps[idx] || [] }))
             .filter(p => p.prompt.trim());
@@ -619,9 +748,17 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
             key: idx === 0 ? 'action' : `action-${idx + 1}`,
             value: p.prompt,
             apps: p.apps.length > 0 ? p.apps : null,
+            template: effectiveSkill,
+            skill: effectiveSkill,
           }));
           if (options.length === 0) {
-            options = [{ key: 'action', value: '', apps: null }];
+            options = [{
+              key: 'action',
+              value: '',
+              apps: null,
+              template: effectiveSkill,
+              skill: effectiveSkill,
+            }];
           }
         } else {
           options = [{ key: config.optionKey || '', value: '' }];
@@ -1003,6 +1140,61 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                   {/* AI Agent Configuration - multiple prompts */}
                   {automation.type === 'ai_agent' && expandedTypes['ai_agent'] && (
                     <Box sx={{ px: 2, pb: 2, pt: 0.5 }}>
+                      {/* Skill selection using AgentPresets */}
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          flexWrap: 'wrap',
+                          gap: 1.5,
+                          mb: 1.5,
+                          p: 1.25,
+                          borderRadius: 1.5,
+                          border: '1px solid',
+                          borderColor: 'divider',
+                          bgcolor: (theme) =>
+                            theme.palette.mode === 'dark'
+                              ? 'rgba(255, 255, 255, 0.03)'
+                              : 'rgba(0, 0, 0, 0.02)',
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
+                          <Typography
+                            sx={{
+                              fontSize: '0.72rem',
+                              fontWeight: 600,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.05em',
+                              color: 'text.secondary',
+                            }}
+                          >
+                            Skill:
+                          </Typography>
+                          <AgentPresets
+                            variant="default"
+                            selectedPreset={selectedSkillPreset}
+                            onSelectPreset={handleSelectSkillPreset}
+                            onRemoveSelected={handleRemoveSkillPreset}
+                            placement="bottom-start"
+                          />
+                        </Box>
+                        {selectedSkillPreset?.description && (
+                          <Typography
+                            sx={{
+                              fontSize: '0.75rem',
+                              color: 'text.secondary',
+                              lineHeight: 1.4,
+                              flex: 1,
+                              minWidth: 200,
+                              textAlign: { xs: 'left', sm: 'right' },
+                            }}
+                          >
+                            {selectedSkillPreset.description}
+                          </Typography>
+                        )}
+                      </Box>
+
                       <AiAgentPromptsEditor
                         prompts={aiAgentPrompts}
                         apps={aiAgentApps}
@@ -1178,18 +1370,22 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
           size="small"
           startIcon={<RestoreIcon />}
           onClick={() => {
-            const isVulnerabilities = activeCategory === 'vulnerabilities' || activeCategory.includes('vulnerabilit');
+            const isVulnerabilities = activeCategory === 'vulnerabilities' || activeCategory.includes('vulnerabilit') || activeCategory.includes('vuln');
             setAutomations(automations.map(a => {
               if (a.type === 'enrich') return { ...a, enabled: true, trigger: 'on_edit' as const };
               if (a.type === 'security_rules') return { ...a, enabled: true, trigger: 'on_edit' as const };
-              // Vulnerabilities: do not enable AI Agent by default — nothing is set up for it here.
-              if (a.type === 'ai_agent') return { ...a, enabled: isVulnerabilities ? false : true, trigger: 'on_edit' as const };
+              if (a.type === 'ai_agent') return { ...a, enabled: true, trigger: 'on_edit' as const };
               return a;
             }));
             setSecurityRulesText('merge if always; deny if has_deleted_field');
-            if (!isVulnerabilities) {
-              setAiAgentPrompts([...DEFAULT_AI_PROMPTS]);
-              setAiAgentApps(DEFAULT_AI_APPS.map(a => [...a]));
+            if (isVulnerabilities) {
+              setAiAgentSkill('vulnerability');
+              setAiAgentPrompts([...DEFAULT_VULNERABILITY_AI_PROMPTS]);
+              setAiAgentApps(DEFAULT_VULNERABILITY_AI_APPS.map(a => [...a]));
+            } else {
+              setAiAgentSkill('incident-response');
+              setAiAgentPrompts([...DEFAULT_INCIDENT_AI_PROMPTS]);
+              setAiAgentApps(DEFAULT_INCIDENT_AI_APPS.map(a => [...a]));
             }
             setHasChanges(true);
           }}

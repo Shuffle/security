@@ -31,8 +31,23 @@ export interface GlobalAgentDrawerProps {
 }
 
 const GlobalAgentDrawer = ({ sideshift }: GlobalAgentDrawerProps = {}) => {
-  const [open, setOpen] = useState(false);
-  const [initialTab, setInitialTab] = useState<AgentRunDrawerTab>('run');
+  const [open, setOpen] = useState(() => {
+    try {
+      if (typeof window === 'undefined') return false;
+      if (isAgentRoute(window.location.pathname)) return false;
+      return localStorage.getItem('shuffle_agent_drawer_open') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [initialTab, setInitialTab] = useState<AgentRunDrawerTab>(() => {
+    try {
+      if (typeof window === 'undefined') return 'run';
+      const saved = localStorage.getItem('shuffle_agent_drawer_tab');
+      if (saved === 'run' || saved === 'permissions' || saved === 'localLLM') return saved;
+    } catch { /* ignore */ }
+    return 'run';
+  });
   const location = useLocation();
   const navigate = useNavigate();
   const scheduleAgentRun = useScheduleAgentRun();
@@ -56,8 +71,13 @@ const GlobalAgentDrawer = ({ sideshift }: GlobalAgentDrawerProps = {}) => {
     const handler = (e: Event) => {
       if (isAgentDisabled) return;
       const detail = (e as CustomEvent<AgentDrawerOpenDetail>).detail;
-      setInitialTab((detail?.tab ?? 'run') as AgentRunDrawerTab);
+      const nextTab = (detail?.tab ?? 'run') as AgentRunDrawerTab;
+      setInitialTab(nextTab);
       setOpen(true);
+      try {
+        localStorage.setItem('shuffle_agent_drawer_open', 'true');
+        localStorage.setItem('shuffle_agent_drawer_tab', nextTab);
+      } catch { /* ignore */ }
     };
     window.addEventListener(AGENT_DRAWER_OPEN_EVENT, handler);
     return () => window.removeEventListener(AGENT_DRAWER_OPEN_EVENT, handler);
@@ -67,6 +87,9 @@ const GlobalAgentDrawer = ({ sideshift }: GlobalAgentDrawerProps = {}) => {
   useEffect(() => {
     if (isAgentDisabled && open) {
       setOpen(false);
+      try {
+        localStorage.setItem('shuffle_agent_drawer_open', 'false');
+      } catch { /* ignore */ }
     }
   }, [isAgentDisabled, open]);
 
@@ -77,6 +100,10 @@ const GlobalAgentDrawer = ({ sideshift }: GlobalAgentDrawerProps = {}) => {
     if (params.get('openPermissions') === '1') {
       setInitialTab('permissions');
       setOpen(true);
+      try {
+        localStorage.setItem('shuffle_agent_drawer_open', 'true');
+        localStorage.setItem('shuffle_agent_drawer_tab', 'permissions');
+      } catch { /* ignore */ }
       params.delete('openPermissions');
       navigate(
         { pathname: location.pathname, search: params.toString() ? `?${params}` : '' },
@@ -91,8 +118,14 @@ const GlobalAgentDrawer = ({ sideshift }: GlobalAgentDrawerProps = {}) => {
       sideshift={sideshift}
       onOpenChange={(nextOpen: boolean) => {
         setOpen(nextOpen);
+        try {
+          localStorage.setItem('shuffle_agent_drawer_open', String(nextOpen));
+        } catch { /* ignore */ }
         if (!nextOpen) {
           setInitialTab('run');
+          try {
+            localStorage.setItem('shuffle_agent_drawer_tab', 'run');
+          } catch { /* ignore */ }
         }
       }}
       isSupport={isSupport}

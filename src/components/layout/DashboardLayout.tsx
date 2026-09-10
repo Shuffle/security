@@ -3,8 +3,6 @@ import { Outlet, useLocation } from '@/lib/router-compat';
 import { Box, Alert, Button } from '@mui/material';
 import { AppSidebar } from './AppSidebar';
 import { MobileBottomNav } from './MobileBottomNav';
-import { AppDetailProvider, useAppDetail } from '@/Shuffle-MCPs/AppDetailContext';
-import AppDetailDrawer from '@/components/shared/AppDetailDrawer';
 import AgentHandoffWatcher from '@/components/agent/AgentHandoffWatcher';
 import { GlobalPagerWatcher } from '@/components/notifications/GlobalPagerWatcher';
 import { PageSkeleton } from './PageSkeleton';
@@ -24,17 +22,6 @@ interface DashboardLayoutProps {
   children?: ReactNode;
   defaultCollapsed?: boolean;
 }
-
-const GlobalAppDetailDrawer = () => {
-  const { currentAppName, isOpen, closeApp } = useAppDetail();
-  return (
-    <AppDetailDrawer
-      open={isOpen}
-      onClose={closeApp}
-      appName={currentAppName}
-    />
-  );
-};
 
 export const DashboardLayout = ({ children, defaultCollapsed }: DashboardLayoutProps) => {
   const location = useLocation();
@@ -128,9 +115,8 @@ export const DashboardLayout = ({ children, defaultCollapsed }: DashboardLayoutP
 
 
   return (
-    <AppDetailProvider>
-      <Box
-        sx={{
+    <Box
+      sx={{
           display: 'flex',
           height: '100dvh',
           backgroundColor: 'hsl(var(--background))',
@@ -233,7 +219,6 @@ export const DashboardLayout = ({ children, defaultCollapsed }: DashboardLayoutP
           </Box>
         </Box>
         <MobileBottomNav />
-        <GlobalAppDetailDrawer />
         {/* Global watcher: surfaces stuck AI Agent handoffs (approvals + open
             questions) as toasts on every page. Polls once per minute via the
             shared useAgentNotifications query. */}
@@ -243,6 +228,5 @@ export const DashboardLayout = ({ children, defaultCollapsed }: DashboardLayoutP
         {/* GlobalAgentDrawer is mounted at App-level so it works on public
             routes (e.g. /usecases) too. */}
       </Box>
-    </AppDetailProvider>
   );
 };
