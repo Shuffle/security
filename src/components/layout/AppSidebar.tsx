@@ -130,7 +130,7 @@ const TenantAutocompletePaper = forwardRef<HTMLDivElement, React.HTMLAttributes<
         display: 'flex',
         flexDirection: 'column',
         boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
-        ...(other.sx || {}),
+        ...((other as any).sx || {}),
       }}
     >
       <Box

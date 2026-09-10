@@ -36,7 +36,7 @@ export interface AgentContextRule {
   /** Subtitle or context description shown under the drawer header */
   subtitle?: string | ((params: Record<string, string>, pathname: string) => string);
   /** Contextual prompt seed */
-  defaultPrompt?: string | ((params: Record<string, string>, pathname: string) => string);
+  defaultPrompt?: string | ((params: Record<string, string>, pathname: string, entityOverride?: string) => string);
   /** Custom placeholder for the prompt input */
   placeholder?: string;
   /** Custom label for the trigger button (e.g. 'Ask about Workflows') */
@@ -979,7 +979,11 @@ export const resolveAgentContext = (
     : matchedRule.subtitle ?? 'Context aware assistant';
 
   const defaultPrompt = typeof matchedRule.defaultPrompt === 'function'
-    ? matchedRule.defaultPrompt(matchedParams, normPath)
+    ? (matchedRule.defaultPrompt as (params: Record<string, string>, pathname: string, entityOverride?: string) => string)(
+        matchedParams,
+        normPath,
+        getActivePageEntityName(),
+      )
     : matchedRule.defaultPrompt ?? '';
 
   const missingConfig = Boolean(matchedRule.missingConfig ?? (matchedRule.id === 'default'));

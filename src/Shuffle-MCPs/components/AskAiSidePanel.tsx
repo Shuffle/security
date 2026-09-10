@@ -188,6 +188,7 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
 
   // Check if current route is an excluded Agent route (/agents or /agent)
   const isAgentDisabled = isAgentRoute(currentPathname);
+  const isVisible = open && !isAgentDisabled;
 
   // Auto-close if currently open when user navigates to an agent route
   useEffect(() => {
@@ -295,36 +296,6 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
     prevOpenRef.current = open;
   }, [open, initialTab, onTabChange]);
 
-  const panelRef = useRef<HTMLElement | null>(null);
-
-  // Automatically focus prompt input when panel opens or switches to 'run' tab
-  useEffect(() => {
-    if (!isVisible || safeActiveTab !== 'run') return;
-
-    const focusInput = () => {
-      if (!panelRef.current) return false;
-      const target = panelRef.current.querySelector<HTMLTextAreaElement | HTMLInputElement>(
-        'textarea, input[type="text"]:not([readonly]), input:not([type]):not([readonly])'
-      );
-      if (target) {
-        target.focus();
-        return true;
-      }
-      return false;
-    };
-
-    if (focusInput()) return;
-    const t1 = setTimeout(focusInput, 40);
-    const t2 = setTimeout(focusInput, 120);
-    const t3 = setTimeout(focusInput, 240);
-
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-    };
-  }, [isVisible, safeActiveTab]);
-
   // Broadcast mounted status so AgentUI knows a drawer/panel is present
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -380,6 +351,36 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
   const safeActiveTab: AgentRunDrawerTab = visibleTabs.includes(currentTab)
     ? currentTab
     : 'run';
+
+  const panelRef = useRef<HTMLElement | null>(null);
+
+  // Automatically focus prompt input when panel opens or switches to 'run' tab
+  useEffect(() => {
+    if (!isVisible || safeActiveTab !== 'run') return;
+
+    const focusInput = () => {
+      if (!panelRef.current) return false;
+      const target = panelRef.current.querySelector<HTMLTextAreaElement | HTMLInputElement>(
+        'textarea, input[type="text"]:not([readonly]), input:not([type]):not([readonly])'
+      );
+      if (target) {
+        target.focus();
+        return true;
+      }
+      return false;
+    };
+
+    if (focusInput()) return;
+    const t1 = setTimeout(focusInput, 40);
+    const t2 = setTimeout(focusInput, 120);
+    const t3 = setTimeout(focusInput, 240);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, [isVisible, safeActiveTab]);
 
   const [panelWidth, setPanelWidth] = useState<number>(() => {
     if (typeof window === 'undefined') return width || 380;
@@ -528,8 +529,6 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
   if (isAgentDisabled) {
     return null;
   }
-
-  const isVisible = open && !isAgentDisabled;
 
   return (
     <>

@@ -121,7 +121,6 @@ export const DocAgentUI: React.FC<DocAgentUIProps> = ({
           'What do you want the agent to do? e.g. "Check if 1.1.1.1 is malicious"'
         }
         defaultApps={defaultApps}
-        disableAppsPersistence
       />
     </Box>
   );

@@ -99,7 +99,7 @@ export const AskAiButton: React.FC<AskAiButtonProps> = ({
         <ButtonBase
           onClick={(e) => {
             e.currentTarget.blur();
-            onClick?.(e);
+            onClick?.();
           }}
           focusRipple
           aria-label={`${label}${tagLabel ? ` (${tagLabel})` : ''}`}
