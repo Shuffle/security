@@ -388,19 +388,28 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   // ---------------------------------------------------------------------------
   // Check Backend Status & Database Readiness (On-Prem / Self-Hosted)
   // ---------------------------------------------------------------------------
+  // Check backend server status & discover SSO configuration
+  // ---------------------------------------------------------------------------
   const checkBackendStatus = useCallback(
     async (showLoadingIndicator = true, hostOverride?: string) => {
-      if (showLoadingIndicator) {
-        setIsPingingHost(true);
-      }
-
       const rawTarget =
         hostOverride !== undefined
           ? hostOverride
           : (customHostUrl.trim() || getHostBaseUrl() || '');
       const targetHost = rawTarget.trim().replace(/\/+$/, '');
 
-      // In browser, if on self-hosted and no host entered, probe current origin
+      // If no host is entered and we are not in an explicit adminsetup route, do nothing!
+      if (!targetHost && !isExplicitAdminSetup) {
+        if (showLoadingIndicator) {
+          setIsPingingHost(false);
+        }
+        return;
+      }
+
+      if (showLoadingIndicator) {
+        setIsPingingHost(true);
+      }
+
       const probeBase =
         targetHost || (typeof window !== 'undefined' ? window.location.origin : '');
       const checkUrl = `${probeBase}/api/v1/checkusers`;
@@ -414,6 +423,23 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           headers: { Accept: 'application/json' },
           signal: controller.signal,
         });
+
+        if (res.status === 404) {
+          // If checkusers endpoint does not exist on this backend, fallback to getinfo ping
+          const infoRes = await fetch(`${probeBase}/api/v1/getinfo`, {
+            method: 'GET',
+            headers: { Accept: 'application/json' },
+            signal: controller.signal,
+          }).catch(() => null);
+
+          if (infoRes && (infoRes.ok || infoRes.status === 401 || infoRes.status === 403)) {
+            setIsWaitingForBackend(false);
+            setWaitingErrorMessage('');
+            setHostPingStatus('success');
+            setHostPingMessage('Connected to Shuffle server successfully!');
+            return;
+          }
+        }
 
         const data = await res.json().catch(() => ({}));
 
@@ -462,9 +488,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           ? 'Connection timed out while contacting server'
           : err?.message || 'Connection refused or server unreachable';
 
-        // When testing an explicitly self-hosted instance or in adminsetup, enter waiting/retry state
-        setIsWaitingForBackend(true);
-        setWaitingErrorMessage(msg);
+        // Only lock into waiting/retry state if we are explicitly in adminsetup mode
+        if (isExplicitAdminSetup) {
+          setIsWaitingForBackend(true);
+          setWaitingErrorMessage(msg);
+        } else {
+          setIsWaitingForBackend(false);
+          setWaitingErrorMessage('');
+        }
         setHostPingStatus('error');
         setHostPingMessage(msg);
       } finally {
@@ -474,7 +505,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         }
       }
     },
-    [customHostUrl, authMode]
+    [customHostUrl, authMode, isExplicitAdminSetup]
   );
 
   // Automatic Polling (every 3000ms) while waiting for on-prem backend/database
@@ -490,15 +521,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     };
   }, [isWaitingForBackend, serverMode, checkBackendStatus]);
 
-  // Initial check on mount for self-hosted or adminsetup mode
+  // Initial check on mount only if there is an explicit admin setup route or an actual configured host
   const initialCheckRanRef = useRef(false);
   useEffect(() => {
     if (initialCheckRanRef.current) return;
-    if (serverMode === 'self-hosted' || isExplicitAdminSetup) {
+    const hasHost = Boolean((customHostUrl.trim() || getHostBaseUrl() || '').trim());
+    if (isExplicitAdminSetup || (serverMode === 'self-hosted' && hasHost)) {
       initialCheckRanRef.current = true;
       checkBackendStatus(true);
     }
-  }, [serverMode, isExplicitAdminSetup, checkBackendStatus]);
+  }, [serverMode, isExplicitAdminSetup, customHostUrl, checkBackendStatus]);
 
   // ---------------------------------------------------------------------------
   // Ping Server URL explicitly from input button
@@ -1018,24 +1050,18 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const inputSx = {
     bgcolor: 'hsl(var(--background))',
     color: 'hsl(var(--foreground))',
-    borderRadius: '10px',
-    height: '48px',
-    fontSize: '0.95rem',
-    '& .MuiOutlinedInput-input': {
+    borderRadius: 2,
+    fontSize: '0.875rem',
+    '& input': {
       color: 'hsl(var(--foreground))',
-      fontSize: '0.95rem',
-      py: 0,
-      height: '100%',
-      boxSizing: 'border-box',
     },
     '& input::placeholder': {
       color: 'hsl(var(--muted-foreground))',
       opacity: 0.8,
-      fontSize: '0.95rem',
     },
-    '& fieldset': { borderColor: 'hsl(var(--border))', borderRadius: '10px' },
+    '& fieldset': { borderColor: 'hsl(var(--border))' },
     '&:hover fieldset': { borderColor: '#FF6600' },
-    '&.Mui-focused fieldset': { borderColor: '#FF6600', borderWidth: '1.5px' },
+    '&.Mui-focused fieldset': { borderColor: '#FF6600' },
   };
 
   // Branding text defaults
@@ -1235,6 +1261,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                             handlePingHost();
                           }
                         }}
+                        size="small"
                         fullWidth
                         autoCapitalize="none"
                         autoCorrect="off"
@@ -1242,25 +1269,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                           sx: {
                             bgcolor: 'hsl(var(--card))',
                             color: 'hsl(var(--foreground))',
-                            borderRadius: '10px',
-                            height: '48px',
-                            fontSize: '0.95rem',
+                            borderRadius: 2,
+                            fontSize: '0.85rem',
                             pr: 0.75,
-                            '& .MuiOutlinedInput-input': {
+                            '& input': {
                               color: 'hsl(var(--foreground))',
-                              fontSize: '0.95rem',
-                              py: 0,
-                              height: '100%',
-                              boxSizing: 'border-box',
+                              py: 1,
                             },
-                            '& input::placeholder': {
-                              color: 'hsl(var(--muted-foreground))',
-                              opacity: 0.8,
-                              fontSize: '0.95rem',
-                            },
-                            '& fieldset': { borderColor: 'hsl(var(--border))', borderRadius: '10px' },
+                            '& fieldset': { borderColor: 'hsl(var(--border))' },
                             '&:hover fieldset': { borderColor: '#FF6600' },
-                            '&.Mui-focused fieldset': { borderColor: '#FF6600', borderWidth: '1.5px' },
+                            '&.Mui-focused fieldset': { borderColor: '#FF6600' },
                           },
                           endAdornment: (
                             <InputAdornment position="end">
@@ -1268,17 +1286,18 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                                 onClick={() => handlePingHost()}
                                 variant="contained"
                                 disabled={isPingingHost}
+                                size="small"
                                 sx={{
                                   minWidth: 64,
-                                  height: 32,
+                                  height: 28,
                                   px: 1.5,
-                                  fontSize: '0.8rem',
+                                  fontSize: '0.75rem',
                                   fontWeight: 600,
                                   textTransform: 'none',
-                                  borderRadius: '6px',
+                                  borderRadius: 1.5,
                                   bgcolor: hostPingStatus === 'success' ? '#22c55e' : '#FF6600',
                                   color: '#FFFFFF',
-                                  border: 'none',
+                                  border: '1px solid hsl(var(--border))',
                                   boxShadow: 'none',
                                   '&:hover': {
                                     bgcolor: hostPingStatus === 'success' ? '#16a34a' : '#e65c00',
@@ -1733,10 +1752,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                           fullWidth
                           disabled={loading || mfaCode.length < 6}
                           sx={{
-                            height: '48px',
-                            borderRadius: '10px',
+                            py: 1.25,
+                            borderRadius: 2,
                             fontWeight: 700,
-                            fontSize: '0.95rem',
+                            fontSize: '0.9rem',
                             textTransform: 'none',
                             bgcolor: '#FF6600',
                             color: '#FFFFFF',
@@ -1823,7 +1842,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         <Box sx={{ mb: 2.5 }}>
                           <Typography
                             sx={{
-                              fontSize: '0.875rem',
+                              fontSize: '0.8rem',
                               fontWeight: 600,
                               color: 'hsl(var(--foreground))',
                               mb: 0.75,
@@ -1835,6 +1854,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                             placeholder="analyst@organization.com"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
+                            size="small"
                             fullWidth
                             required
                             autoCapitalize="none"
@@ -1850,10 +1870,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                           fullWidth
                           disabled={loading || !username.trim()}
                           sx={{
-                            height: '48px',
-                            borderRadius: '10px',
+                            py: 1.25,
+                            borderRadius: 2,
                             fontWeight: 700,
-                            fontSize: '0.95rem',
+                            fontSize: '0.9rem',
                             textTransform: 'none',
                             bgcolor: '#FF6600',
                             color: '#FFFFFF',
@@ -1927,7 +1947,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         <Box sx={{ mb: 2 }}>
                           <Typography
                             sx={{
-                              fontSize: '0.875rem',
+                              fontSize: '0.8rem',
                               fontWeight: 600,
                               color: 'hsl(var(--foreground))',
                               mb: 0.75,
@@ -1939,6 +1959,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                             placeholder="admin"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
+                            size="small"
                             fullWidth
                             required
                             autoCapitalize="none"
@@ -1950,7 +1971,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         <Box sx={{ mb: 2 }}>
                           <Typography
                             sx={{
-                              fontSize: '0.875rem',
+                              fontSize: '0.8rem',
                               fontWeight: 600,
                               color: 'hsl(var(--foreground))',
                               mb: 0.75,
@@ -1963,6 +1984,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                             placeholder="Enter password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
+                            size="small"
                             fullWidth
                             required
                             InputProps={{
@@ -1986,7 +2008,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         <Box sx={{ mb: 2.5 }}>
                           <Typography
                             sx={{
-                              fontSize: '0.875rem',
+                              fontSize: '0.8rem',
                               fontWeight: 600,
                               color: 'hsl(var(--foreground))',
                               mb: 0.75,
@@ -1999,6 +2021,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                             placeholder="Enter password again"
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
+                            size="small"
                             fullWidth
                             required
                             InputProps={{
@@ -2025,10 +2048,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                           fullWidth
                           disabled={loading || !username.trim() || !password || !confirmPassword}
                           sx={{
-                            height: '48px',
-                            borderRadius: '10px',
+                            py: 1.25,
+                            borderRadius: 2,
                             fontWeight: 700,
-                            fontSize: '0.95rem',
+                            fontSize: '0.9rem',
                             textTransform: 'none',
                             bgcolor: '#FF6600',
                             color: '#FFFFFF',
@@ -2076,7 +2099,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         <Box sx={{ mb: 2 }}>
                           <Typography
                             sx={{
-                              fontSize: '0.875rem',
+                              fontSize: '0.8rem',
                               fontWeight: 600,
                               color: 'hsl(var(--foreground))',
                               mb: 0.75,
@@ -2092,6 +2115,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                             placeholder="analyst@organization.com"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
+                            size="small"
                             fullWidth
                             required
                             autoCapitalize="none"
@@ -2106,7 +2130,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.75 }}>
                               <Typography
                                 sx={{
-                                  fontSize: '0.875rem',
+                                  fontSize: '0.8rem',
                                   fontWeight: 600,
                                   color: 'hsl(var(--foreground))',
                                 }}
@@ -2114,30 +2138,28 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                                 Password
                               </Typography>
                               {serverMode === 'cloud' && !isRegister && (
-                                <Box
-                                  component="button"
-                                  type="button"
+                                <Button
                                   onClick={() => {
                                     setIsResetPasswordMode(true);
                                     setError('');
                                     setResetEmailSent(false);
                                   }}
+                                  size="small"
                                   sx={{
-                                    background: 'none',
-                                    border: 'none',
                                     p: 0,
-                                    cursor: 'pointer',
-                                    fontSize: '0.8rem',
-                                    fontWeight: 500,
+                                    minWidth: 0,
+                                    fontSize: '0.75rem',
+                                    textTransform: 'none',
                                     color: '#FF6600',
-                                    lineHeight: 1,
+                                    fontWeight: 500,
                                     '&:hover': {
+                                      bgcolor: 'transparent',
                                       textDecoration: 'underline',
                                     },
                                   }}
                                 >
                                   Forgot password?
-                                </Box>
+                                </Button>
                               )}
                             </Box>
                             <TextField
@@ -2145,6 +2167,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                               placeholder={isRegister ? 'At least 10 characters' : 'Enter password'}
                               value={password}
                               onChange={(e) => setPassword(e.target.value)}
+                              size="small"
                               fullWidth
                               required
                               autoComplete={isRegister ? 'new-password' : 'current-password'}
@@ -2171,7 +2194,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                           <Box sx={{ mb: 2 }}>
                             <Typography
                               sx={{
-                                fontSize: '0.875rem',
+                                fontSize: '0.8rem',
                                 fontWeight: 600,
                                 color: 'hsl(var(--foreground))',
                                 mb: 0.75,
@@ -2184,6 +2207,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                               placeholder="Enter password again"
                               value={confirmPassword}
                               onChange={(e) => setConfirmPassword(e.target.value)}
+                              size="small"
                               fullWidth
                               required
                               autoComplete="new-password"
@@ -2264,10 +2288,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                               (isRegister && !termsAccepted)
                             }
                             sx={{
-                              height: '48px',
-                              borderRadius: '10px',
+                              py: 1.25,
+                              borderRadius: 2,
                               fontWeight: 700,
-                              fontSize: '0.95rem',
+                              fontSize: '0.9rem',
                               textTransform: 'none',
                               bgcolor: '#FF6600',
                               color: '#FFFFFF',
@@ -2316,15 +2340,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                               }}
                               startIcon={<ShieldCheck size={18} />}
                               sx={{
+                                py: 1.25,
+                                borderRadius: 2,
+                                fontSize: '0.875rem',
+                                fontWeight: 600,
+                                textTransform: 'none',
                                 borderColor: 'hsl(var(--border))',
                                 color: 'hsl(var(--foreground))',
-                                textTransform: 'none',
-                                fontWeight: 600,
-                                height: '48px',
-                                borderRadius: '10px',
                                 '&:hover': {
-                                  borderColor: 'hsl(var(--foreground))',
-                                  bgcolor: 'rgba(255, 255, 255, 0.05)',
+                                  borderColor: '#FF6600',
+                                  bgcolor: 'rgba(255, 102, 0, 0.05)',
                                 },
                               }}
                             >
