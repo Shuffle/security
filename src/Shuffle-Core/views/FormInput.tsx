@@ -1615,7 +1615,7 @@ const FormInput = (defaultprops: any) => {
 										? workflow.form_control.input_markdown
 										: ""
 						return md.length > 0 ? (
-							<div className="prose prose-invert max-w-none" style={{marginBottom: 20, overflowWrap: "break-word", wordBreak: "break-word", }}>
+							<div className="prose dark:prose-invert max-w-none" style={{marginBottom: 20, overflowWrap: "break-word", wordBreak: "break-word", }}>
 								<Markdown
 								  components={{
 									iframe: IframeWrapper,

@@ -94,6 +94,7 @@ const baseSx: SxProps<Theme> = {
   '& > *:first-of-type': { mt: 0 },
   '& > *:last-child': { mb: 0 },
   '& p': { m: 0, mb: 1 },
+  '& strong, & b': { color: 'inherit', fontWeight: 600 },
   '& ul, & ol': { m: 0, mb: 1, pl: 2.5 },
   '& li': { mb: 0.25 },
   '& a': { color: 'hsl(var(--primary))', textDecoration: 'underline' },

@@ -1,13 +1,16 @@
 import { Menu as MenuIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from '@/lib/router-compat';
-import { Box, Container, IconButton, Drawer, Typography } from '@mui/material';
+import { Box, Container, IconButton, Drawer, Typography, useTheme, useMediaQuery } from '@mui/material';
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { DocsSidebar } from '@/components/docs/DocsSidebar';
 import { MarkdownRenderer } from '@/components/docs/MarkdownRenderer';
 import { DocsTableOfContents, MobileTableOfContents } from '@/components/docs/DocsTableOfContents';
 import { useDocContent, type RemoteDocMeta } from '@/components/docs/useDocContent';
 import { usePageMeta } from '@/hooks/usePageMeta';
+
+const SIDEBAR_WIDTH_MD = 250;
+const SIDEBAR_WIDTH_XL = 270;
 
 interface DocsPageProps {
   /** SSR-provided markdown/metadata; when present the client fetch is skipped. */
@@ -42,10 +45,12 @@ const DocsPage = ({
     initialMeta,
   });
 
-  const docTitle =
+  const fallbackTitle =
     slug === 'index'
       ? sectionTitle
       : slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
+  const docTitle = doc.title || doc.meta?.name || fallbackTitle;
 
   usePageMeta({
     title: docTitle,
@@ -63,6 +68,37 @@ const DocsPage = ({
   });
 
   const hasHeadings = doc.headings.length > 0;
+  const theme = useTheme();
+  const isLgUp = useMediaQuery(theme.breakpoints.up('lg')); // >= 1200px
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [containerWidth, setContainerWidth] = useState<number | null>(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    setContainerWidth(el.getBoundingClientRect().width);
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentBoxSize) {
+          const size = Array.isArray(entry.contentBoxSize) ? entry.contentBoxSize[0] : entry.contentBoxSize;
+          setContainerWidth(size.inlineSize);
+        } else {
+          setContainerWidth(entry.contentRect.width);
+        }
+      }
+    });
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Show desktop TOC only if viewport is >= 1200px (isLgUp) AND the content area has
+  // at least 860px of available space (leaving enough room for middle content + gap + TOC).
+  // If the window is < 1200px, or if the Ask AI panel shrinks available space below 860px,
+  // we smoothly fall back to the mobile TOC jumper view.
+  const showDesktopToc = isLgUp && (containerWidth === null || containerWidth >= 860);
 
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -120,7 +156,7 @@ const DocsPage = ({
         </Box>
       </Drawer>
 
-      <Box sx={{ display: 'flex', flex: 1 }}>
+      <Box sx={{ display: 'flex', flex: 1, minWidth: 0 }}>
         {/* Desktop Sidebar (Left) */}
         <Box
           sx={{
@@ -129,9 +165,11 @@ const DocsPage = ({
             top: 64,
             left: 0,
             height: 'calc(100vh - 64px)',
-            width: 280,
+            width: { md: SIDEBAR_WIDTH_MD, xl: SIDEBAR_WIDTH_XL },
             backgroundColor: 'background.default',
             zIndex: 1,
+            borderRight: '1px solid',
+            borderColor: 'divider',
           }}
         >
           <DocsSidebar
@@ -144,9 +182,11 @@ const DocsPage = ({
 
         {/* Main content + Right ToC area */}
         <Box
+          ref={containerRef}
           sx={{
             flex: 1,
-            ml: { xs: 0, md: '280px' },
+            minWidth: 0,
+            ml: { xs: 0, md: `${SIDEBAR_WIDTH_MD}px`, xl: `${SIDEBAR_WIDTH_XL}px` },
             mr: { xs: 0, md: 'var(--ask-ai-panel-width, 0px)' },
             transition: 'margin 0.2s ease',
             minHeight: 'calc(100vh - 64px)',
@@ -156,34 +196,31 @@ const DocsPage = ({
             maxWidth={false}
             sx={{
               maxWidth: 1440,
-              py: { xs: 4, md: 6 },
-              px: { xs: 2, sm: 3, md: 5, lg: 6 },
+              width: '100%',
+              py: { xs: 3, md: 5 },
+              px: { xs: 2, sm: 3, md: 3, lg: 4, xl: 5 },
+              boxSizing: 'border-box',
             }}
           >
             <Box
               sx={{
                 display: 'flex',
-                gap: { lg: 5, xl: 7 },
+                gap: { lg: 3.5, xl: 5 },
                 alignItems: 'flex-start',
+                minWidth: 0,
+                width: '100%',
               }}
             >
               {/* Document Article Column */}
-              <Box sx={{ flex: 1, minWidth: 0, maxWidth: { lg: 840, xl: 920 } }}>
-                <Typography
-                  component="h1"
-                  sx={{ fontSize: { xs: '30px', md: '36px' }, fontWeight: 600, mb: 3 }}
-                >
-                  {docTitle}
-                </Typography>
-
-                {/* Mobile / Tablet On this page jumper (< lg) */}
-                {hasHeadings && (
-                  <Box sx={{ display: { xs: 'block', lg: 'none' }, mb: 3 }}>
-                    <MobileTableOfContents headings={doc.headings} />
-                  </Box>
-                )}
-
+              <Box
+                sx={{
+                  flex: 1,
+                  minWidth: 0,
+                  maxWidth: showDesktopToc ? { xs: '100%', lg: 820, xl: 900 } : '100%',
+                }}
+              >
                 <MarkdownRenderer
+                  title={docTitle}
                   slug={slug}
                   folder={folder}
                   basePath={basePath}
@@ -196,40 +233,52 @@ const DocsPage = ({
                   suggestLoading={doc.suggestLoading}
                   onResetCache={doc.handleResetCache}
                   hideMeta={hideMeta ?? folder === 'legal'}
-                  hideDesktopActionButtons={true}
+                  mobileToc={
+                    hasHeadings && !showDesktopToc ? (
+                      <Box
+                        sx={{
+                          position: 'sticky',
+                          top: { xs: 56, sm: 64 },
+                          zIndex: 20,
+                          backgroundColor: 'background.default',
+                          py: 1,
+                          mb: 3,
+                          pl: { xs: '48px', sm: '52px', md: 0 },
+                        }}
+                      >
+                        <MobileTableOfContents headings={doc.headings} />
+                      </Box>
+                    ) : null
+                  }
                 />
               </Box>
 
-              {/* Right Sidebar: Table of Contents & Action Buttons (lg+) */}
-              <Box
-                component="aside"
-                aria-label="Table of contents"
-                sx={{
-                  width: { lg: 240, xl: 260 },
-                  flexShrink: 0,
-                  display: { xs: 'none', lg: 'block' },
-                  position: 'sticky',
-                  top: 84,
-                  maxHeight: 'calc(100vh - 100px)',
-                  overflowY: 'auto',
-                  pr: 1,
-                  // subtle scrollbar
-                  '&::-webkit-scrollbar': { width: 4 },
-                  '&::-webkit-scrollbar-thumb': {
-                    backgroundColor: 'divider',
-                    borderRadius: 2,
-                  },
-                }}
-              >
-                <DocsTableOfContents
-                  headings={doc.headings}
-                  slug={slug}
-                  markdownContent={doc.content}
-                  onResetCache={doc.handleResetCache}
-                  resetting={doc.resetting}
-                  loading={doc.loading}
-                />
-              </Box>
+              {/* Right Sidebar: Table of Contents (lg+) */}
+              {hasHeadings && showDesktopToc && (
+                <Box
+                  component="aside"
+                  aria-label="Table of contents"
+                  sx={{
+                    width: { lg: 220, xl: 250 },
+                    flexShrink: 0,
+                    display: { xs: 'none', lg: 'block' },
+                    position: 'sticky',
+                    top: 84,
+                    alignSelf: 'flex-start',
+                    maxHeight: 'calc(100vh - 100px)',
+                    overflowY: 'auto',
+                    pr: 1,
+                    // subtle scrollbar
+                    '&::-webkit-scrollbar': { width: 4 },
+                    '&::-webkit-scrollbar-thumb': {
+                      backgroundColor: 'divider',
+                      borderRadius: 2,
+                    },
+                  }}
+                >
+                  <DocsTableOfContents headings={doc.headings} />
+                </Box>
+              )}
             </Box>
           </Container>
         </Box>

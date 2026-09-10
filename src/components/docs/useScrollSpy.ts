@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 interface UseScrollSpyOptions {
-  /** Offset from the top of the viewport in pixels (accounts for sticky navbar). Default: 100 */
+  /** Offset from the top of the viewport in pixels (accounts for sticky navbar). Default: 160 */
   offset?: number;
 }
 
@@ -12,7 +12,7 @@ export const useScrollSpy = (
   headingIds: string[],
   options: UseScrollSpyOptions = {},
 ): string | null => {
-  const { offset = 100 } = options;
+  const { offset = 160 } = options;
   const [activeId, setActiveId] = useState<string | null>(null);
 
   useEffect(() => {

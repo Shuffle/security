@@ -91,6 +91,98 @@ export const stripInContentToc = (markdown: string): string => {
   return result.join('\n');
 };
 
+export interface ExtractedTitleResult {
+  title: string | null;
+  content: string;
+}
+
+/**
+ * Extracts the primary H1 (# Title) from raw markdown content and returns the extracted
+ * title and the body content with the H1 line stripped so it does not render twice.
+ */
+export const extractDocTitleAndBody = (markdown: string): ExtractedTitleResult => {
+  if (!markdown) return { title: null, content: '' };
+
+  const lines = markdown.split('\n');
+  let inFrontmatter = false;
+  let inComment = false;
+  let inCodeBlock = false;
+  let title: string | null = null;
+  let titleLineIndex = -1;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    // Handle YAML frontmatter at start of document
+    if (i === 0 && trimmed === '---') {
+      inFrontmatter = true;
+      continue;
+    }
+    if (inFrontmatter) {
+      if (trimmed === '---') {
+        inFrontmatter = false;
+      }
+      continue;
+    }
+
+    // Skip fenced code blocks
+    if (trimmed.startsWith('```')) {
+      inCodeBlock = !inCodeBlock;
+      continue;
+    }
+    if (inCodeBlock) continue;
+
+    // Handle multi-line HTML comments
+    if (trimmed.startsWith('<!--') && !trimmed.endsWith('-->')) {
+      inComment = true;
+      continue;
+    }
+    if (inComment) {
+      if (trimmed.endsWith('-->')) {
+        inComment = false;
+      }
+      continue;
+    }
+    if (trimmed.startsWith('<!--') && trimmed.endsWith('-->')) {
+      continue;
+    }
+
+    // Skip empty lines
+    if (!trimmed) continue;
+
+    // Check for single # heading: "# Title", but NOT "## Title" or "### Title"
+    const h1Match = trimmed.match(/^#\s+(.+)$/);
+    if (h1Match) {
+      const candidate = stripMarkdownInline(h1Match[1].replace(/\s+#+$/, '').trim());
+      // Skip if this is a legacy in-content "Table of Contents"
+      if (!isTocHeading(candidate)) {
+        title = candidate;
+        titleLineIndex = i;
+        break;
+      }
+    } else {
+      // Reached actual text or subheadings (## H2) before finding an H1 - stop searching
+      break;
+    }
+  }
+
+  if (titleLineIndex !== -1) {
+    const remainingLines = [...lines];
+    remainingLines.splice(titleLineIndex, 1);
+    // If the next line is an empty line, drop one blank line for cleaner top spacing
+    if (remainingLines[titleLineIndex]?.trim() === '') {
+      remainingLines.splice(titleLineIndex, 1);
+    }
+    return {
+      title,
+      content: remainingLines.join('\n'),
+    };
+  }
+
+  return { title: null, content: markdown };
+};
+
 /**
  * Extracts a hierarchical list of H2 and H3 headings from markdown content.
  * Code blocks are ignored, in-content TOCs are excluded, and duplicate IDs are deduplicated.

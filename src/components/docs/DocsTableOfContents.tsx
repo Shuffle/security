@@ -1,41 +1,21 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Box, Button, Collapse, Stack, Typography } from '@mui/material';
-import { ChevronDown, ChevronRight, RefreshCw as RefreshCwIcon } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Box, Collapse, Stack, Typography } from '@mui/material';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { type TocHeading } from './tocUtils';
 import { useScrollSpy } from './useScrollSpy';
-import PrintDocsDialog from './PrintDocsDialog';
-import { useIsSupport } from '@/hooks/useIsSupport';
 import { useLocation, useNavigate } from '@/lib/router-compat';
 
 export interface DocsTableOfContentsProps {
   /** Hierarchical headings list (H2 with nested H3). */
   headings: TocHeading[];
-  /** Current doc slug. */
-  slug: string;
-  /** Markdown content for print export. */
-  markdownContent?: string;
-  /** Callback to trigger cache reset. */
-  onResetCache?: () => Promise<void>;
-  /** Whether cache reset is currently running. */
-  resetting?: boolean;
-  /** Whether doc content is loading. */
-  loading?: boolean;
-  /** Hide the action buttons (e.g. when used in mobile quick-menu). */
-  hideActions?: boolean;
 }
 
 export const DocsTableOfContents: React.FC<DocsTableOfContentsProps> = ({
   headings,
-  slug,
-  markdownContent = '',
-  onResetCache,
-  resetting = false,
-  loading = false,
-  hideActions = false,
 }) => {
-  const isSupport = useIsSupport();
   const location = useLocation();
   const navigate = useNavigate();
+  const activeItemRef = useRef<HTMLDivElement | null>(null);
 
   // Flatten IDs for scrollspy
   const flatIds = useMemo(() => {
@@ -79,6 +59,16 @@ export const DocsTableOfContents: React.FC<DocsTableOfContentsProps> = ({
     }
   }, [activeHeadingId, parentMap, headings]);
 
+  // Keep the active item in view inside the TOC container as you scroll
+  useEffect(() => {
+    if (activeItemRef.current) {
+      activeItemRef.current.scrollIntoView({
+        block: 'nearest',
+        behavior: 'smooth',
+      });
+    }
+  }, [activeHeadingId]);
+
   // Initial expansion based on URL hash or first section
   useEffect(() => {
     const rawHash = location.hash ? decodeURIComponent(location.hash.replace(/^#/, '')) : '';
@@ -116,10 +106,11 @@ export const DocsTableOfContents: React.FC<DocsTableOfContentsProps> = ({
         setExpandedIds((prev) => new Set(prev).add(heading.id));
       }
 
-      // Smooth scroll to the heading element
       const el = document.getElementById(heading.id);
       if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const yOffset = -90;
+        const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+        window.scrollTo({ top: y, behavior: 'smooth' });
       }
 
       // Sync URL hash
@@ -131,175 +122,138 @@ export const DocsTableOfContents: React.FC<DocsTableOfContentsProps> = ({
     [expandedIds, location.pathname, location.search, navigate],
   );
 
+  if (headings.length === 0) return null;
+
   return (
     <Box sx={{ width: '100%' }}>
-      {/* Action Buttons (Print / Export PDF & Reset Cache) */}
-      {!hideActions && (
-        <Stack spacing={1} sx={{ mb: 3 }}>
-          <PrintDocsDialog
-            slug={slug}
-            currentMarkdown={markdownContent}
-            disabled={loading || resetting}
-            label="Print / Export PDF"
-            fullWidth
-            sx={{
-              backgroundColor: 'hsl(var(--card))',
-              '&:hover': {
-                backgroundColor: 'hsl(var(--accent))',
-              },
-            }}
-          />
+      <Typography
+        sx={{
+          color: 'text.primary',
+          fontSize: '0.9rem',
+          fontWeight: 600,
+          mb: 1.5,
+          userSelect: 'none',
+        }}
+      >
+        Table of Contents
+      </Typography>
 
-          {isSupport && onResetCache && (
-            <Button
-              variant="outlined"
-              size="small"
-              fullWidth
-              onClick={onResetCache}
-              disabled={resetting || loading}
-              startIcon={<RefreshCwIcon size={14} className={resetting ? 'animate-spin' : ''} />}
-              sx={{
-                textTransform: 'none',
-                height: 36,
-                borderColor: 'hsl(var(--border))',
-                backgroundColor: 'hsl(var(--card))',
-                color: 'text.primary',
-                '&:hover': {
-                  borderColor: 'primary.main',
-                  color: 'primary.main',
-                  backgroundColor: 'hsl(var(--accent))',
-                },
-              }}
-            >
-              {resetting ? 'Resetting…' : 'Reset Cache'}
-            </Button>
-          )}
-        </Stack>
-      )}
+      <Stack spacing={0.75} sx={{ pl: 0 }}>
+        {headings.map((h2) => {
+          const hasChildren = h2.children.length > 0;
+          const isExpanded = expandedIds.has(h2.id);
+          const isH2Active = activeHeadingId === h2.id;
+          const isChildActive = h2.children.some((c) => c.id === activeHeadingId);
+          const isActive = isH2Active || isChildActive;
 
-      {/* Table of Content Header & List */}
-      {headings.length > 0 && (
-        <Box>
-          <Typography
-            sx={{
-              color: 'text.primary',
-              fontSize: '0.95rem',
-              fontWeight: 600,
-              mb: 1.5,
-              userSelect: 'none',
-            }}
-          >
-            Table Of Content
-          </Typography>
+          return (
+            <Box key={h2.id} ref={isH2Active ? activeItemRef : undefined}>
+              {/* H2 Row */}
+              <Box
+                onClick={() => handleHeadingClick(h2, hasChildren)}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  py: 0.4,
+                  cursor: 'pointer',
+                  borderRadius: 1,
+                  color: isActive ? 'primary.main' : 'text.secondary',
+                  transition: 'color 120ms ease',
+                  userSelect: 'none',
+                  minWidth: 0,
+                  '&:hover': {
+                    color: isActive ? 'primary.main' : 'text.primary',
+                  },
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: '0.85rem',
+                    fontWeight: isActive ? 600 : 400,
+                    lineHeight: 1.35,
+                    color: 'inherit',
+                    flex: 1,
+                    minWidth: 0,
+                    overflowWrap: 'break-word',
+                    wordBreak: 'break-word',
+                  }}
+                >
+                  {h2.text}
+                </Typography>
 
-          <Stack spacing={0.75} sx={{ pl: 0 }}>
-            {headings.map((h2) => {
-              const hasChildren = h2.children.length > 0;
-              const isExpanded = expandedIds.has(h2.id);
-              const isH2Active = activeHeadingId === h2.id;
-              const isChildActive = h2.children.some((c) => c.id === activeHeadingId);
-              const isActive = isH2Active || isChildActive;
-
-              return (
-                <Box key={h2.id}>
-                  {/* H2 Row */}
+                {hasChildren && (
                   <Box
-                    onClick={() => handleHeadingClick(h2, hasChildren)}
+                    component="span"
+                    onClick={(e: React.MouseEvent) => handleToggleExpand(h2.id, e)}
                     sx={{
-                      display: 'flex',
+                      display: 'inline-flex',
                       alignItems: 'center',
-                      gap: 0.5,
-                      py: 0.4,
-                      cursor: 'pointer',
-                      borderRadius: 1,
-                      color: isActive ? 'primary.main' : 'text.secondary',
-                      transition: 'color 120ms ease',
-                      userSelect: 'none',
+                      justifyContent: 'center',
+                      p: 0.25,
+                      borderRadius: 0.5,
+                      color: 'inherit',
+                      flexShrink: 0,
                       '&:hover': {
-                        color: isActive ? 'primary.main' : 'text.primary',
+                        backgroundColor: 'action.hover',
                       },
                     }}
                   >
-                    <Typography
-                      sx={{
-                        fontSize: '0.875rem',
-                        fontWeight: isActive ? 600 : 400,
-                        lineHeight: 1.4,
-                        color: 'inherit',
-                        flex: hasChildren ? '0 1 auto' : 1,
-                      }}
-                    >
-                      {h2.text}
-                    </Typography>
-
-                    {hasChildren && (
-                      <Box
-                        component="span"
-                        onClick={(e: React.MouseEvent) => handleToggleExpand(h2.id, e)}
-                        sx={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          p: 0.25,
-                          borderRadius: 0.5,
-                          color: 'inherit',
-                          '&:hover': {
-                            backgroundColor: 'action.hover',
-                          },
-                        }}
-                      >
-                        {isExpanded ? (
-                          <ChevronDown size={14} style={{ color: 'inherit' }} />
-                        ) : (
-                          <ChevronRight size={14} style={{ color: 'inherit' }} />
-                        )}
-                      </Box>
+                    {isExpanded ? (
+                      <ChevronDown size={14} style={{ color: 'inherit' }} />
+                    ) : (
+                      <ChevronRight size={14} style={{ color: 'inherit' }} />
                     )}
                   </Box>
+                )}
+              </Box>
 
-                  {/* H3 Subsections (Indented) */}
-                  {hasChildren && (
-                    <Collapse in={isExpanded} timeout="auto" unmountOnExit>
-                      <Stack spacing={0.6} sx={{ pl: 2, pt: 0.5, pb: 0.75 }}>
-                        {h2.children.map((h3) => {
-                          const isH3Active = activeHeadingId === h3.id;
-                          return (
-                            <Box
-                              key={h3.id}
-                              onClick={() => handleHeadingClick(h3, false)}
-                              sx={{
-                                py: 0.25,
-                                cursor: 'pointer',
-                                color: isH3Active ? 'primary.main' : 'text.secondary',
-                                transition: 'color 120ms ease',
-                                userSelect: 'none',
-                                '&:hover': {
-                                  color: isH3Active ? 'primary.main' : 'text.primary',
-                                },
-                              }}
-                            >
-                              <Typography
-                                sx={{
-                                  fontSize: '0.8125rem',
-                                  fontWeight: isH3Active ? 600 : 400,
-                                  lineHeight: 1.4,
-                                  color: 'inherit',
-                                }}
-                              >
-                                {h3.text}
-                              </Typography>
-                            </Box>
-                          );
-                        })}
-                      </Stack>
-                    </Collapse>
-                  )}
-                </Box>
-              );
-            })}
-          </Stack>
-        </Box>
-      )}
+              {/* H3 Subsections (Indented) */}
+              {hasChildren && (
+                <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                  <Stack spacing={0.6} sx={{ pl: 2, pt: 0.5, pb: 0.75 }}>
+                    {h2.children.map((h3) => {
+                      const isH3Active = activeHeadingId === h3.id;
+                      return (
+                        <Box
+                          key={h3.id}
+                          ref={isH3Active ? activeItemRef : undefined}
+                          onClick={() => handleHeadingClick(h3, false)}
+                          sx={{
+                            py: 0.25,
+                            cursor: 'pointer',
+                            color: isH3Active ? 'primary.main' : 'text.secondary',
+                            transition: 'color 120ms ease',
+                            userSelect: 'none',
+                            minWidth: 0,
+                            '&:hover': {
+                              color: isH3Active ? 'primary.main' : 'text.primary',
+                            },
+                          }}
+                        >
+                          <Typography
+                            sx={{
+                              fontSize: '0.8125rem',
+                              fontWeight: isH3Active ? 600 : 400,
+                              lineHeight: 1.35,
+                              color: 'inherit',
+                              minWidth: 0,
+                              overflowWrap: 'break-word',
+                              wordBreak: 'break-word',
+                            }}
+                          >
+                            {h3.text}
+                          </Typography>
+                        </Box>
+                      );
+                    })}
+                  </Stack>
+                </Collapse>
+              )}
+            </Box>
+          );
+        })}
+      </Stack>
     </Box>
   );
 };
@@ -309,13 +263,39 @@ export const MobileTableOfContents: React.FC<{ headings: TocHeading[] }> = ({ he
   const navigate = useNavigate();
   const location = useLocation();
 
+  const flatIds = useMemo(() => {
+    const ids: string[] = [];
+    for (const h2 of headings) {
+      ids.push(h2.id);
+      for (const h3 of h2.children) {
+        ids.push(h3.id);
+      }
+    }
+    return ids;
+  }, [headings]);
+
+  const activeHeadingId = useScrollSpy(flatIds, { offset: 160 });
+
+  const activeHeading = useMemo(() => {
+    if (!activeHeadingId) return null;
+    for (const h2 of headings) {
+      if (h2.id === activeHeadingId) return h2;
+      for (const h3 of h2.children) {
+        if (h3.id === activeHeadingId) return h3;
+      }
+    }
+    return null;
+  }, [headings, activeHeadingId]);
+
   if (headings.length === 0) return null;
 
   const handleSelect = (id: string) => {
     setOpen(false);
     const el = document.getElementById(id);
     if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const yOffset = -120;
+      const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      window.scrollTo({ top: y, behavior: 'smooth' });
     }
     const pathWithQuery = `${location.pathname}${location.search}#${id}`;
     navigate(pathWithQuery, { replace: true });
@@ -328,7 +308,12 @@ export const MobileTableOfContents: React.FC<{ headings: TocHeading[] }> = ({ he
         borderColor: 'divider',
         borderRadius: 2,
         backgroundColor: 'background.paper',
+        boxShadow: (theme) =>
+          theme.palette.mode === 'dark'
+            ? '0 4px 20px rgba(0, 0, 0, 0.4)'
+            : '0 4px 16px rgba(0, 0, 0, 0.06)',
         overflow: 'hidden',
+        backdropFilter: 'blur(8px)',
       }}
     >
       <Box
@@ -340,57 +325,137 @@ export const MobileTableOfContents: React.FC<{ headings: TocHeading[] }> = ({ he
           px: 2,
           py: 1.25,
           cursor: 'pointer',
+          userSelect: 'none',
           '&:hover': { backgroundColor: 'action.hover' },
         }}
       >
-        <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.primary' }}>
-          On this page
-        </Typography>
+        <Stack
+          direction="row"
+          spacing={1}
+          alignItems="center"
+          sx={{ minWidth: 0, overflow: 'hidden', mr: 1 }}
+        >
+          <Typography
+            sx={{
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              color: 'text.primary',
+              flexShrink: 0,
+            }}
+          >
+            On this page
+          </Typography>
+          {activeHeading && (
+            <>
+              <Typography
+                sx={{
+                  color: 'text.secondary',
+                  fontSize: '0.875rem',
+                  flexShrink: 0,
+                }}
+              >
+                /
+              </Typography>
+              <Typography
+                noWrap
+                sx={{
+                  fontSize: '0.875rem',
+                  color: 'primary.main',
+                  fontWeight: 500,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {activeHeading.text}
+              </Typography>
+            </>
+          )}
+        </Stack>
+
         <ChevronDown
           size={16}
           style={{
             transform: open ? 'rotate(180deg)' : 'none',
             transition: 'transform 0.2s ease',
             color: 'hsl(var(--muted-foreground))',
+            flexShrink: 0,
           }}
         />
       </Box>
 
       <Collapse in={open}>
-        <Stack spacing={0.5} sx={{ px: 2, pb: 2, pt: 0.5, borderTop: '1px solid', borderColor: 'divider' }}>
-          {headings.map((h2) => (
-            <React.Fragment key={h2.id}>
-              <Box
-                onClick={() => handleSelect(h2.id)}
-                sx={{
-                  py: 0.4,
-                  cursor: 'pointer',
-                  color: 'text.secondary',
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
-                  '&:hover': { color: 'primary.main' },
-                }}
-              >
-                {h2.text}
-              </Box>
-              {h2.children.map((h3) => (
+        <Stack
+          spacing={0.5}
+          sx={{
+            px: 2,
+            pb: 2,
+            pt: 0.5,
+            borderTop: '1px solid',
+            borderColor: 'divider',
+            maxHeight: 'calc(100vh - 160px)',
+            overflowY: 'auto',
+            // subtle scrollbar
+            '&::-webkit-scrollbar': { width: 4 },
+            '&::-webkit-scrollbar-thumb': {
+              backgroundColor: 'divider',
+              borderRadius: 2,
+            },
+          }}
+        >
+          {headings.map((h2) => {
+            const isH2Active = activeHeadingId === h2.id;
+            return (
+              <React.Fragment key={h2.id}>
                 <Box
-                  key={h3.id}
-                  onClick={() => handleSelect(h3.id)}
+                  onClick={() => handleSelect(h2.id)}
                   sx={{
-                    py: 0.3,
-                    pl: 2,
+                    py: 0.5,
+                    px: 1,
+                    borderRadius: 1,
                     cursor: 'pointer',
-                    color: 'text.secondary',
-                    fontSize: '0.8125rem',
-                    '&:hover': { color: 'primary.main' },
+                    color: isH2Active ? 'primary.main' : 'text.primary',
+                    backgroundColor: isH2Active ? 'action.selected' : 'transparent',
+                    fontSize: '0.875rem',
+                    fontWeight: isH2Active ? 600 : 500,
+                    transition: 'all 120ms ease',
+                    '&:hover': {
+                      color: 'primary.main',
+                      backgroundColor: 'action.hover',
+                    },
                   }}
                 >
-                  {h3.text}
+                  {h2.text}
                 </Box>
-              ))}
-            </React.Fragment>
-          ))}
+                {h2.children.map((h3) => {
+                  const isH3Active = activeHeadingId === h3.id;
+                  return (
+                    <Box
+                      key={h3.id}
+                      onClick={() => handleSelect(h3.id)}
+                      sx={{
+                        py: 0.4,
+                        pl: 2.5,
+                        pr: 1,
+                        borderRadius: 1,
+                        cursor: 'pointer',
+                        color: isH3Active ? 'primary.main' : 'text.secondary',
+                        backgroundColor: isH3Active ? 'action.selected' : 'transparent',
+                        fontSize: '0.8125rem',
+                        fontWeight: isH3Active ? 600 : 400,
+                        transition: 'all 120ms ease',
+                        '&:hover': {
+                          color: 'primary.main',
+                          backgroundColor: 'action.hover',
+                        },
+                      }}
+                    >
+                      {h3.text}
+                    </Box>
+                  );
+                })}
+              </React.Fragment>
+            );
+          })}
         </Stack>
       </Collapse>
     </Box>

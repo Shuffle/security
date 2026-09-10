@@ -41,6 +41,10 @@ export interface MarkdownRendererProps {
   initialMeta?: RemoteDocMeta | null;
   /** Hide read time, contributors and "Edit on GitHub" metadata. Print stays. */
   hideMeta?: boolean;
+  /** Primary H1 document title to render at the very top. */
+  title?: string | null;
+  /** Optional mobile/tablet sticky table of contents component to render before actual content. */
+  mobileToc?: React.ReactNode;
   /** Controlled doc content (from useDocContent) */
   content?: string;
   meta?: RemoteDocMeta | null;
@@ -66,6 +70,8 @@ export const MarkdownRenderer = ({
   initialContent = null,
   initialMeta = null,
   hideMeta = false,
+  title: propTitle,
+  mobileToc,
   content: propContent,
   meta: propMeta,
   loading: propLoading,
@@ -83,6 +89,7 @@ export const MarkdownRenderer = ({
       : { slug, folder, basePath, initialContent, initialMeta },
   );
 
+  const title = propTitle !== undefined ? propTitle : hookDoc.title;
   const content = isControlled ? propContent : hookDoc.content;
   const meta = isControlled ? (propMeta ?? null) : hookDoc.meta;
   const loading = isControlled ? Boolean(propLoading) : hookDoc.loading;
@@ -248,7 +255,7 @@ export const MarkdownRenderer = ({
   return (
     <Box
       ref={containerRef}
-      className="prose prose-invert max-w-none"
+      className="prose dark:prose-invert max-w-none"
 
       sx={{
         '& h1': {
@@ -274,10 +281,23 @@ export const MarkdownRenderer = ({
           mt: 4,
           mb: 2,
         },
+        '& h4, & h5, & h6': {
+          color: 'text.primary',
+          fontWeight: 600,
+          mt: 3,
+          mb: 1.5,
+        },
         '& p': {
           color: 'text.secondary',
           lineHeight: 1.8,
           mb: 2,
+        },
+        '& strong, & b': {
+          color: 'text.primary',
+          fontWeight: 600,
+        },
+        '& em, & i': {
+          color: 'inherit',
         },
         '& a': {
           color: 'primary.main',
@@ -315,6 +335,10 @@ export const MarkdownRenderer = ({
         },
         '& li': {
           mb: 1,
+          color: 'text.secondary',
+        },
+        '& li::marker': {
+          color: 'text.secondary',
         },
         '& table': {
           width: '100%',
@@ -322,7 +346,7 @@ export const MarkdownRenderer = ({
           mb: 4,
         },
         '& th': {
-          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+          backgroundColor: (t) => t.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
           borderBottom: '2px solid',
           borderColor: 'divider',
           p: 2,
@@ -352,6 +376,22 @@ export const MarkdownRenderer = ({
         },
       }}
     >
+      {/* 1. # H1 Document Title */}
+      {title && (
+        <Typography
+          component="h1"
+          sx={{
+            fontSize: { xs: '30px', md: '36px' },
+            fontWeight: 600,
+            color: 'text.primary',
+            mb: 3,
+          }}
+        >
+          {title}
+        </Typography>
+      )}
+
+      {/* 2. Metadata Bar: read_time, contributors, Edit on GitHub, Reset Cache, Print */}
       {(
         <Stack
           direction="row"
@@ -419,6 +459,10 @@ export const MarkdownRenderer = ({
         </Stack>
       )}
 
+      {/* Mobile / Tablet On this page jumper (< xl) */}
+      {mobileToc}
+
+      {/* 3. Actual Content */}
       <ShuffleMarkdown
         disableBreaks
         sx={{ '& p': { mb: 2 } }}

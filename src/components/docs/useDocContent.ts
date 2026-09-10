@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { algoliasearch } from 'algoliasearch';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { resolveDocName, fetchDocsList, docSlug } from '@/components/docs/remoteDocs';
-import { extractHeadings, stripInContentToc, type TocHeading } from './tocUtils';
+import { extractHeadings, stripInContentToc, extractDocTitleAndBody, type TocHeading } from './tocUtils';
 
 export interface Contributor {
   name?: string;
@@ -87,6 +87,7 @@ export interface UseDocContentOptions {
 }
 
 export interface UseDocContentResult {
+  title: string | null;
   content: string;
   meta: RemoteDocMeta | null;
   headings: TocHeading[];
@@ -106,12 +107,15 @@ export const useDocContent = ({
   initialContent = null,
   initialMeta = null,
 }: UseDocContentOptions): UseDocContentResult => {
-  // Clean initial SSR markdown if provided
-  const initialCleaned = useMemo(() => {
-    return initialContent ? stripInContentToc(initialContent) : '';
+  // Clean and extract title from initial SSR markdown if provided
+  const initialProcessed = useMemo(() => {
+    if (!initialContent) return { title: null, content: '' };
+    const stripped = stripInContentToc(initialContent);
+    return extractDocTitleAndBody(stripped);
   }, [initialContent]);
 
-  const [content, setContent] = useState<string>(initialCleaned);
+  const [title, setTitle] = useState<string | null>(initialProcessed.title);
+  const [content, setContent] = useState<string>(initialProcessed.content);
   const [meta, setMeta] = useState<RemoteDocMeta | null>(initialMeta);
   const [loading, setLoading] = useState(!initialContent);
   const ssrSlugRef = useRef<string | null>(initialContent ? slug : null);
@@ -144,9 +148,13 @@ export const useDocContent = ({
 
       const remote = await fetchRemoteDoc(target, resetCache, folder);
       if (remote) {
-        setContent(stripInContentToc(remote.markdown));
+        const stripped = stripInContentToc(remote.markdown);
+        const { title: extractedTitle, content: bodyContent } = extractDocTitleAndBody(stripped);
+        setTitle(extractedTitle);
+        setContent(bodyContent);
         setMeta(remote.meta);
       } else {
+        setTitle(null);
         setError(`Documentation not found: ${slug}`);
       }
       setLoading(false);
@@ -235,6 +243,7 @@ export const useDocContent = ({
   }, [loadContent]);
 
   return {
+    title,
     content,
     meta,
     headings,
