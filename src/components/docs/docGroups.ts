@@ -20,8 +20,8 @@ export const DOC_GROUPS: DocGroupDefinition[] = [
   {
     id: 'automation',
     label: 'Automation',
-    description: 'Workflows, apps, extensions, and playbook automations.',
-    slugs: ['workflows', 'apps', 'extensions'],
+    description: 'Workflows, apps, and playbook automations.',
+    slugs: ['workflows', 'apps'],
   },
   {
     id: 'security',
@@ -32,8 +32,8 @@ export const DOC_GROUPS: DocGroupDefinition[] = [
   {
     id: 'infrastructure',
     label: 'Infrastructure',
-    description: 'AI agents, architecture, configuration, APIs, and troubleshooting.',
-    slugs: ['ai', 'architecture', 'configuration', 'api', 'troubleshooting'],
+    description: 'AI agents, architecture, configuration, extensions, APIs, and troubleshooting.',
+    slugs: ['ai', 'architecture', 'configuration', 'extensions', 'api', 'troubleshooting'],
   },
 ];
 

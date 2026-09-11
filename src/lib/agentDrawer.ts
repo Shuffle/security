@@ -13,6 +13,8 @@ export const AGENT_DRAWER_OPEN_EVENT = 'agent-drawer-open';
 
 export interface AgentDrawerOpenDetail {
   tab?: AgentDrawerTab;
+  source?: string;
+  defaultInput?: string;
 }
 
 /**
@@ -27,10 +29,16 @@ export const openAgentToolPicker = () => {
 
 export const openAgentDrawer = (
   tab: AgentDrawerTab = 'run',
-  options?: { openToolPicker?: boolean },
+  options?: { openToolPicker?: boolean; defaultInput?: string; source?: string },
 ) => {
   window.dispatchEvent(
-    new CustomEvent<AgentDrawerOpenDetail>(AGENT_DRAWER_OPEN_EVENT, { detail: { tab } }),
+    new CustomEvent<AgentDrawerOpenDetail>(AGENT_DRAWER_OPEN_EVENT, {
+      detail: {
+        tab,
+        defaultInput: options?.defaultInput,
+        source: options?.source,
+      },
+    }),
   );
   if (options?.openToolPicker) {
     // Let the drawer mount the Permissions tab before the picker opens.

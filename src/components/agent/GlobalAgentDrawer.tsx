@@ -24,6 +24,7 @@ import {
 } from '@/lib/agentDrawer';
 import { useScheduleAgentRun } from '@/hooks/useScheduleAgentRun';
 import { useIsSupport } from '@/hooks/useIsSupport';
+import { useAuth } from '@/context/AuthContext';
 
 export interface GlobalAgentDrawerProps {
   /** Override sideshift behavior globally (defaults to route rule or true) */
@@ -48,10 +49,12 @@ const GlobalAgentDrawer = ({ sideshift }: GlobalAgentDrawerProps = {}) => {
     } catch { /* ignore */ }
     return 'run';
   });
+  const [defaultInput, setDefaultInput] = useState<string>('');
   const location = useLocation();
   const navigate = useNavigate();
   const scheduleAgentRun = useScheduleAgentRun();
   const isSupport = useIsSupport();
+  const { isAuthenticated } = useAuth();
   // Pass the already-resolved theme ('light' | 'dark') rather than 'system'.
   // The MCP library's 'auto' mode re-detects via DOM ancestors and can pick
   // up an unrelated scope, which made the Choose LLM drawer render light.
@@ -72,6 +75,9 @@ const GlobalAgentDrawer = ({ sideshift }: GlobalAgentDrawerProps = {}) => {
       if (isAgentDisabled) return;
       const detail = (e as CustomEvent<AgentDrawerOpenDetail>).detail;
       const nextTab = (detail?.tab ?? 'run') as AgentRunDrawerTab;
+      if (detail?.defaultInput !== undefined) {
+        setDefaultInput(detail.defaultInput);
+      }
       setInitialTab(nextTab);
       setOpen(true);
       try {
@@ -123,12 +129,15 @@ const GlobalAgentDrawer = ({ sideshift }: GlobalAgentDrawerProps = {}) => {
         } catch { /* ignore */ }
         if (!nextOpen) {
           setInitialTab('run');
+          setDefaultInput('');
           try {
             localStorage.setItem('shuffle_agent_drawer_tab', 'run');
           } catch { /* ignore */ }
         }
       }}
       isSupport={isSupport}
+      isLoggedIn={isAuthenticated}
+      defaultInput={defaultInput}
       requireSupport={true}
       initialTab={initialTab}
       pathname={location.pathname}
@@ -137,7 +146,13 @@ const GlobalAgentDrawer = ({ sideshift }: GlobalAgentDrawerProps = {}) => {
       theme={theme}
       permissionsSlot={<PermissionsPanel compact />}
       localLLMSlot={<LocalLLMConfig globalUrl={API_CONFIG.baseUrl} />}
-      agentUIProps={{ onSchedule: handleSchedule, apiBaseUrl: API_CONFIG.baseUrl, theme, isSupport }}
+      agentUIProps={{
+        onSchedule: handleSchedule,
+        apiBaseUrl: API_CONFIG.baseUrl,
+        theme,
+        isSupport,
+        defaultInput,
+      }}
     />
   );
 };

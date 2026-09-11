@@ -2204,6 +2204,14 @@ const AgentUI: React.FC<AgentUIProps> = ({
       }
     }
   }, [contextStorageKey, defaultInput]);
+
+  const prevDefaultInputRef = useRef(defaultInput);
+  useEffect(() => {
+    if (defaultInput && defaultInput !== prevDefaultInputRef.current) {
+      prevDefaultInputRef.current = defaultInput;
+      setActionInput(defaultInput);
+    }
+  }, [defaultInput]);
   // Editable per-user prompt prefix rendered as a chip at the start of the
   // input. Prepended to the submitted text so it feels like the user is
   // "typing to" the Shuffle Tools MCP without the prefix filling the box.

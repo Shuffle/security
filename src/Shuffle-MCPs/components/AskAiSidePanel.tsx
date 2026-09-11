@@ -19,6 +19,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
+  Button,
   ButtonBase,
   IconButton,
   Tab,
@@ -46,6 +47,7 @@ import {
   isAgentRoute,
   resolveAgentContext,
   getActivePageEntityName,
+  getPageContextChoice,
   setPageContextChoice,
   clearPageContextChoice,
   type AgentContextRule,
@@ -56,6 +58,8 @@ import { useShuffleMcpTheme } from '@/Shuffle-MCPs/ShuffleMcpThemeProvider';
 export const AGENT_DRAWER_OPEN_EVENT = 'agent-drawer-open';
 export interface AgentDrawerOpenDetail {
   tab?: AgentRunDrawerTab;
+  source?: string;
+  defaultInput?: string;
 }
 
 export const ASK_AI_PANEL_WIDTH_STORAGE_KEY = 'shuffle:ask_ai_panel_width';
@@ -73,6 +77,8 @@ export interface AskAiSidePanelProps extends ShuffleHostProps {
   activeTab?: AgentRunDrawerTab;
   /** Tab change callback */
   onTabChange?: (tab: AgentRunDrawerTab) => void;
+  /** Optional pre-filled default input prompt */
+  defaultInput?: string;
   /** Render content for the Permissions tab. Tab is hidden when omitted. */
   permissionsSlot?: React.ReactNode;
   /** Render content for the Local LLM tab. Defaults to bundled Local LLM configuration UI. */
@@ -144,6 +150,7 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
   userdata,
   isLoaded,
   isLoggedIn,
+  defaultInput,
   serverside,
   colorMode,
   sx,
@@ -271,6 +278,16 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
   const [internalTab, setInternalTab] = useState<AgentRunDrawerTab>(initialTab);
   const currentTab = propActiveTab !== undefined ? propActiveTab : internalTab;
 
+  const [controlledDefaultInput, setControlledDefaultInput] = useState<string | undefined>(defaultInput);
+
+  useEffect(() => {
+    if (defaultInput !== undefined) {
+      setControlledDefaultInput(defaultInput);
+    }
+  }, [defaultInput]);
+
+  const effectiveDefaultInput = controlledDefaultInput ?? defaultInput ?? agentUIProps?.defaultInput;
+
   const handleTabChange = useCallback(
     (nextTab: AgentRunDrawerTab) => {
       setInternalTab(nextTab);
@@ -313,9 +330,13 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const onOpen = (event: Event) => {
-      const tab = (event as CustomEvent<AgentDrawerOpenDetail>).detail?.tab;
+      const detail = (event as CustomEvent<AgentDrawerOpenDetail>).detail;
+      const tab = detail?.tab;
       if (tab) {
         handleTabChange(tab as AgentRunDrawerTab);
+      }
+      if (detail?.defaultInput !== undefined) {
+        setControlledDefaultInput(detail.defaultInput);
       }
     };
     window.addEventListener(AGENT_DRAWER_OPEN_EVENT, onOpen as EventListener);
@@ -674,7 +695,7 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
                 border: '1px solid hsl(var(--border))',
               }}
             >
-              Support only
+              {isLoggedIn ? (isSupport ? 'Support' : 'Agent') : 'Guest'}
             </Box>
           </Box>
 
@@ -823,6 +844,89 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
               </Box>
             )}
 
+            {/* Unauthenticated Visitor Notice */}
+            {!isLoggedIn && (
+              <Box
+                sx={{
+                  mx: 2,
+                  mt: 1.5,
+                  mb: 0.5,
+                  p: 1.25,
+                  borderRadius: 1.5,
+                  bgcolor: 'hsl(var(--muted) / 0.5)',
+                  border: '1px solid hsl(var(--border))',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 0.75,
+                  flexShrink: 0,
+                }}
+              >
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 1,
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      fontWeight: 600,
+                      fontSize: '0.78rem',
+                      color: 'hsl(var(--foreground))',
+                    }}
+                  >
+                    Not Logged In
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 0.75 }}>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => handleTabChange('localLLM')}
+                      sx={{
+                        textTransform: 'none',
+                        fontSize: '0.7rem',
+                        py: 0.2,
+                        px: 0.8,
+                        minHeight: 0,
+                        borderRadius: 1,
+                      }}
+                    >
+                      Use Local LLM
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="contained"
+                      onClick={() => {
+                        if (typeof window !== 'undefined') {
+                          window.location.href = '/login';
+                        }
+                      }}
+                      sx={{
+                        textTransform: 'none',
+                        fontSize: '0.7rem',
+                        py: 0.2,
+                        px: 0.8,
+                        minHeight: 0,
+                        borderRadius: 1,
+                      }}
+                    >
+                      Log In
+                    </Button>
+                  </Box>
+                </Box>
+                <Typography
+                  sx={{
+                    fontSize: '0.72rem',
+                    color: 'hsl(var(--muted-foreground))',
+                    lineHeight: 1.4,
+                  }}
+                >
+                  AI agent tasks may fail or be restricted without an active login. You can test prompts here, switch to Local LLM for private offline models, or log in to enable full execution.
+                </Typography>
+              </Box>
+            )}
+
             {/* Scrollable Agent Run Body */}
             <Box
               sx={{
@@ -853,6 +957,7 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
                 contextCategory={context.sourceCategory}
                 contextStorageKey={context.storageKey}
                 composeSubmitInput={context.composeInput}
+                defaultInput={effectiveDefaultInput}
                 onAppsChange={handleAppsChange}
                 onSelectPreset={handleSelectPreset}
                 onChooseLLM={() => handleTabChange('localLLM')}

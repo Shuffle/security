@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import ShuffleMarkdown from '@/Shuffle-MCPs/components/Markdown';
-import { parseMarkdownSegments, DocDynamicComponent } from './DocDynamicComponents';
+import {
+  parseMarkdownSegments,
+  DocDynamicComponent,
+  DocExpandable,
+} from './DocDynamicComponents';
 import { Link, useLocation, useNavigate } from '@/lib/router-compat';
 import {
   Avatar,
@@ -783,6 +787,18 @@ export const MarkdownRenderer = ({
                   props={segment.props || {}}
                 />
               </ComponentErrorBoundary>
+            );
+          }
+
+          if (segment.type === 'expandable') {
+            return (
+              <DocExpandable
+                key={`exp-${idx}`}
+                title={segment.title || 'Details'}
+                content={segment.content}
+                defaultOpen={segment.defaultOpen}
+                linkComponent={linkComponent}
+              />
             );
           }
 

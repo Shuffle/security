@@ -2,14 +2,25 @@ import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
   Box,
   Button,
+  ButtonBase,
   Chip,
+  Collapse,
   InputBase,
   Skeleton,
   Stack,
   Tooltip,
   Typography,
 } from "@mui/material";
+import ShuffleMarkdown from "@/Shuffle-MCPs/components/Markdown";
 import AgentUI from "@/Shuffle-MCPs/components/AgentUI";
+import AgentActivityList from "@/Shuffle-MCPs/components/AgentActivityList";
+import AgentExecutionDrawer from "@/Shuffle-MCPs/components/AgentExecutionDrawer";
+import type { AgentRun } from "@/Shuffle-MCPs/agentActivity";
+import {
+  AgentPresets,
+  AGENT_PRESETS,
+  type AgentPreset,
+} from "@/Shuffle-MCPs/components/AgentPresets";
 import AppMcpChat from "@/Shuffle-MCPs/views/AppMcpChat";
 import { useAppLookup } from "@/Shuffle-MCPs/useAppLookup";
 import AgentIcon from "@/Shuffle-MCPs/components/AgentIcon";
@@ -32,14 +43,16 @@ import { AutomationReadinessBanner } from "@/components/incidents/AutomationRead
 import { VulnerabilityReadinessBanner } from "@/components/vulnerabilities/VulnerabilityReadinessBanner";
 
 export interface ContentSegment {
-  type: "markdown" | "component";
+  type: "markdown" | "component" | "expandable";
   content?: string;
   componentName?: string;
   props?: Record<string, string>;
+  title?: string;
+  defaultOpen?: boolean;
 }
 
-const COMPONENT_DIRECTIVE_REGEX =
-  /<!--\s*component:([a-zA-Z0-9_-]+)(?:\s+([^>]*?))?\s*-->/g;
+const COMBINED_DIRECTIVE_REGEX =
+  /(?:<!--\s*component:([a-zA-Z0-9_-]+)(?:\s+([^>]*?))?\s*-->)|(?:<details(\s+open)?\s*>[\r\n\s]*<summary>([\s\S]*?)<\/summary>([\s\S]*?)<\/details>)/gi;
 
 /**
  * Parse key="value" or key='value' or key=value attributes from an HTML comment.
@@ -58,7 +71,7 @@ export const parseAttributes = (raw?: string): Record<string, string> => {
 };
 
 /**
- * Split raw markdown into sequential markdown chunks and component directives.
+ * Split raw markdown into sequential markdown chunks, component directives, and expandable details blocks.
  */
 export const parseMarkdownSegments = (
   rawMarkdown: string,
@@ -70,9 +83,9 @@ export const parseMarkdownSegments = (
   let match: RegExpExecArray | null;
 
   // Reset regex state
-  COMPONENT_DIRECTIVE_REGEX.lastIndex = 0;
+  COMBINED_DIRECTIVE_REGEX.lastIndex = 0;
 
-  while ((match = COMPONENT_DIRECTIVE_REGEX.exec(rawMarkdown)) !== null) {
+  while ((match = COMBINED_DIRECTIVE_REGEX.exec(rawMarkdown)) !== null) {
     const textBefore = rawMarkdown.slice(lastIndex, match.index);
     if (textBefore) {
       const cleanMarkdown = textBefore.replace(/<!--[\s\S]*?-->/g, "");
@@ -81,15 +94,30 @@ export const parseMarkdownSegments = (
       }
     }
 
-    const componentName = match[1].toLowerCase();
-    const rawAttrs = match[2] || "";
-    const props = parseAttributes(rawAttrs);
+    if (match[1]) {
+      // Component directive: <!-- component:<name> <props> -->
+      const componentName = match[1].toLowerCase();
+      const rawAttrs = match[2] || "";
+      const props = parseAttributes(rawAttrs);
 
-    segments.push({
-      type: "component",
-      componentName,
-      props,
-    });
+      segments.push({
+        type: "component",
+        componentName,
+        props,
+      });
+    } else if (match[4] !== undefined) {
+      // HTML <details><summary>Title</summary>Content</details> block
+      const rawTitle = match[4].replace(/<[^>]+>/g, "").trim();
+      const content = (match[5] || "").trim();
+      const defaultOpen = Boolean(match[3]);
+
+      segments.push({
+        type: "expandable",
+        title: rawTitle || "Details",
+        content,
+        defaultOpen,
+      });
+    }
 
     lastIndex = match.index + match[0].length;
   }
@@ -227,6 +255,71 @@ export const DocTryMcp: React.FC<DocTryMcpProps> = ({
   );
 };
 
+interface DocAgentActivityProps {
+  title?: string;
+  subtitle?: string;
+  limit?: string | number;
+  top?: string | number;
+}
+
+export const DocAgentActivity: React.FC<DocAgentActivityProps> = ({
+  title = "AI Executions & Activity",
+  subtitle = "Recent autonomous agent executions, live status, decision breakdown, and raw LLM request/response logs.",
+  limit = 5,
+  top = 5,
+}) => {
+  const [selectedRun, setSelectedRun] = useState<AgentRun | null>(null);
+  const effectiveLimit = typeof limit === "string" ? parseInt(limit, 10) || 5 : limit;
+  const effectiveTop = typeof top === "string" ? parseInt(top, 10) || 5 : top;
+
+  return (
+    <Box
+      sx={{
+        my: 3,
+        p: 2.5,
+        borderRadius: 2.5,
+        border: "1px solid hsl(var(--border))",
+        backgroundColor: "hsl(var(--card))",
+      }}
+    >
+      <Box sx={{ mb: 2 }}>
+        <Typography
+          sx={{
+            fontSize: "1.05rem",
+            fontWeight: 600,
+            color: "hsl(var(--foreground))",
+            mb: 0.5,
+          }}
+        >
+          {title}
+        </Typography>
+        {subtitle && (
+          <Typography
+            sx={{
+              fontSize: "0.875rem",
+              color: "hsl(var(--muted-foreground))",
+            }}
+          >
+            {subtitle}
+          </Typography>
+        )}
+      </Box>
+
+      <AgentActivityList
+        limit={effectiveLimit}
+        top={effectiveTop}
+        onRunClick={setSelectedRun}
+      />
+
+      <AgentExecutionDrawer
+        open={selectedRun !== null}
+        onClose={() => setSelectedRun(null)}
+        run={selectedRun}
+      />
+    </Box>
+  );
+};
+
 interface DocAgentSidebarButtonProps {
   label?: string;
   input?: string;
@@ -236,17 +329,10 @@ export const DocAgentSidebarButton: React.FC<DocAgentSidebarButtonProps> = ({
   label = "Open AI Agent Sidebar",
   input,
 }) => {
+  const { isAuthenticated } = useAuth();
+
   const handleOpen = () => {
-    if (typeof window === "undefined") return;
-    window.dispatchEvent(
-      new CustomEvent("agent-drawer-open", {
-        detail: {
-          tab: "run",
-          source: "docs",
-          defaultInput: input,
-        },
-      }),
-    );
+    openAgentDrawer("run", { defaultInput: input, source: "docs" });
   };
 
   return (
@@ -295,6 +381,7 @@ export const DocAgentSidebarButton: React.FC<DocAgentSidebarButtonProps> = ({
           >
             Open the live AI side-panel to run tasks alongside the
             documentation.
+            {!isAuthenticated && " (Login may be required to execute tasks)"}
           </Typography>
         </Box>
       </Stack>
@@ -310,6 +397,356 @@ export const DocAgentSidebarButton: React.FC<DocAgentSidebarButtonProps> = ({
       >
         {label}
       </Button>
+    </Box>
+  );
+};
+
+export interface DocExpandableProps {
+  title?: string;
+  summary?: string;
+  content?: string;
+  children?: React.ReactNode;
+  defaultOpen?: boolean | string;
+  linkComponent?: any;
+}
+
+export const DocExpandable: React.FC<DocExpandableProps> = ({
+  title,
+  summary,
+  content,
+  children,
+  defaultOpen = false,
+  linkComponent,
+}) => {
+  const isDefaultOpen = defaultOpen === true || defaultOpen === "true";
+  const [open, setOpen] = useState(isDefaultOpen);
+  const displayTitle = title || summary || "Details";
+
+  return (
+    <Box
+      sx={{
+        my: 2.5,
+        borderRadius: 2,
+        border: "1px solid hsl(var(--border))",
+        backgroundColor: "hsl(var(--card))",
+        overflow: "hidden",
+        transition: "border-color 150ms ease",
+        "&:hover": {
+          borderColor: "hsl(var(--muted-foreground) / 0.4)",
+        },
+      }}
+    >
+      <ButtonBase
+        onClick={() => setOpen((prev) => !prev)}
+        sx={{
+          width: "100%",
+          py: 1.5,
+          px: 2,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          textAlign: "left",
+          backgroundColor: open ? "hsl(var(--muted) / 0.35)" : "transparent",
+          borderBottom: open ? "1px solid hsl(var(--border))" : "none",
+          transition: "background-color 150ms ease",
+          cursor: "pointer",
+        }}
+      >
+        <Typography
+          sx={{
+            fontWeight: 600,
+            fontSize: "0.875rem",
+            color: "hsl(var(--foreground))",
+          }}
+        >
+          {displayTitle}
+        </Typography>
+        <Typography
+          component="span"
+          sx={{
+            fontSize: "0.75rem",
+            fontWeight: 600,
+            color: "hsl(var(--muted-foreground))",
+            ml: 1.5,
+            flexShrink: 0,
+            textTransform: "uppercase",
+            letterSpacing: "0.04em",
+          }}
+        >
+          {open ? "Hide" : "Expand"}
+        </Typography>
+      </ButtonBase>
+      <Collapse in={open} timeout="auto" unmountOnExit>
+        <Box
+          sx={{
+            p: 2,
+            backgroundColor: "hsl(var(--background) / 0.4)",
+            "& pre": { my: 1 },
+          }}
+        >
+          {content ? (
+            <ShuffleMarkdown disableBreaks components={linkComponent}>
+              {content}
+            </ShuffleMarkdown>
+          ) : (
+            children
+          )}
+        </Box>
+      </Collapse>
+    </Box>
+  );
+};
+
+interface DocAgentSkillsProps {
+  title?: string;
+  subtitle?: string;
+  initialSkill?: string;
+  compact?: string | boolean;
+}
+
+export const DocAgentSkills: React.FC<DocAgentSkillsProps> = ({
+  title = "Predefined Agent Skills",
+  subtitle = "Inspect built-in agent capability bundles or launch one directly in the Ask AI assistant.",
+  initialSkill,
+  compact = false,
+}) => {
+  const isCompact = compact === true || compact === "true";
+  const [selectedPreset, setSelectedPreset] = useState<AgentPreset | null>(
+    () => {
+      if (initialSkill) {
+        return AGENT_PRESETS.find((p) => p.id === initialSkill) || null;
+      }
+      return null;
+    },
+  );
+
+  const handleSelect = (preset: AgentPreset) => {
+    setSelectedPreset(preset);
+  };
+
+  const handleRun = () => {
+    if (!selectedPreset) return;
+    openAgentDrawer("run", {
+      defaultInput: selectedPreset.defaultPrompt,
+      source: "docs-skills",
+    });
+  };
+
+  return (
+    <Box
+      sx={{
+        my: 2.5,
+        p: 2,
+        borderRadius: 2,
+        border: "1px solid hsl(var(--border))",
+        backgroundColor: "hsl(var(--card))",
+        display: "flex",
+        flexDirection: "column",
+        gap: 1.5,
+      }}
+    >
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 2,
+        }}
+      >
+        <Box>
+          <Typography
+            sx={{
+              fontWeight: 600,
+              fontSize: "0.92rem",
+              color: "hsl(var(--foreground))",
+            }}
+          >
+            {title}
+          </Typography>
+          <Typography
+            variant="caption"
+            sx={{ color: "hsl(var(--muted-foreground))" }}
+          >
+            {subtitle}
+          </Typography>
+        </Box>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <AgentPresets
+            variant="default"
+            selectedPreset={selectedPreset}
+            onSelectPreset={handleSelect}
+            onRemoveSelected={() => setSelectedPreset(null)}
+          />
+        </Box>
+      </Box>
+
+      {/* Selected Skill Detail Panel */}
+      {selectedPreset && (
+        <Box
+          sx={{
+            p: 1.5,
+            borderRadius: 1.5,
+            bgcolor: "hsl(var(--muted) / 0.5)",
+            border: "1px solid hsl(var(--border))",
+            display: "flex",
+            flexDirection: "column",
+            gap: 1,
+          }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 1,
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Typography
+                sx={{
+                  fontWeight: 600,
+                  fontSize: "0.85rem",
+                  color: "hsl(var(--foreground))",
+                }}
+              >
+                {selectedPreset.label}
+              </Typography>
+              {selectedPreset.tag && (
+                <Chip
+                  label={selectedPreset.tag}
+                  size="small"
+                  sx={{
+                    height: 20,
+                    fontSize: "0.68rem",
+                    fontWeight: 600,
+                    textTransform: "uppercase",
+                  }}
+                />
+              )}
+            </Box>
+            {selectedPreset.enabled !== false ? (
+              <Button
+                variant="contained"
+                size="small"
+                onClick={handleRun}
+                sx={{
+                  textTransform: "none",
+                  fontWeight: 500,
+                  fontSize: "0.75rem",
+                  py: 0.25,
+                  px: 1.25,
+                  borderRadius: 1,
+                  minHeight: 0,
+                }}
+              >
+                Launch in Ask AI
+              </Button>
+            ) : (
+              <Chip
+                label="Coming soon"
+                size="small"
+                variant="outlined"
+                sx={{ height: 22, fontSize: "0.7rem" }}
+              />
+            )}
+          </Box>
+          <Typography
+            sx={{
+              fontSize: "0.78rem",
+              color: "hsl(var(--muted-foreground))",
+              lineHeight: 1.45,
+            }}
+          >
+            {selectedPreset.description}
+          </Typography>
+
+          {/* Tools & Prompt Preview */}
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 0.75,
+              mt: 0.5,
+            }}
+          >
+            {selectedPreset.defaultApps &&
+              selectedPreset.defaultApps.length > 0 && (
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 0.75,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      fontSize: "0.72rem",
+                      fontWeight: 600,
+                      color: "hsl(var(--foreground))",
+                    }}
+                  >
+                    Tools:
+                  </Typography>
+                  {selectedPreset.defaultApps.map((app) => (
+                    <Chip
+                      key={app.name}
+                      label={app.name}
+                      size="small"
+                      variant="outlined"
+                      sx={{
+                        height: 20,
+                        fontSize: "0.7rem",
+                        fontFamily: "monospace",
+                        bgcolor: "hsl(var(--card))",
+                      }}
+                    />
+                  ))}
+                </Box>
+              )}
+            {selectedPreset.defaultPrompt && (
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 0.75,
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: "0.72rem",
+                    fontWeight: 600,
+                    color: "hsl(var(--foreground))",
+                    flexShrink: 0,
+                    pt: 0.2,
+                  }}
+                >
+                  Prompt:
+                </Typography>
+                <Typography
+                  component="code"
+                  sx={{
+                    fontSize: "0.72rem",
+                    fontFamily: "monospace",
+                    p: 0.75,
+                    borderRadius: 1,
+                    bgcolor: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    color: "hsl(var(--foreground))",
+                    flex: 1,
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
+                  }}
+                >
+                  {selectedPreset.defaultPrompt}
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        </Box>
+      )}
     </Box>
   );
 };
@@ -1985,6 +2422,24 @@ export const DocDynamicComponent: React.FC<DocDynamicComponentProps> = ({
       case "agent":
       case "ai-agent":
         return <DocAgentUI {...props} />;
+
+      case "agent-skills":
+      case "skills":
+      case "agent-presets":
+      case "presets":
+        return <DocAgentSkills {...props} />;
+
+      case "agent-activity":
+      case "agent-executions":
+      case "ai-executions":
+      case "executions":
+        return <DocAgentActivity {...props} />;
+
+      case "expandable":
+      case "details":
+      case "collapse":
+      case "accordion":
+        return <DocExpandable {...props} />;
 
       case "try-mcp":
       case "mcp":
