@@ -20,6 +20,7 @@ import {
   Select,
   FormControl,
   InputLabel,
+  InputAdornment,
 } from '@mui/material';
 import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
 import { toast } from 'react-toastify';
@@ -552,7 +553,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
     (async () => {
       const results = await Promise.all(
         categoryOptions
-          .filter(opt => opt.category !== category)
+          .filter(opt => (initialAutomations && initialAutomations.length > 0) ? opt.category !== category : true)
           .map(async (opt) => {
             try {
               const res: any = await getDatastoreByCategory(opt.category, undefined, 1, orgIdProp || undefined);
@@ -570,7 +571,11 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
       if (cancelled) return;
       setCategoryEntries(prev => {
         const next = { ...prev };
-        results.forEach(r => { if (r && !next[r.category]) next[r.category] = { automations: r.automations, settings: r.settings }; });
+        results.forEach(r => {
+          if (r && (!next[r.category] || !next[r.category]?.automations)) {
+            next[r.category] = { automations: r.automations, settings: r.settings };
+          }
+        });
         return next;
       });
       setLoadingCategories(false);
@@ -1140,61 +1145,6 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                   {/* AI Agent Configuration - multiple prompts */}
                   {automation.type === 'ai_agent' && expandedTypes['ai_agent'] && (
                     <Box sx={{ px: 2, pb: 2, pt: 0.5 }}>
-                      {/* Skill selection using AgentPresets */}
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          flexWrap: 'wrap',
-                          gap: 1.5,
-                          mb: 1.5,
-                          p: 1.25,
-                          borderRadius: 1.5,
-                          border: '1px solid',
-                          borderColor: 'divider',
-                          bgcolor: (theme) =>
-                            theme.palette.mode === 'dark'
-                              ? 'rgba(255, 255, 255, 0.03)'
-                              : 'rgba(0, 0, 0, 0.02)',
-                        }}
-                      >
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
-                          <Typography
-                            sx={{
-                              fontSize: '0.72rem',
-                              fontWeight: 600,
-                              textTransform: 'uppercase',
-                              letterSpacing: '0.05em',
-                              color: 'text.secondary',
-                            }}
-                          >
-                            Skill:
-                          </Typography>
-                          <AgentPresets
-                            variant="default"
-                            selectedPreset={selectedSkillPreset}
-                            onSelectPreset={handleSelectSkillPreset}
-                            onRemoveSelected={handleRemoveSkillPreset}
-                            placement="bottom-start"
-                          />
-                        </Box>
-                        {selectedSkillPreset?.description && (
-                          <Typography
-                            sx={{
-                              fontSize: '0.75rem',
-                              color: 'text.secondary',
-                              lineHeight: 1.4,
-                              flex: 1,
-                              minWidth: 200,
-                              textAlign: { xs: 'left', sm: 'right' },
-                            }}
-                          >
-                            {selectedSkillPreset.description}
-                          </Typography>
-                        )}
-                      </Box>
-
                       <AiAgentPromptsEditor
                         prompts={aiAgentPrompts}
                         apps={aiAgentApps}
@@ -1229,6 +1179,45 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                             placeholder={placeholder}
                             title={`Edit prompt ${index + 1}`}
                             subtitle="Full editor for the AI Agent prompt."
+                            toolbar={
+                              index === 0 ? (
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <AgentPresets
+                                    variant="floating"
+                                    selectedPreset={selectedSkillPreset}
+                                    onSelectPreset={handleSelectSkillPreset}
+                                    onRemoveSelected={handleRemoveSkillPreset}
+                                    placement="top-start"
+                                    sx={{ height: 26, fontSize: '0.72rem' }}
+                                  />
+                                </Box>
+                              ) : undefined
+                            }
+                            inlineTextFieldProps={
+                              index === 0
+                                ? {
+                                    InputProps: {
+                                      startAdornment: (
+                                        <InputAdornment
+                                          position="start"
+                                          sx={{ mr: 0.5 }}
+                                          onClick={(e) => e.stopPropagation()}
+                                          onMouseDown={(e) => e.stopPropagation()}
+                                        >
+                                          <AgentPresets
+                                            variant="floating"
+                                            selectedPreset={selectedSkillPreset}
+                                            onSelectPreset={handleSelectSkillPreset}
+                                            onRemoveSelected={handleRemoveSkillPreset}
+                                            placement="bottom-start"
+                                            sx={{ height: 26, fontSize: '0.72rem' }}
+                                          />
+                                        </InputAdornment>
+                                      ),
+                                    },
+                                  }
+                                : undefined
+                            }
                           />
                         )}
                       />

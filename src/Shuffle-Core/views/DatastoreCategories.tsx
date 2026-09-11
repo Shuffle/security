@@ -28,6 +28,7 @@ import {
   MenuItem,
   Select,
   FormControl,
+  ListSubheader,
 } from '@mui/material';
 import {
   Plus,
@@ -181,6 +182,7 @@ export interface DatastoreValueCellProps {
 
 export const DatastoreValueCell: React.FC<DatastoreValueCellProps> = ({
   item,
+  isDark = true,
   selectedCategory,
   onInspect,
 }) => {
@@ -200,38 +202,98 @@ export const DatastoreValueCell: React.FC<DatastoreValueCellProps> = ({
     );
   }
 
-  let previewStr = '';
+  let parsedJson: any = null;
   if (typeof item.value === 'object' && item.value !== null) {
-    try {
-      previewStr = JSON.stringify(item.value);
-    } catch {
-      previewStr = '[Object]';
+    parsedJson = item.value;
+  } else if (typeof item.value === 'string') {
+    const trimmed = item.value.trim();
+    if (
+      (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+      (trimmed.startsWith('[') && trimmed.endsWith(']'))
+    ) {
+      try {
+        parsedJson = JSON.parse(trimmed);
+      } catch {
+        parsedJson = null;
+      }
     }
-  } else {
-    previewStr = String(item.value ?? '');
   }
 
   return (
-    <Typography
-      variant="body2"
-      onClick={onInspect}
+    <Box
       sx={{
+        maxHeight: 115,
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        fontSize: '0.78rem',
         fontFamily: 'monospace',
-        fontSize: '0.8rem',
-        color: 'hsl(var(--muted-foreground))',
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        maxWidth: { xs: 200, sm: 380, md: 540, lg: 760 },
-        display: 'block',
+        lineHeight: 1.4,
+        wordBreak: 'break-word',
         cursor: onInspect ? 'pointer' : 'default',
-        '&:hover': onInspect ? { color: 'hsl(var(--foreground))' } : undefined,
+        '&::-webkit-scrollbar': { width: 4, height: 4 },
+        '&::-webkit-scrollbar-thumb': { bgcolor: 'hsl(var(--border))', borderRadius: 2 },
       }}
-      title={previewStr}
     >
-      {previewStr}
-    </Typography>
+      {parsedJson !== null ? (
+        <Box sx={{ pointerEvents: 'auto' }} onClick={(e) => e.stopPropagation()}>
+          <JsonView
+            src={parsedJson}
+            dark={isDark}
+            theme="default"
+            collapseStringsAfterLength={50}
+            collapsed={1}
+            enableClipboard={false}
+            style={{ fontSize: '0.75rem', lineHeight: 1.35 }}
+          />
+        </Box>
+      ) : (
+        <Typography
+          variant="body2"
+          onClick={onInspect}
+          sx={{
+            fontFamily: 'monospace',
+            fontSize: '0.78rem',
+            color: 'hsl(var(--muted-foreground))',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+            lineHeight: 1.4,
+            '&:hover': onInspect ? { color: 'hsl(var(--foreground))' } : undefined,
+          }}
+        >
+          {String(item.value ?? '')}
+        </Typography>
+      )}
+    </Box>
   );
+};
+
+export const getCategoryGroup = (cat: string): string => {
+  if (!cat || cat === 'default' || cat === 'protected' || cat === 'all') {
+    return 'General';
+  }
+  if (cat.startsWith('shuffle-security_')) {
+    return 'Shuffle Security';
+  }
+  if (cat.includes('_')) {
+    const prefix = cat.split('_')[0];
+    return prefix.charAt(0).toUpperCase() + prefix.slice(1);
+  }
+  return 'Custom';
+};
+
+export const getCategoryDisplayLabel = (cat: string): string => {
+  if (cat === 'default') return 'Default (All)';
+  if (cat === 'protected') return 'Protected (Credentials & Secrets)';
+  if (cat === 'all') return 'All Categories';
+  if (cat.startsWith('shuffle-security_')) {
+    const suffix = cat.replace('shuffle-security_', '');
+    return suffix.charAt(0).toUpperCase() + suffix.slice(1);
+  }
+  if (cat.includes('_')) {
+    const parts = cat.split('_');
+    return parts.map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+  }
+  return cat.charAt(0).toUpperCase() + cat.slice(1);
 };
 
 const DEFAULT_CATEGORIES: string[] = [
@@ -326,8 +388,32 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
   const [isCategoryPublic, setIsCategoryPublic] = useState<boolean>(false);
   const [savingSettings, setSavingSettings] = useState<boolean>(false);
 
-  // Category Automations Dialog
+  // Category Automations Dialog & Config
   const [automationsDialogOpen, setAutomationsDialogOpen] = useState<boolean>(false);
+  const [categoryConfig, setCategoryConfig] = useState<any>(null);
+
+  // Add Category Dialog
+  const [createCategoryDialogOpen, setCreateCategoryDialogOpen] = useState<boolean>(false);
+  const [newCategoryName, setNewCategoryName] = useState<string>('');
+
+  // Grouped & sorted categories for dropdown
+  const sortedCategories = useMemo(() => {
+    const groupOrder: Record<string, number> = {
+      General: 1,
+      'Shuffle Security': 2,
+      Custom: 99,
+    };
+
+    return [...categories].sort((a, b) => {
+      const groupA = getCategoryGroup(a);
+      const groupB = getCategoryGroup(b);
+      const orderA = groupOrder[groupA] ?? 50;
+      const orderB = groupOrder[groupB] ?? 50;
+      if (orderA !== orderB) return orderA - orderB;
+      if (groupA !== groupB) return groupA.localeCompare(groupB);
+      return a.localeCompare(b);
+    });
+  }, [categories]);
 
   // Suborg distribution
   const { subOrgs } = useSubOrgs(orgId || '');
@@ -411,39 +497,82 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
       }
 
       try {
-        const queryParams = new URLSearchParams();
-        queryParams.set('page', String(pageIndex));
-        queryParams.set('amount', String(amount));
-        if (searchTerm) queryParams.set('search', searchTerm);
-        const cursor = cursorMap[pageIndex];
-        if (cursor) queryParams.set('cursor', cursor);
+        const fetchKeys = async (categoryParam: string) => {
+          const queryParams = new URLSearchParams();
+          if (categoryParam) queryParams.set('category', categoryParam);
+          queryParams.set('top', String(amount));
+          if (searchTerm) queryParams.set('search', searchTerm);
+          const cursor = cursorMap[pageIndex];
+          if (cursor) queryParams.set('cursor', cursor);
 
-        let endpoint = `/api/v1/orgs/${orgId}/cache/${cat}?${queryParams.toString()}`;
-        if (cat === 'all') {
-          endpoint = `/api/v1/orgs/${orgId}/cache?${queryParams.toString()}`;
+          return fetch(getApiUrl(`/api/v1/orgs/${orgId}/list_cache?${queryParams.toString()}`), {
+            headers: { Accept: 'application/json', ...getAuthHeader(orgId) },
+            credentials: 'include',
+          });
+        };
+
+        const effectiveCat = cat === 'all' ? '' : (cat || 'default');
+        let response = await fetchKeys(effectiveCat);
+
+        if (!response.ok && response.status === 404) {
+          const queryParams = new URLSearchParams();
+          queryParams.set('page', String(pageIndex));
+          queryParams.set('amount', String(amount));
+          if (searchTerm) queryParams.set('search', searchTerm);
+          response = await fetch(getApiUrl(`/api/v1/orgs/${orgId}/cache/${effectiveCat}?${queryParams.toString()}`), {
+            headers: { Accept: 'application/json', ...getAuthHeader(orgId) },
+            credentials: 'include',
+          });
         }
-
-        const response = await fetch(getApiUrl(endpoint), {
-          headers: { Accept: 'application/json', ...getAuthHeader(orgId) },
-          credentials: 'include',
-        });
 
         if (!response.ok) {
           throw new Error(`Failed to fetch datastore entries: ${response.status} ${response.statusText}`);
         }
 
-        const data = await response.json();
+        let data = await response.json();
         let loadedItems: DatastoreItemRecord[] = [];
         let totalCount = 0;
         let nextCursor = '';
 
-        if (Array.isArray(data)) {
-          loadedItems = data;
-          totalCount = data.length;
-        } else if (data && typeof data === 'object') {
-          loadedItems = data.data || data.items || data.cache || [];
-          totalCount = data.total || data.count || loadedItems.length;
-          nextCursor = data.cursor || data.next_cursor || '';
+        const extractItems = (d: any): DatastoreItemRecord[] => {
+          if (Array.isArray(d)) return d;
+          if (d && typeof d === 'object') {
+            if (Array.isArray(d.keys)) return d.keys;
+            if (Array.isArray(d.data)) return d.data;
+            if (Array.isArray(d.items)) return d.items;
+            if (Array.isArray(d.cache)) return d.cache;
+          }
+          return [];
+        };
+
+        loadedItems = extractItems(data);
+        totalCount = (data && (data.total_amount ?? data.total ?? data.count)) ?? loadedItems.length;
+        nextCursor = (data && (data.cursor ?? data.next_cursor)) || '';
+
+        // "For the "default" category: if there are no keys, show all keys."
+        if (cat === 'default' && loadedItems.length === 0 && !searchTerm && pageIndex === 0) {
+          try {
+            const allResponse = await fetchKeys('');
+            if (allResponse.ok) {
+              const allData = await allResponse.json();
+              const allItems = extractItems(allData);
+              if (allItems.length > 0) {
+                loadedItems = allItems;
+                totalCount = (allData && (allData.total_amount ?? allData.total ?? allData.count)) ?? allItems.length;
+                nextCursor = (allData && (allData.cursor ?? allData.next_cursor)) || '';
+                data = allData;
+              }
+            }
+          } catch {
+            // fallback gracefully
+          }
+        }
+
+        if (data?.category_config) {
+          setCategoryConfig(data.category_config);
+        }
+        if (Array.isArray(data?.categories)) {
+          setCategories((prev) => Array.from(new Set([...prev, ...data.categories])));
         }
 
         setItems(loadedItems);
@@ -614,6 +743,7 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
     setSavingItem(true);
     try {
       const payload = {
+        org_id: orgId,
         key: trimmedKey,
         value: finalValue,
         category: formCategory || selectedCategory,
@@ -677,6 +807,7 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
     setSavingItem(true);
     try {
       const payload = {
+        org_id: orgId,
         key: activeItem.key,
         value: finalValue,
         category: formCategory || activeItem.category || selectedCategory,
@@ -732,12 +863,16 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
     setDeleting(true);
     try {
       for (const targetKey of deleteTargets) {
+        const targetItem = items.find((i) => i.key === targetKey);
+        const itemCategory = targetItem?.category || (selectedCategory === 'default' ? '' : selectedCategory);
+
         const payload = {
+          org_id: orgId,
           key: targetKey,
-          category: selectedCategory,
+          category: itemCategory,
         };
 
-        await fetch(getApiUrl(`/api/v1/orgs/${orgId}/delete_cache`), {
+        const response = await fetch(getApiUrl(`/api/v1/orgs/${orgId}/delete_cache`), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -747,6 +882,17 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
           credentials: 'include',
           body: JSON.stringify(payload),
         });
+
+        if (!response.ok) {
+          let reason = `Status ${response.status}`;
+          try {
+            const errData = await response.json();
+            if (errData?.reason) reason = errData.reason;
+          } catch {
+            // ignore
+          }
+          throw new Error(reason);
+        }
       }
 
       toast.success(`Deleted ${deleteTargets.length} key${deleteTargets.length > 1 ? 's' : ''}`);
@@ -754,9 +900,9 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
       setSelectedKeys([]);
       setDeleteTargets([]);
       fetchCache(selectedCategory, page, pageSize, activeSearchTerm, cursors);
-    } catch (err) {
+    } catch (err: any) {
       console.error('[Datastore] delete error:', err);
-      toast.error('Failed to delete entries');
+      toast.error(err?.message || 'Failed to delete entries');
     } finally {
       setDeleting(false);
     }
@@ -846,65 +992,129 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
               </Button>
             )}
 
-            {/* 2. Category Autocomplete + Plus icon + textfield in one */}
+            {/* 2. Category Autocomplete + Plus button */}
             {!categoryLocked && !hideCategorySelector && (
-              <Autocomplete
-                freeSolo
-                size="small"
-                options={categories}
-                value={selectedCategory}
-                onChange={(_, newValue) => {
-                  if (typeof newValue === 'string' && newValue.trim()) {
-                    handleCategoryChange(newValue.trim());
-                  }
-                }}
-                inputValue={categoryInputValue}
-                onInputChange={(_, newInputValue) => {
-                  setCategoryInputValue(newInputValue);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && categoryInputValue.trim()) {
-                    e.preventDefault();
-                    handleCategoryChange(categoryInputValue.trim());
-                  }
-                }}
-                sx={{ minWidth: 200, maxWidth: 280 }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    placeholder="Category..."
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                <Autocomplete
+                  freeSolo
+                  size="small"
+                  options={sortedCategories}
+                  groupBy={(option) => getCategoryGroup(option)}
+                  getOptionLabel={(option) => (typeof option === 'string' ? option : '')}
+                  value={selectedCategory}
+                  onChange={(_, newValue) => {
+                    if (typeof newValue === 'string' && newValue.trim()) {
+                      handleCategoryChange(newValue.trim());
+                    }
+                  }}
+                  inputValue={categoryInputValue}
+                  onInputChange={(_, newInputValue) => {
+                    setCategoryInputValue(newInputValue);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && categoryInputValue.trim()) {
+                      e.preventDefault();
+                      handleCategoryChange(categoryInputValue.trim());
+                    }
+                  }}
+                  sx={{ minWidth: 200, maxWidth: 280 }}
+                  renderGroup={(params) => (
+                    <li key={params.key}>
+                      <ListSubheader
+                        sx={{
+                          bgcolor: 'hsl(var(--muted))',
+                          color: 'hsl(var(--muted-foreground))',
+                          fontWeight: 700,
+                          fontSize: '0.72rem',
+                          lineHeight: '26px',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                        }}
+                      >
+                        {params.group}
+                      </ListSubheader>
+                      <ul style={{ padding: 0 }}>{params.children}</ul>
+                    </li>
+                  )}
+                  renderOption={(props, option, { selected }) => {
+                    const { key, ...restProps } = props;
+                    const label = getCategoryDisplayLabel(option);
+                    return (
+                      <Box
+                        component="li"
+                        key={key || option}
+                        {...restProps}
+                        sx={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'flex-start',
+                          py: 0.6,
+                          px: 1.5,
+                          cursor: 'pointer',
+                          '&:hover': { bgcolor: 'hsl(var(--muted) / 0.5)' },
+                          bgcolor: selected ? 'hsl(var(--primary) / 0.1) !important' : undefined,
+                        }}
+                      >
+                        <Typography sx={{ fontWeight: selected ? 600 : 500, fontSize: '0.84rem' }}>
+                          {label}
+                        </Typography>
+                        {label !== option && (
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: 'hsl(var(--muted-foreground))',
+                              fontFamily: 'monospace',
+                              fontSize: '0.7rem',
+                            }}
+                          >
+                            {option}
+                          </Typography>
+                        )}
+                      </Box>
+                    );
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      placeholder="Category..."
+                      size="small"
+                      InputProps={{
+                        ...params.InputProps,
+                        sx: {
+                          height: 36,
+                          fontSize: '0.84rem',
+                          bgcolor: 'hsl(var(--card))',
+                        },
+                      }}
+                    />
+                  )}
+                />
+                <Tooltip title="Add New Category">
+                  <Button
+                    variant="outlined"
                     size="small"
-                    InputProps={{
-                      ...params.InputProps,
-                      sx: {
-                        height: 36,
-                        fontSize: '0.84rem',
-                        fontFamily: 'monospace',
-                        bgcolor: 'hsl(var(--card))',
-                      },
-                      endAdornment: (
-                        <InputAdornment position="end" sx={{ mr: -0.5 }}>
-                          {categoryInputValue && !categories.includes(categoryInputValue.trim()) ? (
-                            <Tooltip title={`Add category "${categoryInputValue.trim()}"`}>
-                              <IconButton
-                                size="small"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleCategoryChange(categoryInputValue.trim());
-                                }}
-                                sx={{ p: 0.5, color: 'hsl(var(--primary))' }}
-                              >
-                                <Plus size={15} />
-                              </IconButton>
-                            </Tooltip>
-                          ) : null}
-                          {params.InputProps.endAdornment}
-                        </InputAdornment>
-                      ),
+                    onClick={() => {
+                      setNewCategoryName(categoryInputValue.trim());
+                      setCreateCategoryDialogOpen(true);
                     }}
-                  />
-                )}
-              />
+                    sx={{
+                      minWidth: 36,
+                      width: 36,
+                      height: 36,
+                      p: 0,
+                      borderColor: 'hsl(var(--border))',
+                      color: 'hsl(var(--foreground))',
+                      borderRadius: 1,
+                      '&:hover': {
+                        bgcolor: 'hsl(var(--muted))',
+                        borderColor: 'hsl(var(--primary))',
+                      },
+                    }}
+                  >
+                    <Plus size={16} />
+                  </Button>
+                </Tooltip>
+              </Box>
             )}
 
             {/* 3. Simple search */}
@@ -938,46 +1148,66 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
             </Box>
           </Box>
 
-          {/* Top-Right: Rocket button for "Automation for X", Settings, & Refresh icon */}
+          {/* Top-Right: Rocket button for "Automate", Settings, & Refresh icon */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             {!categoryLocked && !compact && (
               <ButtonGroup variant="outlined" size="small" sx={{ height: 36 }}>
-                <Button
-                  startIcon={<Rocket size={15} />}
-                  onClick={() => setAutomationsDialogOpen(true)}
-                  sx={{
-                    textTransform: 'none',
-                    fontSize: '0.8rem',
-                    fontWeight: 500,
-                    borderColor: 'hsl(var(--border))',
-                    color: 'hsl(var(--foreground))',
-                    whiteSpace: 'nowrap',
-                    px: 1.5,
-                    '&:hover': {
-                      borderColor: 'hsl(var(--primary))',
-                      bgcolor: 'hsl(var(--primary) / 0.08)',
-                    },
-                  }}
+                <Tooltip
+                  title={
+                    !selectedCategory || selectedCategory === 'default' || selectedCategory === 'all'
+                      ? 'Automations are disabled for Default category'
+                      : `Configure automations for ${selectedCategory}`
+                  }
                 >
-                  Automations for {selectedCategory}
-                </Button>
-                <Tooltip title={`Settings for "${selectedCategory}"`}>
-                  <Button
-                    onClick={() => setSettingsDialogOpen(true)}
-                    sx={{
-                      px: 1,
-                      minWidth: 'auto',
-                      borderColor: 'hsl(var(--border))',
-                      color: 'hsl(var(--muted-foreground))',
-                      '&:hover': {
-                        borderColor: 'hsl(var(--primary))',
+                  <span>
+                    <Button
+                      startIcon={<Rocket size={15} />}
+                      disabled={!selectedCategory || selectedCategory === 'default' || selectedCategory === 'all'}
+                      onClick={() => setAutomationsDialogOpen(true)}
+                      sx={{
+                        textTransform: 'none',
+                        fontSize: '0.8rem',
+                        fontWeight: 500,
+                        borderColor: 'hsl(var(--border))',
                         color: 'hsl(var(--foreground))',
-                        bgcolor: 'hsl(var(--primary) / 0.08)',
-                      },
-                    }}
-                  >
-                    <Settings size={15} />
-                  </Button>
+                        whiteSpace: 'nowrap',
+                        px: 1.5,
+                        '&:hover': {
+                          borderColor: 'hsl(var(--primary))',
+                          bgcolor: 'hsl(var(--primary) / 0.08)',
+                        },
+                      }}
+                    >
+                      Automate
+                    </Button>
+                  </span>
+                </Tooltip>
+                <Tooltip
+                  title={
+                    !selectedCategory || selectedCategory === 'default' || selectedCategory === 'all'
+                      ? 'Settings are disabled for Default category'
+                      : `Settings for "${selectedCategory}"`
+                  }
+                >
+                  <span>
+                    <Button
+                      disabled={!selectedCategory || selectedCategory === 'default' || selectedCategory === 'all'}
+                      onClick={() => setSettingsDialogOpen(true)}
+                      sx={{
+                        px: 1,
+                        minWidth: 'auto',
+                        borderColor: 'hsl(var(--border))',
+                        color: 'hsl(var(--muted-foreground))',
+                        '&:hover': {
+                          borderColor: 'hsl(var(--primary))',
+                          color: 'hsl(var(--foreground))',
+                          bgcolor: 'hsl(var(--primary) / 0.08)',
+                        },
+                      }}
+                    >
+                      <Settings size={15} />
+                    </Button>
+                  </span>
                 </Tooltip>
               </ButtonGroup>
             )}
@@ -1187,25 +1417,25 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
                       </Typography>
                     </TableCell>
                     <TableCell align="right" sx={{ py: 0.5, whiteSpace: 'nowrap' }}>
-                      <ButtonGroup size="small" variant="outlined" sx={{ height: 28 }}>
-                        <Tooltip title="View JSON">
-                          <Button
-                            onClick={() => handleOpenInspect(item)}
-                            sx={{
-                              px: 1,
-                              minWidth: 'auto',
-                              textTransform: 'none',
-                              fontSize: '0.75rem',
-                              borderColor: 'hsl(var(--border))',
-                              color: 'hsl(var(--foreground))',
-                              '&:hover': { borderColor: 'hsl(var(--primary))' },
-                            }}
-                          >
-                            <Eye size={13} style={{ marginRight: 4 }} /> View
-                          </Button>
-                        </Tooltip>
-                        {!readOnly && (
-                          <>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.75 }}>
+                        <ButtonGroup size="small" variant="outlined" sx={{ height: 28 }}>
+                          <Tooltip title="View JSON">
+                            <Button
+                              onClick={() => handleOpenInspect(item)}
+                              sx={{
+                                px: 1,
+                                minWidth: 'auto',
+                                textTransform: 'none',
+                                fontSize: '0.75rem',
+                                borderColor: 'hsl(var(--border))',
+                                color: 'hsl(var(--foreground))',
+                                '&:hover': { borderColor: 'hsl(var(--primary))' },
+                              }}
+                            >
+                              <Eye size={13} style={{ marginRight: 4 }} /> View
+                            </Button>
+                          </Tooltip>
+                          {!readOnly && (
                             <Tooltip title="Edit Entry">
                               <Button
                                 onClick={() => handleOpenEditDialog(item)}
@@ -1222,25 +1452,32 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
                                 <Pencil size={13} style={{ marginRight: 4 }} /> Edit
                               </Button>
                             </Tooltip>
-                            <Tooltip title="Delete Entry">
-                              <Button
-                                onClick={() => handleInitiateDelete([item.key])}
-                                color="error"
-                                sx={{
-                                  px: 0.8,
-                                  minWidth: 'auto',
-                                  textTransform: 'none',
-                                  fontSize: '0.75rem',
-                                  borderColor: 'hsl(var(--border))',
-                                  '&:hover': { bgcolor: 'hsl(var(--destructive) / 0.1)' },
-                                }}
-                              >
-                                <Trash2 size={13} />
-                              </Button>
-                            </Tooltip>
-                          </>
+                          )}
+                        </ButtonGroup>
+
+                        {!readOnly && (
+                          <Tooltip title="Delete Entry">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleInitiateDelete([item.key])}
+                              sx={{
+                                width: 28,
+                                height: 28,
+                                p: 0.5,
+                                color: 'hsl(var(--destructive))',
+                                border: '1px solid hsl(var(--border))',
+                                borderRadius: 1,
+                                '&:hover': {
+                                  bgcolor: 'hsl(var(--destructive) / 0.1)',
+                                  borderColor: 'hsl(var(--destructive))',
+                                },
+                              }}
+                            >
+                              <Trash2 size={13} />
+                            </IconButton>
+                          </Tooltip>
                         )}
-                      </ButtonGroup>
+                      </Box>
                     </TableCell>
                   </TableRow>
                 );
@@ -1738,11 +1975,102 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
         </DialogActions>
       </Dialog>
 
+      {/* Add Category Dialog */}
+      <Dialog
+        open={createCategoryDialogOpen}
+        onClose={() => {
+          setCreateCategoryDialogOpen(false);
+          setNewCategoryName('');
+        }}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            bgcolor: 'hsl(var(--card))',
+            color: 'hsl(var(--foreground))',
+            border: '1px solid hsl(var(--border))',
+            borderRadius: 2,
+          },
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 600, fontSize: '1rem', borderBottom: '1px solid hsl(var(--border))' }}>
+          Add New Category
+        </DialogTitle>
+        <DialogContent sx={{ pt: 2.5, pb: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))' }}>
+            Enter a category name (e.g. <code>custom_assets</code> or <code>shuffle-security_custom</code>).
+          </Typography>
+          <TextField
+            autoFocus
+            fullWidth
+            size="small"
+            placeholder="category_name"
+            value={newCategoryName}
+            onChange={(e) => setNewCategoryName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                const trimmed = newCategoryName.trim();
+                if (trimmed) {
+                  handleCategoryChange(trimmed);
+                  setCreateCategoryDialogOpen(false);
+                  setNewCategoryName('');
+                  toast.success(`Category "${trimmed}" selected`);
+                }
+              }
+            }}
+            InputProps={{
+              sx: { fontFamily: 'monospace', fontSize: '0.875rem' },
+            }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 1.5, borderTop: '1px solid hsl(var(--border))' }}>
+          <Button
+            size="small"
+            onClick={() => {
+              setCreateCategoryDialogOpen(false);
+              setNewCategoryName('');
+            }}
+            sx={{ textTransform: 'none', color: 'hsl(var(--muted-foreground))' }}
+          >
+            Cancel
+          </Button>
+          <Button
+            size="small"
+            variant="contained"
+            disabled={!newCategoryName.trim()}
+            onClick={() => {
+              const trimmed = newCategoryName.trim();
+              if (trimmed) {
+                handleCategoryChange(trimmed);
+                setCreateCategoryDialogOpen(false);
+                setNewCategoryName('');
+                toast.success(`Category "${trimmed}" selected`);
+              }
+            }}
+            sx={{ textTransform: 'none', fontWeight: 600 }}
+          >
+            Create Category
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* Category Automations Dialog */}
       <CategoryAutomationsDialog
         open={automationsDialogOpen}
         onClose={() => setAutomationsDialogOpen(false)}
         category={selectedCategory}
+        automations={categoryConfig?.automations || null}
+        initialSettings={categoryConfig?.settings}
+        onAutomationsChange={(newAutomations) => {
+          setCategoryConfig((prev: any) => ({
+            ...prev,
+            automations: newAutomations,
+          }));
+        }}
+        onSaved={() => {
+          fetchCache(selectedCategory, page, pageSize, activeSearchTerm, cursors);
+        }}
         orgId={orgId || ''}
       />
     </Box>

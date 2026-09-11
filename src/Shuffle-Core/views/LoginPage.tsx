@@ -2591,42 +2591,47 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                               transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
                               style={{ overflow: 'hidden' }}
                             >
-                              <Box sx={{ pt: 2 }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                                  <Box sx={{ flex: 1, height: '1px', bgcolor: 'hsl(var(--border))' }} />
-                                  <Typography variant="caption" sx={{ px: 1.5, color: 'hsl(var(--muted-foreground))', fontWeight: 500 }}>
-                                    OR
-                                  </Typography>
-                                  <Box sx={{ flex: 1, height: '1px', bgcolor: 'hsl(var(--border))' }} />
-                                </Box>
+                                <Box sx={{ pt: 1.75 }}>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.75 }}>
+                                    <Box sx={{ flex: 1, height: '1px', bgcolor: 'hsl(var(--border))' }} />
+                                    <Typography variant="caption" sx={{ px: 1.5, color: 'hsl(var(--muted-foreground))', fontWeight: 500, fontSize: '0.75rem' }}>
+                                      OR
+                                    </Typography>
+                                    <Box sx={{ flex: 1, height: '1px', bgcolor: 'hsl(var(--border))' }} />
+                                  </Box>
 
-                                <Button
-                                  fullWidth
-                                  variant="outlined"
-                                  onClick={() => {
-                                    setLoginWithSSO(true);
-                                    setPassword('');
-                                    setError('');
-                                    setSsoError('');
-                                  }}
-                                  sx={{
-                                    py: 1.25,
-                                    borderRadius: 2,
-                                    fontSize: '0.875rem',
-                                    fontWeight: 600,
-                                    textTransform: 'none',
-                                    borderColor: 'hsl(var(--border))',
-                                    color: 'hsl(var(--foreground))',
-                                    '&:hover': {
-                                      borderColor: '#FF6600',
-                                      bgcolor: 'rgba(255, 102, 0, 0.05)',
-                                    },
-                                  }}
-                                >
-                                  Sign in with SSO
-                                </Button>
-                              </Box>
-                            </motion.div>
+                                  <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                                    <Button
+                                      variant="outlined"
+                                      size="small"
+                                      onClick={() => {
+                                        setLoginWithSSO(true);
+                                        setPassword('');
+                                        setError('');
+                                        setSsoError('');
+                                      }}
+                                      sx={{
+                                        height: 34,
+                                        px: 2.5,
+                                        borderRadius: 1.5,
+                                        fontSize: '0.8125rem',
+                                        fontWeight: 500,
+                                        textTransform: 'none',
+                                        borderColor: 'hsl(var(--border))',
+                                        color: 'hsl(var(--foreground))',
+                                        bgcolor: 'hsl(var(--card))',
+                                        transition: 'all 0.15s ease',
+                                        '&:hover': {
+                                          borderColor: '#FF6600',
+                                          bgcolor: 'rgba(255, 102, 0, 0.05)',
+                                        },
+                                      }}
+                                    >
+                                      Sign in with SSO
+                                    </Button>
+                                  </Box>
+                                </Box>
+                              </motion.div>
                           )}
                         </AnimatePresence>
 
@@ -2641,40 +2646,45 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                               transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
                               style={{ overflow: 'hidden' }}
                             >
-                              <Box sx={{ pt: 2 }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                              <Box sx={{ pt: 1.75 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.75 }}>
                                   <Box sx={{ flex: 1, height: '1px', bgcolor: 'hsl(var(--border))' }} />
-                                  <Typography variant="caption" sx={{ px: 1.5, color: 'hsl(var(--muted-foreground))', fontWeight: 500 }}>
+                                  <Typography variant="caption" sx={{ px: 1.5, color: 'hsl(var(--muted-foreground))', fontWeight: 500, fontSize: '0.75rem' }}>
                                     OR
                                   </Typography>
                                   <Box sx={{ flex: 1, height: '1px', bgcolor: 'hsl(var(--border))' }} />
                                 </Box>
 
-                                <Button
-                                  fullWidth
-                                  variant="outlined"
-                                  onClick={() => {
-                                    if (typeof window !== 'undefined') {
-                                      if (from) sessionStorage.setItem('shuffle_redirect_after_login', from);
-                                      window.location.href = instanceSsoUrl!;
-                                    }
-                                  }}
-                                  sx={{
-                                    py: 1.25,
-                                    borderRadius: 2,
-                                    fontSize: '0.875rem',
-                                    fontWeight: 600,
-                                    textTransform: 'none',
-                                    borderColor: 'hsl(var(--border))',
-                                    color: 'hsl(var(--foreground))',
-                                    '&:hover': {
-                                      borderColor: '#FF6600',
-                                      bgcolor: 'rgba(255, 102, 0, 0.05)',
-                                    },
-                                  }}
-                                >
-                                  Sign in with SSO
-                                </Button>
+                                <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                                  <Button
+                                    variant="outlined"
+                                    size="small"
+                                    onClick={() => {
+                                      if (typeof window !== 'undefined') {
+                                        if (from) sessionStorage.setItem('shuffle_redirect_after_login', from);
+                                        window.location.href = instanceSsoUrl!;
+                                      }
+                                    }}
+                                    sx={{
+                                      height: 34,
+                                      px: 2.5,
+                                      borderRadius: 1.5,
+                                      fontSize: '0.8125rem',
+                                      fontWeight: 500,
+                                      textTransform: 'none',
+                                      borderColor: 'hsl(var(--border))',
+                                      color: 'hsl(var(--foreground))',
+                                      bgcolor: 'hsl(var(--card))',
+                                      transition: 'all 0.15s ease',
+                                      '&:hover': {
+                                        borderColor: '#FF6600',
+                                        bgcolor: 'rgba(255, 102, 0, 0.05)',
+                                      },
+                                    }}
+                                  >
+                                    Sign in with SSO
+                                  </Button>
+                                </Box>
                               </Box>
                             </motion.div>
                           )}

@@ -7,11 +7,8 @@
  *   components/   Reusable building blocks (EditWorkflow, RecentWorkflow, stubs)
  *   api.ts        Standalone API helpers — KEEP IN SYNC with src/Shuffle-MCPs/api.ts
  *
- * Every exported view/component is wrapped in `ShuffleCoreThemeProvider` so MUI
- * `<TextField>` / `<Button>` / `<Select>` etc. default to `size="small"` —
- * matching the rest of Shuffle Security (36px buttons, ~38px text fields).
- * This is the single source of truth for sizing; do NOT thread `size="small"`
- * through individual call sites.
+ * Every exported view/component is wrapped in `ShuffleCoreThemeProvider`
+ * ensuring unified theming and token styles matching Shuffle Security.
  */
 
 import './shuffle-core.css';

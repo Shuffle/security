@@ -104,18 +104,13 @@ export const useShuffleMcpTheme = (): ShuffleMcpThemeContextValue | null =>
   React.useContext(ShuffleMcpThemeContext);
 
 const buildComponentOverrides = (scopeClassName: string) => ({
-  MuiTextField: { defaultProps: { size: "small" as const } },
   MuiButton: { defaultProps: { size: "small" as const } },
-  MuiFormControl: { defaultProps: { size: "small" as const } },
-  MuiSelect: { defaultProps: { size: "small" as const } },
   MuiAutocomplete: {
     defaultProps: {
-      size: "small" as const,
       slotProps: { popper: { sx: { zIndex: 10020 } } },
     },
   },
   MuiInputBase: {
-    defaultProps: { size: "small" as const },
     styleOverrides: {
       root: { color: "hsl(var(--foreground))" },
       input: {
@@ -125,7 +120,6 @@ const buildComponentOverrides = (scopeClassName: string) => ({
     },
   },
   MuiOutlinedInput: {
-    defaultProps: { size: "small" as const },
     styleOverrides: {
       root: {
         backgroundColor: "hsl(var(--input))",
