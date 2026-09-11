@@ -8,8 +8,7 @@
  *  - They reached the final tour step or ran "Clean up demo data"
  */
 
-import { Box, Typography, IconButton, Tooltip, useTheme } from '@mui/material';
-import { Sparkles, X } from 'lucide-react';
+import { Box, Typography, Button, Tooltip, useTheme } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useLocation } from '@/lib/router-compat';
 import { useDemo } from '@/context/DemoContext';
@@ -51,9 +50,9 @@ export const DemoResumePill = () => {
         zIndex: 1300,
         display: 'flex',
         alignItems: 'center',
-        gap: 1,
+        gap: 1.25,
         pl: 1.5,
-        pr: 0.5,
+        pr: 1,
         py: 0.75,
         borderRadius: 999,
         bgcolor: 'hsl(var(--card))',
@@ -71,7 +70,22 @@ export const DemoResumePill = () => {
       role="button"
       aria-label="Continue demo mode"
     >
-      <Sparkles size={16} color={primaryColor} />
+      <Box
+        sx={{
+          px: 0.75,
+          py: 0.2,
+          borderRadius: 1,
+          bgcolor: 'hsl(var(--primary) / 0.15)',
+          color: primaryColor,
+          fontSize: '0.625rem',
+          fontWeight: 700,
+          letterSpacing: '0.04em',
+          textTransform: 'uppercase',
+          lineHeight: 1,
+        }}
+      >
+        Demo
+      </Box>
       <Typography
         variant="body2"
         sx={{ fontWeight: 600, color: 'hsl(var(--foreground))', fontSize: '0.8125rem' }}
@@ -79,21 +93,26 @@ export const DemoResumePill = () => {
         Continue demo
       </Typography>
       <Tooltip title="Hide until next demo">
-        <IconButton
+        <Button
           size="small"
           onClick={(e) => {
             e.stopPropagation();
             dismissResumePrompt();
           }}
           sx={{
-            width: 24,
-            height: 24,
+            minWidth: 'auto',
+            px: 0.75,
+            py: 0.25,
+            fontSize: '0.6875rem',
+            fontWeight: 600,
             color: 'hsl(var(--muted-foreground))',
+            textTransform: 'none',
+            borderRadius: 1,
             '&:hover': { color: 'hsl(var(--foreground))', bgcolor: 'hsl(var(--muted))' },
           }}
         >
-          <X size={14} />
-        </IconButton>
+          Dismiss
+        </Button>
       </Tooltip>
     </Box>
   );

@@ -15,7 +15,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/lib/toast';
 import { useDemo, TOUR_STEPS } from '@/context/DemoContext';
 import { useWorkflows } from '@/hooks/useWorkflows';
-import { useAgentNotifications } from '@/hooks/useNotifications';
 import { isWorkflowScheduleStopped } from '@/Shuffle-MCPs/ingestionDetection';
 import { seedDemoWazuhImplantIncident } from '@/services/demoMode';
 import { useEntityPreference } from '@/hooks/useEntityLabel';
@@ -29,7 +28,6 @@ export const DemoCompletionWatcher = () => {
   const { drawerOpen, step, setStepCompleted, markStepCompleted, goToStep, setDock, dock, hoveredGoalSelector, completedSteps } = useDemo();
   const askAgentInjectedRef = useRef(false);
   const { data: workflows, isFetching: workflowsFetching } = useWorkflows();
-  const { notifications } = useAgentNotifications();
   const queryClient = useQueryClient();
   const location = useLocation();
   const { basePath: entityBasePath } = useEntityPreference();
@@ -202,9 +200,46 @@ export const DemoCompletionWatcher = () => {
         }
       }, WAZUH_FOLLOWUP_DELAY_MS);
     };
+    const onWazuhArrived = () => {
+      wazuhSeededRef.current = true;
+      markStepCompleted('incident-detail:wazuh');
+    };
     window.addEventListener('demo:incident-comment-sent', onSent);
-    return () => window.removeEventListener('demo:incident-comment-sent', onSent);
+    window.addEventListener('demo:wazuh-incident-arrived', onWazuhArrived);
+    return () => {
+      window.removeEventListener('demo:incident-comment-sent', onSent);
+      window.removeEventListener('demo:wazuh-incident-arrived', onWazuhArrived);
+    };
   }, [drawerOpen, step, markStepCompleted]);
+
+  // Fallback arrival for Wazuh C2 incident: if the user expanded the email thread
+  // and has spent 16 seconds on the page without submitting a comment, trigger
+  // the follow-up incident anyway so the correlation experience is never blocked.
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const stepId = TOUR_STEPS[step]?.id;
+    if (stepId !== 'incident-detail') return;
+    if (!completedSteps['incident-detail:open-email-thread']) return;
+    if (completedSteps['incident-detail:wazuh'] || wazuhSeededRef.current) return;
+
+    const timer = window.setTimeout(async () => {
+      if (wazuhSeededRef.current) return;
+      try {
+        const added = await seedDemoWazuhImplantIncident();
+        wazuhSeededRef.current = true;
+        if (added > 0) {
+          toast.warning('New correlation found: Sliver C2 implant detected on the same host.', {
+            duration: 5000,
+          });
+          markStepCompleted('incident-detail:wazuh');
+        }
+      } catch {
+        // best-effort
+      }
+    }, 16000);
+
+    return () => window.clearTimeout(timer);
+  }, [drawerOpen, step, completedSteps, markStepCompleted]);
 
   // Auto-inject a sample @AIAgent question into the timeline comment field
   // once the user has reached the "Ask the agent" sub-goal. Without this,
@@ -259,31 +294,29 @@ export const DemoCompletionWatcher = () => {
     return () => window.clearInterval(id);
   }, [drawerOpen, step, markStepCompleted]);
 
-  // ─── correlations + cve-host-pivot: track tab clicks on the incident
-  // detail page. Both steps live entirely on the incident detail page so we
-  // do not yank the user away — we just spotlight the right tab and mark
+  // ─── correlations: track tab clicks on the incident detail page ─────────
+  // Step 5 lives on the incident detail page so we spotlight the tab and mark
   // the sub-goal complete the moment they activate it.
   useEffect(() => {
     if (!drawerOpen) return;
     const stepId = TOUR_STEPS[step]?.id;
-    if (stepId !== 'correlations' && stepId !== 'cve-host-pivot') return;
+    if (stepId !== 'correlations') return;
 
     const check = () => {
       const corrTab = document.querySelector('[data-tour="incident-tab-correlations"]') as HTMLElement | null;
-      const obsTab = document.querySelector('[data-tour="incident-tab-observables"]') as HTMLElement | null;
-      if (corrTab?.getAttribute('data-active') === 'true') {
+      if (
+        corrTab?.getAttribute('data-active') === 'true' ||
+        corrTab?.getAttribute('aria-selected') === 'true'
+      ) {
         markStepCompleted('correlations:open-tab');
-      }
-      if (obsTab?.getAttribute('data-active') === 'true') {
-        markStepCompleted('cve-host-pivot:open-tab');
       }
     };
     check();
-    const id = window.setInterval(check, 800);
+    const id = window.setInterval(check, 600);
     return () => window.clearInterval(id);
   }, [drawerOpen, step, markStepCompleted]);
 
-  // Listen for a correlation pivot click (optional sub-goal on step 6).
+  // Listen for a correlation pivot click (sub-goal on step 5).
   useEffect(() => {
     if (!drawerOpen) return;
     const stepId = TOUR_STEPS[step]?.id;
@@ -303,38 +336,6 @@ export const DemoCompletionWatcher = () => {
     document.addEventListener('click', onClick, true);
     return () => document.removeEventListener('click', onClick, true);
   }, [drawerOpen, step, markStepCompleted]);
-
-  // Once Observables tab is open on step 7, auto-mark the CVE + host
-  // discovery sub-goals after a short reading pause. They are optional, so
-  // this is purely cosmetic — but it keeps the goal list feeling alive.
-  useEffect(() => {
-    if (!drawerOpen) return;
-    const stepId = TOUR_STEPS[step]?.id;
-    if (stepId !== 'cve-host-pivot') return;
-    if (!completedSteps['cve-host-pivot:open-tab']) return;
-    const id = window.setTimeout(() => {
-      markStepCompleted('cve-host-pivot:cve');
-      markStepCompleted('cve-host-pivot:host');
-    }, 2500);
-    return () => window.clearTimeout(id);
-  }, [drawerOpen, step, completedSteps, markStepCompleted]);
-
-  // ─── agent: at least one approval notification has been cleared ───────────
-  // Snapshot the open approvals when the user lands on the step, then mark
-  // complete the moment the count drops.
-  useEffect(() => {
-    if (!drawerOpen) return;
-    const initial = notifications.filter(n => !n.questions || n.questions.length === 0).length;
-    let last = initial;
-    const id = setInterval(() => {
-      const cur = notifications.filter(n => !n.questions || n.questions.length === 0).length;
-      if (cur < last) {
-        markStepCompleted('agent');
-      }
-      last = cur;
-    }, 1500);
-    return () => clearInterval(id);
-  }, [drawerOpen, notifications, markStepCompleted]);
 
   return null;
 };

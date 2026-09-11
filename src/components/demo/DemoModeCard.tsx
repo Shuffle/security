@@ -7,7 +7,6 @@
  */
 
 import { Box, Typography, Button, Chip, CircularProgress, Tooltip } from '@mui/material';
-import { Play, Trash2, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { useDemo } from '@/context/DemoContext';
@@ -165,7 +164,6 @@ export const DemoModeCard = ({ compact = false }: { compact?: boolean } = {}) =>
                 onClick={openTour}
                 variant="text"
                 size="small"
-                startIcon={<Play size={14} />}
                 sx={{
                   textTransform: 'none',
                   fontSize: '0.8rem',
@@ -186,7 +184,7 @@ export const DemoModeCard = ({ compact = false }: { compact?: boolean } = {}) =>
                 disabled={isCleaning}
                 variant="outlined"
                 size="small"
-                startIcon={isCleaning ? <CircularProgress size={12} sx={{ color: 'inherit' }} /> : <Trash2 size={14} />}
+                startIcon={isCleaning ? <CircularProgress size={12} sx={{ color: 'inherit' }} /> : undefined}
                 sx={{
                   textTransform: 'none',
                   fontSize: '0.8rem',
@@ -215,7 +213,7 @@ export const DemoModeCard = ({ compact = false }: { compact?: boolean } = {}) =>
                   disabled={isCleaning}
                   variant="outlined"
                   size="small"
-                  startIcon={isCleaning ? <CircularProgress size={12} sx={{ color: 'inherit' }} /> : <Trash2 size={14} />}
+                  startIcon={isCleaning ? <CircularProgress size={12} sx={{ color: 'inherit' }} /> : undefined}
                   sx={{
                     textTransform: 'none',
                     fontSize: '0.8rem',
@@ -241,7 +239,7 @@ export const DemoModeCard = ({ compact = false }: { compact?: boolean } = {}) =>
                     disabled={isSeeding || disableStart}
                     variant="contained"
                     size="medium"
-                    endIcon={isSeeding ? <CircularProgress size={14} sx={{ color: 'inherit' }} /> : <ArrowRight size={16} />}
+                    endIcon={isSeeding ? <CircularProgress size={14} sx={{ color: 'inherit' }} /> : undefined}
                     sx={{
                       textTransform: 'none',
                       fontSize: '0.85rem',

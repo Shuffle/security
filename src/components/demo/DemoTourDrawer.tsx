@@ -13,18 +13,6 @@
  */
 
 import { Box, IconButton, Typography, Button, LinearProgress, Tooltip, Chip } from '@mui/material';
-import {
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-  X,
-  Sparkles,
-  Lock,
-  Check,
-  Minus,
-  PanelRight,
-  PanelBottom,
-} from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from '@/lib/router-compat';
 import { useDemo, TOUR_STEPS } from '@/context/DemoContext';
@@ -313,18 +301,19 @@ export const DemoTourDrawer = () => {
           >
             <Box
               sx={{
-                width: 26,
-                height: 26,
-                borderRadius: '50%',
-                display: 'grid',
-                placeItems: 'center',
-                background:
-                  'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.6))',
-                color: 'hsl(var(--primary-foreground))',
+                px: 0.75,
+                py: 0.25,
+                borderRadius: 1,
+                backgroundColor: 'hsl(var(--primary) / 0.15)',
+                color: 'hsl(var(--primary))',
+                fontSize: '0.625rem',
+                fontWeight: 700,
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase',
                 flexShrink: 0,
               }}
             >
-              <Sparkles size={14} />
+              Demo
             </Box>
             <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0, lineHeight: 1.15 }}>
               <Typography
@@ -409,29 +398,30 @@ export const DemoTourDrawer = () => {
             >
               <Box
                 sx={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: '50%',
-                  display: 'grid',
-                  placeItems: 'center',
+                  px: 0.75,
+                  py: 0.25,
+                  borderRadius: 1,
                   backgroundColor: 'hsl(var(--primary) / 0.15)',
                   color: 'hsl(var(--primary))',
+                  fontSize: '0.625rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
                   flexShrink: 0,
                   position: 'relative',
                 }}
               >
-                <Sparkles size={14} />
+                Demo
                 {locked && (
                   <Box
                     sx={{
                       position: 'absolute',
                       top: -2,
                       right: -2,
-                      width: 10,
-                      height: 10,
+                      width: 6,
+                      height: 6,
                       borderRadius: '50%',
                       backgroundColor: 'hsl(var(--primary))',
-                      border: '2px solid hsl(var(--card))',
                     }}
                   />
                 )}
@@ -583,16 +573,18 @@ export const DemoTourDrawer = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
                 <Box
                   sx={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 1.5,
-                    display: 'grid',
-                    placeItems: 'center',
+                    px: 0.75,
+                    py: 0.25,
+                    borderRadius: 1,
                     backgroundColor: 'hsl(var(--primary) / 0.15)',
                     color: 'hsl(var(--primary))',
+                    fontSize: '0.625rem',
+                    fontWeight: 700,
+                    letterSpacing: '0.04em',
+                    textTransform: 'uppercase',
                   }}
                 >
-                  <Sparkles size={15} />
+                  Demo
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'nowrap' }}>
                   <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: 'hsl(var(--foreground))', whiteSpace: 'nowrap' }}>
@@ -620,21 +612,63 @@ export const DemoTourDrawer = () => {
                   </Typography>
                 </Box>
               </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, ml: isBottom ? 0 : 'auto' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: isBottom ? 0 : 'auto' }}>
                 <Tooltip title={isBottom ? 'Dock to right' : 'Dock to bottom'} arrow slotProps={{ popper: { sx: { zIndex: 2147483647 } } }}>
-                  <IconButton onClick={toggleDock} size="small" sx={{ color: 'hsl(var(--muted-foreground))' }}>
-                    {isBottom ? <PanelRight size={15} /> : <PanelBottom size={15} />}
-                  </IconButton>
+                  <Button
+                    onClick={toggleDock}
+                    size="small"
+                    sx={{
+                      minWidth: 'auto',
+                      px: 0.75,
+                      py: 0.25,
+                      fontSize: '0.6875rem',
+                      fontWeight: 600,
+                      color: 'hsl(var(--muted-foreground))',
+                      textTransform: 'none',
+                      borderRadius: 1,
+                      '&:hover': { color: 'hsl(var(--foreground))', backgroundColor: 'hsl(var(--muted) / 0.6)' },
+                    }}
+                  >
+                    {isBottom ? 'Right' : 'Bottom'}
+                  </Button>
                 </Tooltip>
                 <Tooltip title="Minimize" arrow slotProps={{ popper: { sx: { zIndex: 2147483647 } } }}>
-                  <IconButton onClick={minimizeTour} size="small" sx={{ color: 'hsl(var(--muted-foreground))' }}>
-                    <Minus size={16} />
-                  </IconButton>
+                  <Button
+                    onClick={minimizeTour}
+                    size="small"
+                    sx={{
+                      minWidth: 'auto',
+                      px: 0.75,
+                      py: 0.25,
+                      fontSize: '0.6875rem',
+                      fontWeight: 600,
+                      color: 'hsl(var(--muted-foreground))',
+                      textTransform: 'none',
+                      borderRadius: 1,
+                      '&:hover': { color: 'hsl(var(--foreground))', backgroundColor: 'hsl(var(--muted) / 0.6)' },
+                    }}
+                  >
+                    Min
+                  </Button>
                 </Tooltip>
                 <Tooltip title="Close demo mode" arrow slotProps={{ popper: { sx: { zIndex: 2147483647 } } }}>
-                  <IconButton onClick={closeTour} size="small" sx={{ color: 'hsl(var(--muted-foreground))' }}>
-                    <X size={16} />
-                  </IconButton>
+                  <Button
+                    onClick={closeTour}
+                    size="small"
+                    sx={{
+                      minWidth: 'auto',
+                      px: 0.75,
+                      py: 0.25,
+                      fontSize: '0.6875rem',
+                      fontWeight: 600,
+                      color: 'hsl(var(--muted-foreground))',
+                      textTransform: 'none',
+                      borderRadius: 1,
+                      '&:hover': { color: 'hsl(var(--foreground))', backgroundColor: 'hsl(var(--muted) / 0.6)' },
+                    }}
+                  >
+                    Close
+                  </Button>
                 </Tooltip>
               </Box>
               {isBottom && (
@@ -725,14 +759,7 @@ export const DemoTourDrawer = () => {
                             '&:hover': { color: 'hsl(var(--foreground))', opacity: 1 },
                           }}
                         >
-                          <ChevronDown
-                            size={13}
-                            style={{
-                              transition: 'transform 150ms ease',
-                              transform: bulletsOpen ? 'rotate(0deg)' : 'rotate(-90deg)',
-                            }}
-                          />
-                          Detailed steps
+                          Detailed steps ({bulletsOpen ? 'Hide' : 'Show'})
                         </Box>
                         <AnimatePresence initial={false}>
                           {bulletsOpen && (
@@ -917,56 +944,33 @@ export const DemoTourDrawer = () => {
                                     initial={false}
                                     animate={
                                       g.done
-                                        ? { scale: [1, 1.3, 1], rotate: [0, -8, 0] }
-                                        : { scale: 1, rotate: 0 }
+                                        ? { scale: [1, 1.15, 1] }
+                                        : { scale: 1 }
                                     }
-                                    transition={{ duration: 0.5, ease: 'easeOut' }}
+                                    transition={{ duration: 0.3, ease: 'easeOut' }}
                                     style={{
-                                      width: 22,
-                                      height: 22,
-                                      borderRadius: 6,
+                                      minWidth: 38,
+                                      height: 20,
+                                      padding: '0 4px',
+                                      borderRadius: 4,
                                       display: 'grid',
                                       placeItems: 'center',
-                                      backgroundColor: g.done ? 'hsl(var(--severity-low) / 0.2)' : baseBg,
+                                      backgroundColor: g.done ? 'hsl(var(--severity-low) / 0.15)' : baseBg,
                                       color: g.done ? 'hsl(var(--severity-low))' : baseColor,
+                                      border: g.done
+                                        ? '1px solid hsl(var(--severity-low) / 0.35)'
+                                        : g.optional
+                                          ? '1px solid hsl(var(--primary) / 0.25)'
+                                          : '1px solid hsl(var(--border))',
+                                      fontSize: '0.625rem',
+                                      fontWeight: 700,
+                                      letterSpacing: '0.04em',
+                                      textTransform: 'uppercase',
+                                      lineHeight: 1,
                                       flexShrink: 0,
-                                      boxShadow: g.done ? '0 0 0 0 hsl(var(--severity-low) / 0)' : 'none',
                                     }}
                                   >
-                                    <AnimatePresence mode="wait" initial={false}>
-                                      {g.done ? (
-                                        <motion.span
-                                          key="check"
-                                          initial={{ scale: 0, opacity: 0 }}
-                                          animate={{ scale: 1, opacity: 1 }}
-                                          exit={{ scale: 0, opacity: 0 }}
-                                          transition={{ type: 'spring', stiffness: 500, damping: 18 }}
-                                          style={{ display: 'inline-flex' }}
-                                        >
-                                          <Check size={13} strokeWidth={3} />
-                                        </motion.span>
-                                      ) : g.optional ? (
-                                        <motion.span
-                                          key="sparkle"
-                                          initial={{ opacity: 0 }}
-                                          animate={{ opacity: 1 }}
-                                          exit={{ opacity: 0 }}
-                                          style={{ display: 'inline-flex' }}
-                                        >
-                                          <Sparkles size={12} />
-                                        </motion.span>
-                                      ) : (
-                                        <motion.span
-                                          key="lock"
-                                          initial={{ opacity: 0 }}
-                                          animate={{ opacity: 1 }}
-                                          exit={{ opacity: 0 }}
-                                          style={{ display: 'inline-flex' }}
-                                        >
-                                          <Lock size={12} />
-                                        </motion.span>
-                                      )}
-                                    </AnimatePresence>
+                                    {g.done ? 'Done' : g.optional ? 'Opt' : 'Req'}
                                   </motion.div>
                                   <Typography
                                     sx={{
@@ -1023,7 +1027,11 @@ export const DemoTourDrawer = () => {
                                         '&:hover': { backgroundColor: 'hsl(var(--primary) / 0.9)', boxShadow: 'none' },
                                       }}
                                     >
-                                      {(isWazuhForce ? isForceGeneratingWazuh : isForceGeneratingSingle) ? 'Generating…' : 'Force generate'}
+                                      {(isWazuhForce ? isForceGeneratingWazuh : isForceGeneratingSingle)
+                                        ? 'Generating…'
+                                        : isWazuhForce
+                                          ? 'Trigger arrival'
+                                          : 'Re-create'}
                                     </Button>
                                   )}
                                 </Box>
@@ -1123,7 +1131,6 @@ export const DemoTourDrawer = () => {
                   disabled={step === 0}
                   variant="outlined"
                   size="small"
-                  startIcon={<ChevronLeft size={14} />}
                   sx={{
                     flex: 1,
                     textTransform: 'none',
@@ -1202,8 +1209,6 @@ export const DemoTourDrawer = () => {
                         disabled={locked}
                         variant="contained"
                         size="small"
-                        startIcon={locked ? <Lock size={13} /> : !isLast && justUnlocked ? <Check size={14} strokeWidth={3} /> : undefined}
-                        endIcon={!isLast && !locked ? <ChevronRight size={14} /> : undefined}
                         sx={{
                           flex: 1,
                           textTransform: 'none',
@@ -1240,7 +1245,7 @@ export const DemoTourDrawer = () => {
                         {locked
                           ? 'Locked'
                           : isLast
-                            ? 'Finish'
+                            ? 'Finish tour'
                             : 'Next'}
                       </Button>
                     </motion.div>

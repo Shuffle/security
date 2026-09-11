@@ -55,7 +55,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useAppDetail } from '@/Shuffle-MCPs/AppDetailContext';
 import { useDemo } from '@/context/DemoContext';
-import { forceCreateSingleDemoIncidentReturningKey } from '@/services/demoMode';
+import { forceCreateSingleDemoIncidentReturningKey, isDemoActive, handleDemoAgentComment, getDemoCorrelations } from '@/services/demoMode';
 import { DATASTORE_CATEGORIES, getDatastoreItem, getDatastoreItemPublic, setDatastoreItem, deleteDatastoreItem, getDatastoreByCategory } from '@/Shuffle-MCPs/datastore';
 import IncidentReportDialog from '@/components/incidents/IncidentReportDialog';
 import type { GenerateReportInput } from '@/services/incidentReports';
@@ -1999,8 +1999,17 @@ const IncidentDetailPage = () => {
       if (!entry?.data?.length) return;
       if (entry.data.some(hasIocMatch)) set.add(obsKey.toLowerCase());
     });
+    if (isDemoActive()) {
+      editedObservables.forEach((o) => {
+        const val = (o.value || '').toLowerCase();
+        if (val === '185.220.101.47' || val.includes('it-support-portal.live') || val.includes('mfa-reset')) {
+          set.add(`${(o.type || '').toLowerCase()}::${val}`);
+          set.add(val);
+        }
+      });
+    }
     return set;
-  }, [obsCorrelations]);
+  }, [obsCorrelations, editedObservables]);
   // Filtered view of correlations that drops any whose key matches an
   // ignored observable value. Used by every "Correlations (N)" badge and the
   // timeline so the count agrees with what the user actually sees.
@@ -2041,8 +2050,12 @@ const IncidentDetailPage = () => {
     };
     correlations.forEach(add);
     Object.values(obsCorrelations).forEach(entry => (entry?.data || []).forEach(add));
+    if (isDemoActive() && id) {
+      const demoCorrs = getDemoCorrelations(id, editedObservables);
+      demoCorrs.forEach(add);
+    }
     return Array.from(merged.values());
-  }, [correlations, obsCorrelations]);
+  }, [correlations, obsCorrelations, id, editedObservables]);
 
   const visibleCorrelations = useMemo(
     () => filterMeaningfulCorrelations(mergedCorrelations, correlationVisibilityOptions),
@@ -4788,6 +4801,10 @@ const IncidentDetailPage = () => {
     // No success toast — the new comment renders immediately in the timeline.
     // Demo Mode signal — lets the tour mark "ask the agent" as complete.
     try { window.dispatchEvent(new CustomEvent('demo:incident-comment-sent')); } catch { /* no-op */ }
+
+    if (isDemoActive() && /@\s*ai[\s_-]*agent\b|@\s*agent\b/i.test(effectiveText)) {
+      void handleDemoAgentComment(incident.id, effectiveText, commentActivity.id);
+    }
 
     // Schedule observable/enrichment refresh ~7s after comment save
     // Backend may extract IOCs from comment text and create enrichments
@@ -7790,6 +7807,10 @@ const IncidentDetailPage = () => {
         pendingSaveRef.current = true;
         await writeIncidentSafe(incident.id, { ...incident.rawOCSF, activity: updatedActivity }, crossOrgId || undefined);
         toast.success('Re-running AI Agent');
+        if (isDemoActive()) {
+          const targetComment = activity.find(a => a.id === commentId);
+          void handleDemoAgentComment(incident.id, targetComment?.content || '', commentId);
+        }
       } catch (err) {
         console.error('[Rerun] Failed to persist rerun:', err);
         toast.error('Failed to re-run AI Agent');

@@ -94,13 +94,31 @@ const toIncident = (item: RawInc): { key: string; value: OCSFIncidentFinding } =
       modified_time: lastSeenIso,
       types: item.types,
       product: item.product,
-      enrichments: [],
+      observables: (item.observables || []).map(o => ({
+        type: o.type,
+        value: o.value,
+        first_seen: nowIso,
+        last_seen: lastSeenIso,
+      })),
+      enrichments: (item.observables || []).map(o => ({
+        type: o.type,
+        value: o.value,
+        data: o.value,
+        first_seen: nowIso,
+        last_seen: lastSeenIso,
+      })),
       metadata: {
         ...demoMeta(findingUid),
         extensions: {
           custom_attributes: {
             ...(demoMeta(findingUid).extensions.custom_attributes),
             ...(item.usedFallback ? { demoFallback: true } : {}),
+            observables: (item.observables || []).map(o => ({
+              type: o.type,
+              value: o.value,
+              first_seen: nowIso,
+              last_seen: lastSeenIso,
+            })),
           },
         },
       },
@@ -150,12 +168,12 @@ const PHISH_ATTACKER_IP_DEFAULT = '185.220.101.47';
 // live-clickable string in source. `refangDefangedUrl` reconstitutes it at
 // the moment it is handed to the seeder.
 const PHISH_LURE_URL_DEFANGED_DEFAULT =
-  'hxxp://hr-organization[.]com/s/63BZGFSVBWSFCDX7Y9/584dd8/90eab167-7429-489f-99f6-ce86e8d0d81a';
+  'hxxps://it-support-portal[.]live/mfa-reset?u=schen';
 const refangDefangedUrl = (defanged: string): string =>
   defanged.replace(/^hxxps?/i, m => m.toLowerCase().replace('hxxp', 'http')).replace(/\[\.\]/g, '.');
 const PHISH_LURE_URL_DEFAULT = refangDefangedUrl(PHISH_LURE_URL_DEFANGED_DEFAULT);
 const PHISH_LURE_DOMAIN_DEFAULT = (() => {
-  try { return new URL(PHISH_LURE_URL_DEFAULT).hostname; } catch { return 'hr-organization.com'; }
+  try { return new URL(PHISH_LURE_URL_DEFAULT).hostname; } catch { return 'it-support-portal.live'; }
 })();
 const PHISH_PAYLOAD_SHA256 = '7b1c4f9a2e3d8b6f1a0c5d7e9b2a4c6e8d1f3a5b7c9e1d2f4a6b8c0e2d4f6a8b';
 

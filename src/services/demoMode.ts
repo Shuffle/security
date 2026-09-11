@@ -875,9 +875,11 @@ export const STEP_SEEDERS: Record<string, () => Promise<number>> = {
   // welcome — nothing
   welcome: async () => 0,
 
-  // apps — no datastore writes; the user is just learning where to connect
+  // add-outlook / apps — no datastore writes; the user is just learning where to connect
   // tools. Real auth setup is intentionally not faked so cleanup stays simple.
+  'add-outlook': async () => 0,
   apps: async () => 0,
+  'ingest-webhook': async () => 0,
 
   // incidents list — seed ONLY the single "Phishing email reported by Diego
   // Ruiz" focus incident. The Wazuh / Sliver C2 follow-up arrives later once
@@ -910,10 +912,14 @@ export const STEP_SEEDERS: Record<string, () => Promise<number>> = {
     if (!res.success) throw new Error(res.error || 'Failed to seed demo focus incident');
     recordSeed(DATASTORE_CATEGORIES.INCIDENTS, [item.key]);
     broadcastRefresh(DATASTORE_CATEGORIES.INCIDENTS);
-    // NOTE: The focus phishing incident intentionally lands WITHOUT any
-    // background-trickled enrichments. Real Shuffle will surface observables
-    // dynamically once it analyses the incident, and we want that flow to
-    // feel organic instead of pre-baked by the demo.
+
+    // Pre-seed associated demo assets, users, and vulnerabilities so
+    // asset correlation, user context (Sarah Chen), and CVE-2024-5274 exist
+    // across the platform when the incident is explored.
+    try { await STEP_SEEDERS.assets(); } catch { /* best-effort */ }
+    try { await STEP_SEEDERS.agent(); } catch { /* best-effort */ }
+    try { await STEP_SEEDERS.vulnerabilities(); } catch { /* best-effort */ }
+
     return 1;
   },
 
@@ -1249,7 +1255,15 @@ export const cleanupDemoData = async (): Promise<CleanupResult> => {
     }
   }
 
-  const safetyCategories = [DATASTORE_CATEGORIES.INCIDENTS, DATASTORE_CATEGORIES.ASSETS, DATASTORE_CATEGORIES.USERS, VULNS_CATEGORY, SENSORS_CATEGORY, AGENTS_CATEGORY];
+  const safetyCategories = [
+    DATASTORE_CATEGORIES.INCIDENTS,
+    DATASTORE_CATEGORIES.ASSETS,
+    DATASTORE_CATEGORIES.USERS,
+    VULNS_CATEGORY,
+    SENSORS_CATEGORY,
+    AGENTS_CATEGORY,
+    IOC_URL_CATEGORY,
+  ];
   for (const category of safetyCategories) {
     try {
       // Paginate the full category — list_cache caps at 50 items per page for
@@ -1324,3 +1338,170 @@ export const cleanupDemoData = async (): Promise<CleanupResult> => {
   console.info('[demo] cleanup complete', { deleted, failed });
   return { success: failed === 0, deleted, failed };
 };
+
+/**
+ * Interactive Demo AI Agent Responder
+ *
+ * When a user comments in demo mode mentioning @AIAgent / @agent, or asks
+ * about an observable from the timeline, this handler simulates the live
+ * "Assign & Escalate" AI agent workflow. It waits ~2s (for natural pacing),
+ * inspects the incident context, generates an authoritative SOC analyst triage
+ * response, threads it as a reply under the comment, flips `ai_handled: true`,
+ * and triggers/expedites the correlated Wazuh detection.
+ */
+export const handleDemoAgentComment = async (
+  incidentId: string,
+  userComment: string,
+  commentId: string,
+): Promise<void> => {
+  // Wait ~2s for realistic agent processing
+  await new Promise(resolve => setTimeout(resolve, 2000));
+
+  try {
+    const res = await getDatastoreItem(incidentId, DATASTORE_CATEGORIES.INCIDENTS);
+    if (!res.success || !res.item) return;
+
+    let ocsf: any = res.item.value;
+    if (typeof ocsf === 'string') {
+      try { ocsf = JSON.parse(ocsf); } catch { /* ignore */ }
+    }
+    if (!ocsf || typeof ocsf !== 'object') return;
+
+    const activity: any[] = Array.isArray(ocsf.activity) ? [...ocsf.activity] : [];
+    
+    // Find parent comment and mark ai_handled: true
+    const parentIndex = activity.findIndex(a => a.id === commentId);
+    if (parentIndex >= 0) {
+      activity[parentIndex] = {
+        ...activity[parentIndex],
+        ai_handled: true,
+      };
+    }
+
+    // Determine context-appropriate response
+    const lower = (userComment || '').toLowerCase();
+    const isIpQuery = lower.includes('185.220.101.47') || lower.includes('ip') || lower.includes('known ioc');
+
+    let replyContent = '';
+    if (isIpQuery) {
+      replyContent = `**AI Agent Threat Intelligence Assessment**:
+
+* **Indicator**: IP \`185.220.101.47\` (Autonomous System: AS200052, Bulletproof Hosting)
+* **Reputation Score**: Critical (98/100 across 14 threat intel feeds)
+* **Observed Infrastructure**: Confirmed credential harvesting lure \`https://it-support-portal.live/mfa-reset?u=schen\` and command-and-control (C2) endpoint.
+* **Correlated Detections**: The same IP was observed establishing reverse HTTPS beacons from host \`FIN-LAPTOP-04\` following Sarah Chen's interaction with the lure.
+
+**Automated Containment Plan**:
+1. [AUTOMATED] Edge firewall block rule dispatched for \`185.220.101.47/32\`.
+2. [RECOMMENDED] Isolate endpoint \`FIN-LAPTOP-04\` via EDR to prevent lateral movement.
+3. [RECOMMENDED] Revoke all active session tokens for user \`sarah.chen@example.com\`.`;
+    } else {
+      replyContent = `**AI Agent Triage & Correlation Summary**:
+
+* **Threat Context**: Investigated credential harvesting campaign impersonating internal IT MFA enrollment (\`https://it-support-portal.live/mfa-reset?u=schen\`).
+* **Identity Impact**: Sarah Chen (\`sarah.chen@example.com\`, Finance) confirmed clicking the link from workstation \`FIN-LAPTOP-04\`.
+* **Vulnerability Exposure**: \`FIN-LAPTOP-04\` runs an outdated Chrome browser vulnerable to \`CVE-2024-5274\` (V8 Type Confusion RCE).
+* **Critical Correlation**: Wazuh has flagged a correlated high-severity endpoint detection on \`FIN-LAPTOP-04\` — an unsigned binary \`msedge_proxy.exe\` establishing jittered C2 beacons to \`185.220.101.47\` (Sliver C2 signature).
+
+**Recommended Immediate Next Steps**:
+1. Isolate workstation \`FIN-LAPTOP-04\` via EDR immediately.
+2. Invalidate active Okta and Microsoft 365 sessions for \`sarah.chen@example.com\`.
+3. Pivot through the Correlations tab to review the shared lure URL and correlated Wazuh incident.`;
+    }
+
+    const replyId = `comment-agent-${Date.now()}`;
+    const agentReply: any = {
+      id: replyId,
+      type: 'comment',
+      user: 'AI Agent',
+      is_agent: true,
+      timestamp: Date.now(),
+      content: replyContent,
+      replyToId: commentId,
+      ai_handled: true,
+      details: {
+        agent_model: 'Shuffle AI',
+        confidence: 0.96,
+      },
+    };
+
+    activity.push(agentReply);
+    ocsf.activity = activity;
+    if (ocsf.metadata?.extensions?.custom_attributes) {
+      ocsf.metadata.extensions.custom_attributes.activity = activity;
+    }
+
+    await setDatastoreItem(incidentId, ocsf, DATASTORE_CATEGORIES.INCIDENTS);
+    broadcastRefresh(DATASTORE_CATEGORIES.INCIDENTS);
+
+    // Notify UI of updated incident
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('incident:refresh', { detail: { incidentId } }));
+      window.dispatchEvent(new CustomEvent('demo:incident-agent-replied', { detail: { incidentId, replyId } }));
+    }
+
+    // Expedite Wazuh follow-up arrival if not already seeded
+    void seedDemoWazuhImplantIncident().then((added) => {
+      if (added > 0 && typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('demo:wazuh-incident-arrived'));
+        broadcastRefresh(DATASTORE_CATEGORIES.INCIDENTS);
+      }
+    });
+  } catch (err) {
+    console.warn('[demo] handleDemoAgentComment error', err);
+  }
+};
+
+/**
+ * Synthesizes client-side correlations between active demo incidents and threat intel.
+ * This guarantees that even before the backend n-gram indexer finishes indexing,
+ * or in offline standalone demo environments, the correlations tab immediately shows
+ * the shared lure URL, IP, domain, and affected host linked between the Phishing incident
+ * and the Wazuh Sliver C2 incident.
+ */
+export const getDemoCorrelations = (
+  currentIncidentId: string,
+  observables: Array<{ type: string; value: string }>,
+): Array<{ key: string; amount: number; ref: string[] }> => {
+  if (!isDemoActive()) return [];
+
+  const idx = readIndex();
+  const incidents = idx[DATASTORE_CATEGORIES.INCIDENTS] || [];
+  // Find peer demo incident (if current is focus, peer is wazuh; if current is wazuh, peer is focus)
+  const otherIncidents = incidents.filter(k => k.toLowerCase() !== currentIncidentId.toLowerCase());
+  if (otherIncidents.length === 0) return [];
+
+  const results: Array<{ key: string; amount: number; ref: string[] }> = [];
+
+  for (const obs of observables) {
+    if (!obs?.value) continue;
+    const val = obs.value.trim();
+    // Only correlate on relevant IOC observables: URL, IP, domain, host
+    const isUrl = val.startsWith('http://') || val.startsWith('https://') || val.includes('mfa-reset');
+    const isIp = val === '185.220.101.47';
+    const isDomain = val.includes('it-support-portal.live');
+    const isHost = val === 'FIN-LAPTOP-04';
+
+    if (isUrl || isIp || isDomain || isHost) {
+      const refs = [
+        `shuffle-security_incidents|${currentIncidentId}`,
+        ...otherIncidents.map(peerId => `shuffle-security_incidents|${peerId}`),
+      ];
+
+      // Add threat feed ref if it's a known IOC
+      if (isUrl) refs.push(`ioc_url|${val}`);
+      if (isIp) refs.push(`ioc_ipv4|${val}`);
+      if (isHost) refs.push(`shuffle-security_assets|${val}`);
+
+      results.push({
+        key: val,
+        amount: refs.length,
+        ref: refs,
+      });
+    }
+  }
+
+  return results;
+};
+
+

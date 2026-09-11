@@ -71,14 +71,14 @@ export const TOUR_STEPS: TourStep[] = [
   {
     id: 'welcome',
     title: 'Welcome to your demo',
-    body: 'We will walk you through incident management, enrichment, automation, and a live AI agent action. Just follow the highlighted prompts at each step — open "Detailed steps" any time you want the full picture.',
+    body: 'We will walk you through incident management, enrichment, automation, and cross-incident correlation. Just follow the highlighted prompts at each step — open "Detailed steps" any time you want the full picture.',
     bullets: [
-      '1. Get familiar with incident management',
-      '2. Connect ingestion sources',
-      '3. See real-time enrichment in action',
-      '4. Explore automation and workflows',
-      '5. Approve a live AI agent action',
-      '6. Clean up — removes everything we added',
+      '1. Connect ingestion sources',
+      '2. Enable webhook and triage automation',
+      '3. Triage incoming security incidents',
+      '4. Investigate timeline with the AI agent',
+      '5. Pivot across correlated indicators',
+      '6. Clean up demo data in one click',
     ],
     route: '/dashboard',
     requirement: {
@@ -217,6 +217,17 @@ export const TOUR_STEPS: TourStep[] = [
         label: 'Click the URL correlation linking to the Sliver C2 incident',
         targetSelector: '[data-corr-key^="http"]',
       },
+    ],
+  },
+  {
+    id: 'wrap',
+    title: 'Demo complete',
+    body: 'You have walked through email and webhook ingestion, automated AI triage, timeline investigation, and cross-incident correlation on shared indicators.',
+    bullets: [
+      'Ingestion: Email sources and live webhook ingestion configured',
+      'Automation: AI agent triage and background enrichment running',
+      'Correlation: Lure URL linked phishing report to Sliver C2 detection',
+      'Cleanup: Remove all demo entities with one click whenever you are ready',
     ],
   },
 ];

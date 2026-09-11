@@ -5,6 +5,7 @@ import { useAssignEscalateStatus } from './useAssignEscalateStatus';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
 import { getAutomationLabels } from '@/config/usecases';
 import { CategoryAutomation, CategoryConfig, DATASTORE_CATEGORIES } from '@/Shuffle-MCPs/datastore';
+import { isDemoActive } from '@/services/demoMode';
 
 /**
  * "Ask agent" / @AIAgent readiness — SINGLE SOURCE OF TRUTH for whether
@@ -256,12 +257,14 @@ export const useAgentReadiness = (): AgentReadinessStatus => {
     if (optimistic === true && serverActive) setOptimistic(null);
   }, [optimistic, serverActive]);
 
+  const demoActive = isDemoActive();
+
   return {
-    active,
-    hasAiAgentAutomation,
-    hasWorkflow,
-    hasCategoryAutomation,
-    isLoading: wfLoading || cfgLoading || assign.isLoading,
+    active: demoActive || active,
+    hasAiAgentAutomation: demoActive || hasAiAgentAutomation,
+    hasWorkflow: demoActive || hasWorkflow,
+    hasCategoryAutomation: demoActive || hasCategoryAutomation,
+    isLoading: demoActive ? false : (wfLoading || cfgLoading || assign.isLoading),
     enable,
     isEnabling,
   };

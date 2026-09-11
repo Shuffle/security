@@ -188,6 +188,7 @@ export function SegmentedControl<V extends string = string>({
               key={key}
               type="button"
               data-tour={opt.dataTour}
+              data-active={active ? "true" : "false"}
               role={isAction ? "button" : "tab"}
               aria-selected={isAction ? undefined : active}
               title={opt.title}
