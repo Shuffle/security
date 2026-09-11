@@ -910,10 +910,16 @@ export const DEFAULT_AGENT_CONTEXT_RULES: AgentContextRule[] = [
     description: 'Documentation for Apps & Integrations',
     sideshift: true,
   },
-  // 7g. General Documentation Fallback (/docs, /docs/*, /legal/*)
+  // 7g. General Documentation Fallback (/docs, /docs/*, /legal, /legal/*, /articles, /articles/*)
   {
     id: 'docs',
-    match: (pathname) => pathname === '/docs' || pathname.startsWith('/docs/') || pathname.startsWith('/legal/'),
+    match: (pathname) =>
+      pathname === '/docs' ||
+      pathname.startsWith('/docs/') ||
+      pathname === '/legal' ||
+      pathname.startsWith('/legal/') ||
+      pathname === '/articles' ||
+      pathname.startsWith('/articles/'),
     defaultApps: [],
     defaultPresetId: null,
     buttonLabel: (params, pathname, entity) => formatDocAskAbout(getDocPageDisplayName(pathname, entity)),

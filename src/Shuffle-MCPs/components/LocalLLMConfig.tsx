@@ -3,6 +3,7 @@ import { Check } from 'lucide-react';
 import {
   Autocomplete,
   Box,
+  Button,
   TextField,
   Tooltip,
   Typography,
@@ -687,6 +688,45 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+      {!isLoggedIn && (
+        <Box
+          sx={{
+            p: 1.5,
+            borderRadius: 1.5,
+            border: '1px solid hsl(var(--border))',
+            bgcolor: 'hsl(var(--muted) / 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 1.5,
+          }}
+        >
+          <Typography sx={{ fontSize: '0.78rem', color: 'hsl(var(--muted-foreground))', lineHeight: 1.4 }}>
+            Log in to configure AI providers and run AI agents.
+          </Typography>
+          <Button
+            size="small"
+            variant="contained"
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                const returnUrl = window.location.pathname + window.location.search;
+                window.location.href = `/login?view=${encodeURIComponent(returnUrl)}`;
+              }
+            }}
+            sx={{
+              textTransform: 'none',
+              fontSize: '0.75rem',
+              py: 0.3,
+              px: 1,
+              minHeight: 0,
+              borderRadius: 1,
+              flexShrink: 0,
+            }}
+          >
+            Log In
+          </Button>
+        </Box>
+      )}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
         <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: 'hsl(var(--foreground))' }}>
           AI Provider

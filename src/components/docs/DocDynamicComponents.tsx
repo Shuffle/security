@@ -16,6 +16,7 @@ import AgentUI from "@/Shuffle-MCPs/components/AgentUI";
 import AgentActivityList from "@/Shuffle-MCPs/components/AgentActivityList";
 import AgentExecutionDrawer from "@/Shuffle-MCPs/components/AgentExecutionDrawer";
 import type { AgentRun } from "@/Shuffle-MCPs/agentActivity";
+import { DEMO_AGENT_RUNS } from "@/Shuffle-MCPs/demoAgentActivity";
 import {
   AgentPresets,
   AGENT_PRESETS,
@@ -27,6 +28,7 @@ import AgentIcon from "@/Shuffle-MCPs/components/AgentIcon";
 import { openAgentDrawer } from "@/lib/agentDrawer";
 import { fetchAuthenticatedApps } from "@/Shuffle-MCPs/authenticatedApps";
 import { resolveActiveLLMProvider } from "@/Shuffle-MCPs/llmProviderDetect";
+import { DocCurlViewer } from "./DocCurlViewer";
 import { IngestionSourcesRow } from "@/components/ingestion/IngestionSourcesRow";
 import { useNavigate } from "@/lib/router-compat";
 import { useDatastore } from "@/hooks/useDatastore";
@@ -268,6 +270,7 @@ export const DocAgentActivity: React.FC<DocAgentActivityProps> = ({
   limit = 5,
   top = 5,
 }) => {
+  const { isAuthenticated } = useAuth();
   const [selectedRun, setSelectedRun] = useState<AgentRun | null>(null);
   const effectiveLimit = typeof limit === "string" ? parseInt(limit, 10) || 5 : limit;
   const effectiveTop = typeof top === "string" ? parseInt(top, 10) || 5 : top;
@@ -283,16 +286,34 @@ export const DocAgentActivity: React.FC<DocAgentActivityProps> = ({
       }}
     >
       <Box sx={{ mb: 2 }}>
-        <Typography
-          sx={{
-            fontSize: "1.05rem",
-            fontWeight: 600,
-            color: "hsl(var(--foreground))",
-            mb: 0.5,
-          }}
-        >
-          {title}
-        </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, mb: 0.5 }}>
+          <Typography
+            sx={{
+              fontSize: "1.05rem",
+              fontWeight: 600,
+              color: "hsl(var(--foreground))",
+            }}
+          >
+            {title}
+          </Typography>
+          {!isAuthenticated && (
+            <Chip
+              label="Demo Data"
+              size="small"
+              sx={{
+                height: 20,
+                fontSize: "0.68rem",
+                fontWeight: 700,
+                letterSpacing: "0.04em",
+                textTransform: "uppercase",
+                backgroundColor: "hsla(var(--primary) / 0.15)",
+                color: "hsl(var(--primary))",
+                border: "1px solid hsla(var(--primary) / 0.3)",
+                borderRadius: 1,
+              }}
+            />
+          )}
+        </Box>
         {subtitle && (
           <Typography
             sx={{
@@ -305,10 +326,29 @@ export const DocAgentActivity: React.FC<DocAgentActivityProps> = ({
         )}
       </Box>
 
+      {!isAuthenticated && (
+        <Box
+          sx={{
+            mb: 2,
+            px: 2,
+            py: 1.25,
+            borderRadius: 1.5,
+            border: "1px solid hsl(var(--border))",
+            backgroundColor: "hsla(var(--muted) / 0.35)",
+          }}
+        >
+          <Typography sx={{ fontSize: "0.8rem", color: "hsl(var(--muted-foreground))" }}>
+            Unauthenticated preview. Showing representative agent executions with interactive timelines, decision trees, and raw LLM request/response telemetry. Click any run to inspect the execution drawer.
+          </Typography>
+        </Box>
+      )}
+
       <AgentActivityList
         limit={effectiveLimit}
         top={effectiveTop}
         onRunClick={setSelectedRun}
+        initialRuns={!isAuthenticated ? DEMO_AGENT_RUNS : undefined}
+        disableFetch={!isAuthenticated}
       />
 
       <AgentExecutionDrawer
@@ -2440,6 +2480,12 @@ export const DocDynamicComponent: React.FC<DocDynamicComponentProps> = ({
       case "collapse":
       case "accordion":
         return <DocExpandable {...props} />;
+
+      case "curl":
+      case "curl-viewer":
+      case "api-call":
+      case "api-viewer":
+        return <DocCurlViewer rawCurl={props?.rawCurl || props?.curl || props?.code || ''} />;
 
       case "try-mcp":
       case "mcp":

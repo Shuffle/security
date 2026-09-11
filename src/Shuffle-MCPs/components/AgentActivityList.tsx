@@ -910,6 +910,10 @@ export interface AgentActivityListProps extends ShuffleHostProps {
   rowSx?: SxProps<Theme>;
   /** Usecase-backed agent types shown in the run filter dropdown. */
   usecaseFilters?: AgentUsecaseFilter[];
+  /** Pre-loaded initial/fallback runs, e.g. for demo mode or offline preview. */
+  initialRuns?: AgentRun[];
+  /** When true, skips remote activity fetching entirely (e.g. for demo runs). */
+  disableFetch?: boolean;
 }
 
 const AgentActivityList = ({
@@ -933,9 +937,11 @@ const AgentActivityList = ({
   globalUrl,
   theme,
   colorMode,
+  initialRuns,
+  disableFetch = false,
 }: AgentActivityListProps) => {
   const [appDrawer, setAppDrawer] = useState<{ id?: string; name: string } | null>(null);
-  const [runs, setRuns] = useState<AgentRun[]>([]);
+  const [runs, setRuns] = useState<AgentRun[]>(initialRuns || []);
   const [cursor, setCursor] = useState('');
   const [hasMore, setHasMore] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -1072,6 +1078,12 @@ const AgentActivityList = ({
 
   const fetchRuns = useCallback(
     async (append = false, cursorParam = '') => {
+      if (disableFetch) {
+        if (initialRuns && !append) {
+          setRuns(initialRuns);
+        }
+        return;
+      }
       setIsLoading(true);
       setError(null);
       try {
@@ -1085,20 +1097,32 @@ const AgentActivityList = ({
           orgId,
           workflowId: workflowFilter || 'AGENT',
         });
-        if (result.success) {
+        if (result.success && result.runs && result.runs.length > 0) {
           setRuns((prev) => (append ? [...prev, ...result.runs] : result.runs));
           setCursor(result.cursor);
           setHasMore(!!result.cursor && result.runs.length > 0);
+        } else if (result.success) {
+          setRuns((prev) => (append ? prev : initialRuns && initialRuns.length > 0 ? initialRuns : []));
+          setCursor(result.cursor);
+          setHasMore(false);
         } else {
-          setError('Failed to fetch agent activity');
+          if (initialRuns && initialRuns.length > 0 && !append) {
+            setRuns(initialRuns);
+          } else {
+            setError('Failed to fetch agent activity');
+          }
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch agent activity');
+        if (initialRuns && initialRuns.length > 0 && !append) {
+          setRuns(initialRuns);
+        } else {
+          setError(err instanceof Error ? err.message : 'Failed to fetch agent activity');
+        }
       } finally {
         setIsLoading(false);
       }
     },
-    [statusFilter, limit, top, apiKey, apiBaseUrl, orgId, workflowFilter],
+    [disableFetch, initialRuns, statusFilter, limit, top, apiKey, apiBaseUrl, orgId, workflowFilter],
   );
 
   useEffect(() => {
@@ -1209,6 +1233,10 @@ const AgentActivityList = ({
     for (const r of runs) {
       const id = r.execution_id;
       if (!id || enrichedRunsRef.current[id] || processedRunIdsRef.current.has(id)) continue;
+      if (id.startsWith('demo-') || id.startsWith('dummy-')) {
+        processedRunIdsRef.current.add(id);
+        continue;
+      }
       const native = buildPatchFromRun(r);
       if (native) {
         processedRunIdsRef.current.add(id);

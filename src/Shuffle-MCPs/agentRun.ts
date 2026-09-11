@@ -369,10 +369,28 @@ export const runAgent = async (request: AgentRunRequest): Promise<AgentRunRespon
 
     // Non-OK status
     if (!response.ok) {
+      let friendlyError = '';
+      try {
+        const parsed = JSON.parse(rawText);
+        const reason = String(parsed?.reason || parsed?.message || parsed?.error || '');
+        if (
+          response.status === 401 &&
+          (reason.toLowerCase().includes('auth required') ||
+            reason.toLowerCase().includes('user auth') ||
+            reason.toLowerCase().includes('unauthorized'))
+        ) {
+          friendlyError = 'Authentication required. Please log in to run AI agents.';
+        } else if (reason) {
+          friendlyError = `Error ${response.status}: ${reason}`;
+        }
+      } catch {
+        /* not json */
+      }
+
       return {
         success: false,
         content: '',
-        error: `Error ${response.status}: ${rawText || response.statusText}`,
+        error: friendlyError || `Error ${response.status}: ${rawText || response.statusText}`,
         status: response.status,
       };
     }

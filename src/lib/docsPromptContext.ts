@@ -67,7 +67,7 @@ export const clearActiveDocPromptContext = () => {
 };
 
 /**
- * Checks whether a given pathname is a documentation route (/docs, /docs/*, /legal/*).
+ * Checks whether a given pathname is a documentation route (/docs, /docs/*, /legal/*, /articles/*).
  */
 export const isDocsRoute = (pathname?: string): boolean => {
   if (!pathname) return false;
@@ -75,7 +75,9 @@ export const isDocsRoute = (pathname?: string): boolean => {
     pathname === '/docs' ||
     pathname.startsWith('/docs/') ||
     pathname === '/legal' ||
-    pathname.startsWith('/legal/')
+    pathname.startsWith('/legal/') ||
+    pathname === '/articles' ||
+    pathname.startsWith('/articles/')
   );
 };
 

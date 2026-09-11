@@ -751,6 +751,8 @@ export interface AgentUIProps {
   onChooseLLM?: () => void;
   /** Hide the "Choose LLM" chip entirely. */
   hideChooseLLM?: boolean;
+  /** Whether the user is currently authenticated */
+  isLoggedIn?: boolean;
   /** Tooltip on the submit button. Default: "⌘+Enter to send". */
   submitTooltip?: string;
   /** Custom icon for the submit button. */
@@ -2124,6 +2126,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   appPickerSubtitle = 'Pick the tools the agent is allowed to use for this run',
   onChooseLLM,
   hideChooseLLM = false,
+  isLoggedIn,
   submitTooltip = '⌘+Enter to send',
   submitIcon,
   submitOverride,
@@ -3444,7 +3447,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
   const getExecution = useCallback(async (executionId: string, authorization?: string) => {
     const pollGeneration = executionPollGenerationRef.current;
     if (loadedExecutionIdRef.current !== executionId) hasExecutionDataRef.current = false;
-    if (!executionId) return;
+    if (!executionId || executionId.startsWith('demo-') || executionId.startsWith('dummy-')) return;
     // Sideloaded runs (from the activity listing) often have no explicit
     // authorization token. The streams API accepts the execution id itself
     // when the session is authenticated, so fall back to that.
@@ -3718,6 +3721,10 @@ const AgentUI: React.FC<AgentUIProps> = ({
     appsOverride?: AgentUIApp[],
   ) => {
     if (!text.trim()) return;
+    if (isLoggedIn === false) {
+      setError('Authentication required. Please log in to run AI agents.');
+      return;
+    }
     if (contextStorageKey) {
       setPageContextChoice(contextStorageKey, { draftPrompt: '' });
     }
@@ -3936,7 +3943,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
     // `selectedPreset` MUST be a dependency: without it the callback keeps a
     // stale skill (e.g. "Build Workflows") and keeps posting to
     // /api/v1/agent/workflow-edit after the skill was unselected.
-  }, [chosenApps, executionApps, getExecution, onRun, attachedImages, readUrlParams, setSearchParams, viewMode, selectedPreset]);
+  }, [chosenApps, executionApps, getExecution, onRun, attachedImages, readUrlParams, setSearchParams, viewMode, selectedPreset, isLoggedIn]);
 
   // Auto-submit on mount when caller provides a defaultInput + autoSubmit.
   const autoSubmittedRef = useRef(false);
@@ -6452,7 +6459,7 @@ const AgentUI: React.FC<AgentUIProps> = ({
               </IconButton>
               )}
 
-              <Tooltip title={submitTooltip} placement="top" arrow>
+              <Tooltip title={isLoggedIn === false ? 'Log in to run agent' : submitTooltip} placement="top" arrow>
                 <span>
                   {submitLabel ? (
                     <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
@@ -6993,7 +7000,41 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 bgcolor: 'hsl(var(--destructive) / 0.08)',
                 color: 'hsl(var(--destructive))',
                 fontSize: '0.85rem',
-              }}>{error}</Box>
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 1.5,
+              }}>
+                <Box sx={{ flex: 1, minWidth: 0 }}>{error}</Box>
+                {/auth required|log in|401/i.test(error) && (
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={() => {
+                      if (typeof window !== 'undefined') {
+                        const returnUrl = window.location.pathname + window.location.search;
+                        window.location.href = `/login?view=${encodeURIComponent(returnUrl)}`;
+                      }
+                    }}
+                    sx={{
+                      textTransform: 'none',
+                      fontSize: '0.75rem',
+                      py: 0.3,
+                      px: 1,
+                      minHeight: 0,
+                      borderRadius: 1,
+                      bgcolor: 'hsl(var(--destructive))',
+                      color: 'hsl(var(--destructive-foreground, var(--background)))',
+                      '&:hover': {
+                        bgcolor: 'hsl(var(--destructive) / 0.9)',
+                      },
+                      flexShrink: 0,
+                    }}
+                  >
+                    Log In
+                  </Button>
+                )}
+              </Box>
             )}
           </Box>
         ) : (
@@ -7166,12 +7207,46 @@ const AgentUI: React.FC<AgentUIProps> = ({
                 bgcolor: 'hsl(var(--destructive) / 0.08)',
                 color: 'hsl(var(--destructive))',
                 fontSize: '0.85rem',
+                display: 'flex',
+                alignItems: 'flex-start',
+                justifyContent: 'space-between',
+                gap: 1.5,
               }}>
-                {error}
-                {isAiAuthIssue && (
-                  <Box sx={{ mt: 1.5 }}>
-                    <AiAuthSuggestion onOpenLocalLlm={openLocalLlmArea} />
-                  </Box>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  {error}
+                  {isAiAuthIssue && (
+                    <Box sx={{ mt: 1.5 }}>
+                      <AiAuthSuggestion onOpenLocalLlm={openLocalLlmArea} />
+                    </Box>
+                  )}
+                </Box>
+                {/auth required|log in|401/i.test(error) && (
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={() => {
+                      if (typeof window !== 'undefined') {
+                        const returnUrl = window.location.pathname + window.location.search;
+                        window.location.href = `/login?view=${encodeURIComponent(returnUrl)}`;
+                      }
+                    }}
+                    sx={{
+                      textTransform: 'none',
+                      fontSize: '0.75rem',
+                      py: 0.3,
+                      px: 1,
+                      minHeight: 0,
+                      borderRadius: 1,
+                      bgcolor: 'hsl(var(--destructive))',
+                      color: 'hsl(var(--destructive-foreground, var(--background)))',
+                      '&:hover': {
+                        bgcolor: 'hsl(var(--destructive) / 0.9)',
+                      },
+                      flexShrink: 0,
+                    }}
+                  >
+                    Log In
+                  </Button>
                 )}
               </Box>
             )}

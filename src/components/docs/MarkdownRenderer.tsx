@@ -5,6 +5,7 @@ import {
   DocDynamicComponent,
   DocExpandable,
 } from './DocDynamicComponents';
+import { DocCurlViewer } from './DocCurlViewer';
 import { Link, useLocation, useNavigate } from '@/lib/router-compat';
 import {
   Avatar,
@@ -748,6 +749,16 @@ export const MarkdownRenderer = ({
                 {children}
               </a>
             );
+          },
+          pre: ({ children, ...props }: any) => {
+            const child: any = Array.isArray(children) ? children[0] : children;
+            const raw = child?.props?.children;
+            const text = Array.isArray(raw) ? raw.join('') : typeof raw === 'string' ? raw : '';
+            const clean = text.replace(/^(?:#[^\r\n]*\r?\n\s*)+/, '').trim();
+            if (/^(?:\$\s*)?curl(?:\s+|$)/i.test(clean)) {
+              return <DocCurlViewer rawCurl={text} />;
+            }
+            return <pre {...props}>{children}</pre>;
           },
         };
 

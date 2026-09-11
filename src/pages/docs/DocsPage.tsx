@@ -41,7 +41,8 @@ const DocsPage = ({
   hideMeta,
   currentProduct,
 }: DocsPageProps) => {
-  const { slug = 'index' } = useParams<{ slug: string }>();
+  const params = useParams<{ slug?: string; name?: string }>();
+  const slug = params.slug || params.name || 'index';
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const effectiveSlug = useMemo(() => {
@@ -69,10 +70,13 @@ const DocsPage = ({
 
   const docTitle = doc.title || doc.meta?.name || getDocDisplayLabel(effectiveSlug, fallbackTitle);
   const group = getDocGroup(effectiveSlug);
-  const categoryLabel = group ? group.label : '';
+  const categoryLabel =
+    folder && folder !== 'docs'
+      ? folder.charAt(0).toUpperCase() + folder.slice(1)
+      : group ? group.label : '';
   const fullPageTitle =
     slug === 'index'
-      ? 'Shuffle Security Documentation'
+      ? `Shuffle Security ${sectionTitle}`
       : categoryLabel
         ? (categoryLabel === 'Security'
             ? `Shuffle Security - ${docTitle}`
@@ -243,6 +247,7 @@ const DocsPage = ({
             folder={folder}
             basePath={basePath}
             title={sectionTitle}
+            autoExpand={folder === 'articles' || folder === 'legal'}
             hideExternal={Boolean(folder)}
           />
         </Box>
@@ -322,6 +327,7 @@ const DocsPage = ({
             folder={folder}
             basePath={basePath}
             title={sectionTitle}
+            autoExpand={folder === 'articles' || folder === 'legal'}
             hideExternal={Boolean(folder)}
           />
         </Box>

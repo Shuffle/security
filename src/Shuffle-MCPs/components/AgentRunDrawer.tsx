@@ -354,6 +354,7 @@ const AgentRunDrawer = ({
               subtitle={null}
               maxWidth={width - 32}
               {...agentUIProps}
+              isLoggedIn={agentUIProps?.isLoggedIn ?? isLoggedIn}
               isSupport={agentUIProps?.isSupport ?? (userdata?.support === true || userdata?.support === 'true')}
               apiBaseUrl={agentUIProps?.apiBaseUrl ?? globalUrl}
               theme={agentUIProps?.theme ?? theme}

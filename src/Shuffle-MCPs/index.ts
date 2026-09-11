@@ -176,6 +176,7 @@ export type {
   OutputDiagnosis,
 } from '@/Shuffle-MCPs/agentDiagnosis';
 export { searchAgentActivity, scheduleAgentRun } from '@/Shuffle-MCPs/agentActivity';
+export { DEMO_AGENT_RUNS } from '@/Shuffle-MCPs/demoAgentActivity';
 export type {
   AgentRun,
   AgentRunResult,

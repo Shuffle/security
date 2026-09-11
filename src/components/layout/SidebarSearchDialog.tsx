@@ -107,6 +107,10 @@ const algoliaDocToItem = (hit: AlgoliaDocHit): DocItem | null => {
   const fallbackName = filename.replace(/\.md$/i, '');
   const slug = pathWithoutHash.startsWith('/docs/')
     ? pathWithoutHash.slice('/docs/'.length).replace(/^\/+|\/+$/g, '')
+    : pathWithoutHash.startsWith('/articles/')
+    ? pathWithoutHash.slice('/articles/'.length).replace(/^\/+|\/+$/g, '')
+    : pathWithoutHash.startsWith('/legal/')
+    ? pathWithoutHash.slice('/legal/'.length).replace(/^\/+|\/+$/g, '')
     : fallbackName.replace(/[_\s]+/g, '-').toLowerCase();
   if (!slug) return null;
 
@@ -115,11 +119,13 @@ const algoliaDocToItem = (hit: AlgoliaDocHit): DocItem | null => {
     ? highlighted.replace(/<[^>]+>/g, '')
     : typeof hit.data === 'string' ? hit.data : '';
 
+  const isKnownDocRoute = rawPath.startsWith('/docs/') || rawPath.startsWith('/articles/') || rawPath.startsWith('/legal/');
+
   return {
     name: filename || slug,
     slug,
     label: hit.title?.trim() || docLabel(fallbackName || slug),
-    path: rawPath.startsWith('/docs/') ? rawPath : `/docs/${slug}`,
+    path: isKnownDocRoute ? rawPath : rawPath.startsWith('/') ? rawPath : `/docs/${slug}`,
     snippet: rawSnippet.replace(/\s+/g, ' ').trim().slice(0, 150),
   };
 };

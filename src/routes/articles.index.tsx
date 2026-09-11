@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import DocsPage from '@/pages/docs/DocsPage';
 import { routeMeta } from '@/lib/routeMeta';
-import { ShufflerExternalRedirect } from '@/components/routing/routeShims';
 
 export const Route = createFileRoute("/articles/")({
   head: () =>
@@ -10,5 +10,10 @@ export const Route = createFileRoute("/articles/")({
       url: "/articles",
       breadcrumbs: [{ name: "Home", path: "/" }],
     }),
-  component: ShufflerExternalRedirect,
+  component: ArticlesIndexRoute,
 });
+
+function ArticlesIndexRoute() {
+  return <DocsPage folder="articles" basePath="/articles" sectionTitle="Articles" />;
+}
+

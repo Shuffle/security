@@ -878,42 +878,26 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
                   >
                     Not Logged In
                   </Typography>
-                  <Box sx={{ display: 'flex', gap: 0.75 }}>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      onClick={() => handleTabChange('localLLM')}
-                      sx={{
-                        textTransform: 'none',
-                        fontSize: '0.7rem',
-                        py: 0.2,
-                        px: 0.8,
-                        minHeight: 0,
-                        borderRadius: 1,
-                      }}
-                    >
-                      Use Local LLM
-                    </Button>
-                    <Button
-                      size="small"
-                      variant="contained"
-                      onClick={() => {
-                        if (typeof window !== 'undefined') {
-                          window.location.href = '/login';
-                        }
-                      }}
-                      sx={{
-                        textTransform: 'none',
-                        fontSize: '0.7rem',
-                        py: 0.2,
-                        px: 0.8,
-                        minHeight: 0,
-                        borderRadius: 1,
-                      }}
-                    >
-                      Log In
-                    </Button>
-                  </Box>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    onClick={() => {
+                      if (typeof window !== 'undefined') {
+                        const returnUrl = window.location.pathname + window.location.search;
+                        window.location.href = `/login?view=${encodeURIComponent(returnUrl)}`;
+                      }
+                    }}
+                    sx={{
+                      textTransform: 'none',
+                      fontSize: '0.7rem',
+                      py: 0.2,
+                      px: 1,
+                      minHeight: 0,
+                      borderRadius: 1,
+                    }}
+                  >
+                    Log In
+                  </Button>
                 </Box>
                 <Typography
                   sx={{
@@ -922,7 +906,7 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
                     lineHeight: 1.4,
                   }}
                 >
-                  AI agent tasks may fail or be restricted without an active login. You can test prompts here, switch to Local LLM for private offline models, or log in to enable full execution.
+                  Log in to interact with AI agents and test prompts.
                 </Typography>
               </Box>
             )}
@@ -947,7 +931,8 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
                 hideHeroIcon={true}
                 title={displayTitle}
                 subtitle={null}
-                hideChooseLLM={false}
+                hideChooseLLM={!isLoggedIn}
+                isLoggedIn={isLoggedIn}
                 disableSchedule={true}
                 hideAttach={false}
                 maxWidth={effectiveWidth}

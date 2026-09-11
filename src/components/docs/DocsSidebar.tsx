@@ -44,6 +44,8 @@ interface DocsSidebarProps {
   basePath?: string;
   /** Section heading above the list. */
   title?: string;
+  /** Force all categories in this sidebar to auto-expand by default. */
+  autoExpand?: boolean;
   /** @deprecated External resources block has been removed */
   hideExternal?: boolean;
 }
@@ -67,13 +69,21 @@ export const DocsSidebar = ({
   folder,
   basePath = '/docs',
   title = 'Documentation',
+  autoExpand,
 }: DocsSidebarProps) => {
-  const { slug = 'index' } = useParams<{ slug: string }>();
+  const params = useParams<{ slug?: string; name?: string }>();
+  const slug = params.slug || params.name || 'index';
   const navigate = useNavigate();
   const [remoteDocs, setRemoteDocs] = useState<RemoteDoc[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
 
   const folderKey = folder || 'docs';
+  const isAutoExpandedSection =
+    autoExpand ||
+    folderKey === 'articles' ||
+    folderKey === 'legal' ||
+    folder === 'articles' ||
+    folder === 'legal';
   const prevSlugRef = useRef<string | null>(null);
 
   // Initialize or get stored collapsed groups for this session
@@ -148,27 +158,44 @@ export const DocsSidebar = ({
     return groupRemoteDocs(remoteDocs, folder);
   }, [remoteDocs, folder]);
 
-  // Identify the active category for the current doc (defaults to 'usability')
+  // Identify the active category for the current doc
+  const activeCategory = useMemo(() => {
+    return categories.find((cat) =>
+      cat.docs.some(
+        (d) => docSlug(d.slug) === currentSlug || d.slug.toLowerCase() === currentSlug,
+      ),
+    );
+  }, [categories, currentSlug]);
+
   const activeGroup = useMemo(() => getDocGroup(currentSlug), [currentSlug]);
 
   // Handle initial category setup and navigation without closing previously opened areas
   useEffect(() => {
     if (!categories.length) return;
-    const targetGroupId = activeGroup?.id || 'usability';
+    const targetGroupId = activeCategory?.id || activeGroup?.id || 'usability';
     const stored = sessionCollapsedStore.get(folderKey);
 
     if (!stored) {
       // First initialization for this session (e.g. after refresh or initial load):
-      // Expand the active document's category and collapse the others.
+      // On Articles and Legal doc pages, keep all categories auto-expanded.
+      // For standard docs, expand the active document's category and collapse the others.
       const initial = new Set<string>();
-      for (const cat of categories) {
-        if (cat.id !== targetGroupId) {
-          initial.add(cat.id);
+      if (!isAutoExpandedSection) {
+        for (const cat of categories) {
+          if (cat.id !== targetGroupId) {
+            initial.add(cat.id);
+          }
         }
       }
       setSessionCollapsed(folderKey, initial);
       prevSlugRef.current = currentSlug;
       return;
+    }
+
+    // If an auto-expanded section somehow had categories marked collapsed in session store,
+    // auto-recover by clearing the collapsed set so it stays expanded.
+    if (isAutoExpandedSection && stored.size >= categories.length) {
+      setSessionCollapsed(folderKey, new Set<string>());
     }
 
     // When navigating to a new document (slug changed):
@@ -182,7 +209,7 @@ export const DocsSidebar = ({
         setSessionCollapsed(folderKey, next);
       }
     }
-  }, [currentSlug, categories, activeGroup?.id, folderKey]);
+  }, [currentSlug, categories, activeCategory?.id, activeGroup?.id, folderKey, isAutoExpandedSection]);
 
   const toggleGroup = (groupId: string) => {
     const current = sessionCollapsedStore.get(folderKey) || collapsedGroups;
