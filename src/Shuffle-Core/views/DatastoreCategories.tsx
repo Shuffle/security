@@ -51,7 +51,193 @@ export interface DatastoreItemRecord {
 export interface DatastoreCategoriesProps {
   embedded?: boolean;
   initialCategory?: string;
+  categoryLocked?: boolean;
+  hideHeaderControls?: boolean;
+  hideCategorySelector?: boolean;
+  readOnly?: boolean;
+  compact?: boolean;
+  sampleItems?: DatastoreItemRecord[];
+  defaultNewItemTemplate?: { key: string; value: any };
 }
+
+export const getDefaultSampleItems = (cat: string): DatastoreItemRecord[] => {
+  const now = Math.floor(Date.now() / 1000);
+  if (cat && cat.includes('incident')) {
+    return [
+      {
+        key: 'inc_2026_0942',
+        category: 'shuffle-security_incidents',
+        created_at: now - 3600,
+        edited_at: now - 1800,
+        value: {
+          class_uid: 2005,
+          class_name: 'Incident Finding',
+          category_uid: 2,
+          activity_id: 1,
+          severity_id: 4,
+          severity: 'High',
+          status_id: 2,
+          status: 'In Progress',
+          finding_info: {
+            title: 'Phishing detection with credential harvester URL',
+            desc: 'Inbound email flagged with credential harvesting link and forwarded to SOC triage queue.',
+            created_time: now - 3600,
+          },
+          observables: [
+            { name: 'url.domain', type: 'domain', value: 'login-verify-account-update.xyz' },
+            { name: 'email.sender', type: 'email', value: 'security-alert@external-notice.com' },
+            { name: 'device.ip', type: 'ip', value: '198.51.100.42' },
+          ],
+          enrichments: [
+            { name: 'virustotal', value: '14/72 engines flagged as malicious' },
+          ],
+        },
+      },
+      {
+        key: 'inc_2026_0941',
+        category: 'shuffle-security_incidents',
+        created_at: now - 7200,
+        edited_at: now - 6500,
+        value: {
+          class_uid: 2005,
+          class_name: 'Incident Finding',
+          category_uid: 2,
+          activity_id: 1,
+          severity_id: 3,
+          severity: 'Medium',
+          status_id: 1,
+          status: 'New',
+          finding_info: {
+            title: 'Suspicious base64 PowerShell invocation',
+            desc: 'Sysmon Event ID 1 detected encoded script execution on dev-server-04.',
+            created_time: now - 7200,
+          },
+          observables: [
+            { name: 'process.cmd_line', type: 'command_line', value: 'powershell.exe -NonI -W Hidden -Enc SQBFAFgA...' },
+            { name: 'device.hostname', type: 'hostname', value: 'dev-server-04' },
+          ],
+        },
+      },
+    ];
+  }
+  if (cat && cat.includes('vuln')) {
+    return [
+      {
+        key: 'CVE-2024-3094',
+        category: 'shuffle-security_vulns',
+        created_at: now - 86400,
+        edited_at: now - 43200,
+        value: {
+          id: 'CVE-2024-3094',
+          title: 'XZ Utils Backdoor (liblzma)',
+          severity: 'critical',
+          score: 10.0,
+          category: 'software_cve',
+          status: 'open',
+          affected_package: 'xz-utils 5.6.0',
+        },
+      },
+    ];
+  }
+  return [
+    {
+      key: 'config_default_rules',
+      category: cat || 'default',
+      created_at: now - 3600,
+      value: {
+        auto_enrichment: true,
+        max_batch_size: 50,
+        notify_channel: 'security-alerts',
+      },
+    },
+  ];
+};
+
+export interface DatastoreValueCellProps {
+  item: DatastoreItemRecord;
+  isDark?: boolean;
+  selectedCategory?: string;
+  maxHeight?: number;
+}
+
+export const DatastoreValueCell: React.FC<DatastoreValueCellProps> = ({
+  item,
+  isDark = false,
+  selectedCategory,
+  maxHeight = 180,
+}) => {
+  if (selectedCategory === 'protected') {
+    return (
+      <Typography
+        variant="body2"
+        sx={{
+          fontFamily: 'monospace',
+          color: 'hsl(var(--muted-foreground))',
+          letterSpacing: '0.15em',
+        }}
+      >
+        ****************
+      </Typography>
+    );
+  }
+
+  let parsedJson: any = null;
+  let isJson = false;
+
+  if (typeof item.value === 'object' && item.value !== null) {
+    parsedJson = item.value;
+    isJson = true;
+  } else if (typeof item.value === 'string') {
+    try {
+      parsedJson = JSON.parse(item.value);
+      isJson = typeof parsedJson === 'object' && parsedJson !== null;
+    } catch {
+      isJson = false;
+    }
+  }
+
+  if (isJson) {
+    return (
+      <Box
+        sx={{
+          maxHeight,
+          overflowY: 'auto',
+          p: 1,
+          borderRadius: '4px',
+          border: '1px solid hsl(var(--border))',
+          bgcolor: isDark ? 'hsl(var(--card) / 0.6)' : 'hsl(var(--muted) / 0.3)',
+          fontSize: '0.8rem',
+          fontFamily: 'monospace',
+        }}
+      >
+        <JsonView
+          src={parsedJson}
+          dark={isDark}
+          theme="default"
+          collapseStringsAfterLength={60}
+          collapsed={defaultCollapsed}
+        />
+      </Box>
+    );
+  }
+
+  const strVal = String(item.value ?? '');
+  return (
+    <Typography
+      variant="body2"
+      sx={{
+        fontFamily: 'monospace',
+        fontSize: '0.82rem',
+        color: 'hsl(var(--foreground))',
+        wordBreak: 'break-all',
+        maxHeight: 100,
+        overflowY: 'auto',
+      }}
+    >
+      {strVal.length > 240 ? `${strVal.slice(0, 240)}...` : strVal}
+    </Typography>
+  );
+};
 
 const DEFAULT_CATEGORIES: string[] = [
   'default',
@@ -68,6 +254,13 @@ const DEFAULT_CATEGORIES: string[] = [
 export const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
   embedded = false,
   initialCategory,
+  categoryLocked = false,
+  hideHeaderControls = false,
+  hideCategorySelector = false,
+  readOnly = false,
+  compact = false,
+  sampleItems,
+  defaultNewItemTemplate,
 }) => {
   const { userInfo } = useAuth();
   const { resolvedTheme } = useAppTheme();
@@ -150,6 +343,8 @@ export const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
 
   // Update URL search params when category or key search changes
   const updateUrlParams = useCallback((newCat: string, newKey?: string) => {
+    if (categoryLocked) return;
+
     const params = new URLSearchParams(location.search);
     if (newCat && newCat !== 'default') {
       params.set('category', newCat);
@@ -170,7 +365,7 @@ export const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
     const nextSearch = params.toString();
     const nextPath = location.pathname;
     navigate(`${nextPath}${nextSearch ? `?${nextSearch}` : ''}`, { replace: true });
-  }, [location.pathname, location.search, navigate]);
+  }, [categoryLocked, location.pathname, location.search, navigate]);
 
   // Fetch cache entries from backend
   const fetchCache = useCallback(async (
@@ -180,7 +375,13 @@ export const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
     searchTerm: string,
     knownCursors: Record<number, string>
   ) => {
-    if (!orgId) return;
+    if (!orgId) {
+      const samples = sampleItems || getDefaultSampleItems(targetCategory);
+      setItems(samples);
+      setTotalAmount(samples.length);
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
 
@@ -327,9 +528,15 @@ export const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
 
   // Open Add Dialog
   const handleOpenAddDialog = () => {
-    setFormKey('');
+    setFormKey(defaultNewItemTemplate?.key || '');
     setFormCategory(selectedCategory);
-    setFormValue('{\n  \n}');
+    setFormValue(
+      defaultNewItemTemplate?.value
+        ? (typeof defaultNewItemTemplate.value === 'object'
+            ? JSON.stringify(defaultNewItemTemplate.value, null, 2)
+            : String(defaultNewItemTemplate.value))
+        : '{\n  \n}'
+    );
     setIsJsonValid(true);
     setAddDialogOpen(true);
   };
@@ -389,17 +596,30 @@ export const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
       return;
     }
 
-    if (!orgId) return;
+    let finalValue: any = formValue;
+    try {
+      finalValue = JSON.parse(formValue);
+    } catch {
+      // Keep as string
+    }
+
+    if (!orgId) {
+      const newItem: DatastoreItemRecord = {
+        key: trimmedKey,
+        value: finalValue,
+        category: formCategory || selectedCategory,
+        created_at: Math.floor(Date.now() / 1000),
+        edited_at: Math.floor(Date.now() / 1000),
+      };
+      setItems((prev) => [newItem, ...prev.filter((i) => i.key !== trimmedKey)]);
+      setTotalAmount((prev) => prev + 1);
+      toast.success(`Entry "${trimmedKey}" saved to local datastore`);
+      setAddDialogOpen(false);
+      return;
+    }
 
     setSavingItem(true);
     try {
-      let finalValue: any = formValue;
-      try {
-        finalValue = JSON.parse(formValue);
-      } catch {
-        // Keep as string
-      }
-
       const payload = {
         key: trimmedKey,
         value: finalValue,
@@ -439,17 +659,35 @@ export const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
 
   // Save Edit Item
   const handleSaveEdit = async () => {
-    if (!activeItem || !orgId) return;
+    if (!activeItem) return;
+
+    let finalValue: any = formValue;
+    try {
+      finalValue = JSON.parse(formValue);
+    } catch {
+      // Keep as string
+    }
+
+    if (!orgId) {
+      setItems((prev) =>
+        prev.map((i) =>
+          i.key === activeItem.key
+            ? {
+                ...i,
+                value: finalValue,
+                category: formCategory || activeItem.category || selectedCategory,
+                edited_at: Math.floor(Date.now() / 1000),
+              }
+            : i
+        )
+      );
+      toast.success(`Entry "${activeItem.key}" updated`);
+      setEditDialogOpen(false);
+      return;
+    }
 
     setSavingItem(true);
     try {
-      let finalValue: any = formValue;
-      try {
-        finalValue = JSON.parse(formValue);
-      } catch {
-        // Keep as string
-      }
-
       const payload = {
         key: activeItem.key,
         value: finalValue,
@@ -496,7 +734,17 @@ export const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
 
   // Delete confirm execution
   const handleConfirmDelete = async () => {
-    if (!orgId || deleteTargets.length === 0) return;
+    if (deleteTargets.length === 0) return;
+
+    if (!orgId) {
+      setItems((prev) => prev.filter((i) => !deleteTargets.includes(i.key)));
+      setTotalAmount((prev) => Math.max(0, prev - deleteTargets.length));
+      toast.success(`Deleted ${deleteTargets.length} key${deleteTargets.length > 1 ? 's' : ''}`);
+      setDeleteConfirmOpen(false);
+      setSelectedKeys([]);
+      setDeleteTargets([]);
+      return;
+    }
 
     setDeleting(true);
     try {
@@ -684,241 +932,202 @@ export const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
     }
   };
 
-  // Render value cell
-  const renderValueCell = (item: DatastoreItemRecord) => {
-    if (selectedCategory === 'protected') {
-      return (
-        <Typography
-          variant="body2"
-          sx={{
-            fontFamily: 'monospace',
-            color: 'hsl(var(--muted-foreground))',
-            letterSpacing: '0.15em',
-          }}
-        >
-          ****************
-        </Typography>
-      );
-    }
-
-    let parsedJson: any = null;
-    let isJson = false;
-
-    if (typeof item.value === 'object' && item.value !== null) {
-      parsedJson = item.value;
-      isJson = true;
-    } else if (typeof item.value === 'string') {
-      try {
-        parsedJson = JSON.parse(item.value);
-        isJson = typeof parsedJson === 'object' && parsedJson !== null;
-      } catch {
-        isJson = false;
-      }
-    }
-
-    if (isJson) {
-      return (
-        <Box
-          sx={{
-            maxHeight: 180,
-            overflowY: 'auto',
-            p: 1,
-            borderRadius: '4px',
-            border: '1px solid hsl(var(--border))',
-            bgcolor: isDark ? 'hsl(var(--card) / 0.6)' : 'hsl(var(--muted) / 0.3)',
-            fontSize: '0.8rem',
-            fontFamily: 'monospace',
-          }}
-        >
-          <JsonView
-            src={parsedJson}
-            dark={isDark}
-            theme="default"
-            collapseStringsAfterLength={60}
-            collapsed={defaultCollapsed}
-          />
-        </Box>
-      );
-    }
-
-    const strVal = String(item.value ?? '');
-    return (
-      <Typography
-        variant="body2"
-        sx={{
-          fontFamily: 'monospace',
-          fontSize: '0.82rem',
-          color: 'hsl(var(--foreground))',
-          wordBreak: 'break-all',
-          maxHeight: 100,
-          overflowY: 'auto',
-        }}
-      >
-        {strVal.length > 240 ? `${strVal.slice(0, 240)}...` : strVal}
-      </Typography>
-    );
-  };
+  // Render value cell using exported DatastoreValueCell component
+  const renderValueCell = (item: DatastoreItemRecord) => (
+    <DatastoreValueCell
+      item={item}
+      isDark={isDark}
+      selectedCategory={selectedCategory}
+      maxHeight={compact ? 120 : 180}
+    />
+  );
 
   return (
     <Box sx={{ width: '100%', p: embedded ? 0 : { xs: 2, md: 3 } }}>
       {/* Header controls bar */}
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: { xs: 'column', md: 'row' },
-          alignItems: { xs: 'stretch', md: 'center' },
-          justifyContent: 'space-between',
-          gap: 2,
-          mb: 3,
-          p: 2,
-          borderRadius: 2,
-          border: '1px solid hsl(var(--border))',
-          bgcolor: 'hsl(var(--card))',
-        }}
-      >
-        {/* Category selector & Add Category */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-          <FormControl size="small" sx={{ minWidth: 220 }}>
-            <InputLabel id="category-select-label">Category</InputLabel>
-            <Select
-              labelId="category-select-label"
-              value={selectedCategory}
-              label="Category"
-              onChange={(e) => handleCategoryChange(e.target.value)}
-            >
-              {categories.map((cat) => (
-                <MenuItem key={cat} value={cat}>
-                  {cat}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+      {!hideHeaderControls && (
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', md: 'row' },
+            alignItems: { xs: 'stretch', md: 'center' },
+            justifyContent: 'space-between',
+            gap: 2,
+            mb: 3,
+            p: 2,
+            borderRadius: 2,
+            border: '1px solid hsl(var(--border))',
+            bgcolor: 'hsl(var(--card))',
+          }}
+        >
+          {/* Category selector & Add Category */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+            {!hideCategorySelector && !categoryLocked ? (
+              <>
+                <FormControl size="small" sx={{ minWidth: 220 }}>
+                  <InputLabel id="category-select-label">Category</InputLabel>
+                  <Select
+                    labelId="category-select-label"
+                    value={selectedCategory}
+                    label="Category"
+                    onChange={(e) => handleCategoryChange(e.target.value)}
+                  >
+                    {categories.map((cat) => (
+                      <MenuItem key={cat} value={cat}>
+                        {cat}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
 
-          {!showAddCategoryInput ? (
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={() => setShowAddCategoryInput(true)}
-              sx={{ textTransform: 'none', height: 38 }}
-            >
-              New Category
-            </Button>
-          ) : (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <TextField
-                size="small"
-                placeholder="category_name"
-                value={newCategoryInput}
-                onChange={(e) => setNewCategoryInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleAddNewCategory();
-                  }
-                }}
-                sx={{ width: 170 }}
-              />
-              <Button
-                variant="contained"
-                size="small"
-                onClick={handleAddNewCategory}
-                sx={{ textTransform: 'none', height: 38 }}
-              >
-                Add
-              </Button>
-              <Button
-                variant="text"
-                size="small"
-                onClick={() => {
-                  setNewCategoryInput('');
-                  setShowAddCategoryInput(false);
-                }}
-                sx={{ textTransform: 'none', height: 38 }}
-              >
-                Cancel
-              </Button>
-            </Box>
-          )}
+                {!showAddCategoryInput ? (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => setShowAddCategoryInput(true)}
+                    sx={{ textTransform: 'none', height: 38 }}
+                  >
+                    New Category
+                  </Button>
+                ) : (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <TextField
+                      size="small"
+                      placeholder="category_name"
+                      value={newCategoryInput}
+                      onChange={(e) => setNewCategoryInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddNewCategory();
+                        }
+                      }}
+                      sx={{ width: 170 }}
+                    />
+                    <Button
+                      variant="contained"
+                      size="small"
+                      onClick={handleAddNewCategory}
+                      sx={{ textTransform: 'none', height: 38 }}
+                    >
+                      Add
+                    </Button>
+                    <Button
+                      variant="text"
+                      size="small"
+                      onClick={() => {
+                        setNewCategoryInput('');
+                        setShowAddCategoryInput(false);
+                      }}
+                      sx={{ textTransform: 'none', height: 38 }}
+                    >
+                      Cancel
+                    </Button>
+                  </Box>
+                )}
 
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={() => setSettingsDialogOpen(true)}
-            sx={{ textTransform: 'none', height: 38 }}
-          >
-            Settings
-          </Button>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setSettingsDialogOpen(true)}
+                  sx={{ textTransform: 'none', height: 38 }}
+                >
+                  Settings
+                </Button>
 
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={() => setAutomationsDialogOpen(true)}
-            sx={{ textTransform: 'none', height: 38 }}
-          >
-            Automations
-          </Button>
-        </Box>
-
-        {/* Right side: Search & Add Key */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-          <Box
-            component="form"
-            onSubmit={handleSearchSubmit}
-            sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-          >
-            <TextField
-              size="small"
-              placeholder="Lookup key or prefix..."
-              value={keySearch}
-              onChange={(e) => setKeySearch(e.target.value)}
-              sx={{ minWidth: 200 }}
-            />
-            <Button
-              type="submit"
-              variant="contained"
-              size="small"
-              sx={{ textTransform: 'none', height: 38 }}
-            >
-              Lookup
-            </Button>
-            {activeSearchTerm && (
-              <Button
-                variant="text"
-                size="small"
-                onClick={handleClearSearch}
-                sx={{ textTransform: 'none', height: 38 }}
-              >
-                Clear
-              </Button>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setAutomationsDialogOpen(true)}
+                  sx={{ textTransform: 'none', height: 38 }}
+                >
+                  Automations
+                </Button>
+              </>
+            ) : (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="body2" sx={{ fontWeight: 600, color: 'hsl(var(--muted-foreground))' }}>
+                  Category:
+                </Typography>
+                <Chip
+                  label={selectedCategory}
+                  size="small"
+                  variant="outlined"
+                  sx={{
+                    fontFamily: 'monospace',
+                    fontWeight: 600,
+                    fontSize: '0.8rem',
+                    borderColor: 'hsl(var(--primary))',
+                    color: 'hsl(var(--primary))',
+                  }}
+                />
+              </Box>
             )}
           </Box>
 
-          <Button
-            variant="contained"
-            size="small"
-            onClick={handleOpenAddDialog}
-            sx={{
-              textTransform: 'none',
-              height: 38,
-              bgcolor: 'hsl(var(--primary))',
-              color: 'hsl(var(--primary-foreground))',
-              fontWeight: 600,
-            }}
-          >
-            [+] Add Key
-          </Button>
+          {/* Right side: Search & Add Key */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+            <Box
+              component="form"
+              onSubmit={handleSearchSubmit}
+              sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+            >
+              <TextField
+                size="small"
+                placeholder="Lookup key or prefix..."
+                value={keySearch}
+                onChange={(e) => setKeySearch(e.target.value)}
+                sx={{ minWidth: 200 }}
+              />
+              <Button
+                type="submit"
+                variant="contained"
+                size="small"
+                sx={{ textTransform: 'none', height: 38 }}
+              >
+                Lookup
+              </Button>
+              {activeSearchTerm && (
+                <Button
+                  variant="text"
+                  size="small"
+                  onClick={handleClearSearch}
+                  sx={{ textTransform: 'none', height: 38 }}
+                >
+                  Clear
+                </Button>
+              )}
+            </Box>
 
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={() => fetchCache(selectedCategory, page, pageSize, activeSearchTerm, cursors)}
-            disabled={loading}
-            sx={{ textTransform: 'none', height: 38 }}
-          >
-            Refresh
-          </Button>
+            {!readOnly && (
+              <Button
+                variant="contained"
+                size="small"
+                onClick={handleOpenAddDialog}
+                sx={{
+                  textTransform: 'none',
+                  height: 38,
+                  bgcolor: 'hsl(var(--primary))',
+                  color: 'hsl(var(--primary-foreground))',
+                  fontWeight: 600,
+                }}
+              >
+                [+] Add Key
+              </Button>
+            )}
+
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => fetchCache(selectedCategory, page, pageSize, activeSearchTerm, cursors)}
+              disabled={loading}
+              sx={{ textTransform: 'none', height: 38 }}
+            >
+              Refresh
+            </Button>
+          </Box>
         </Box>
-      </Box>
+      )}
 
       {/* Batch actions bar */}
       {selectedKeys.length > 0 && (

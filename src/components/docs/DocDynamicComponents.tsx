@@ -55,6 +55,7 @@ import { AutomationReadinessBanner } from "@/components/incidents/AutomationRead
 import { VulnerabilityReadinessBanner } from "@/components/vulnerabilities/VulnerabilityReadinessBanner";
 import { toast } from "@/lib/toast";
 import { Rocket as RocketLaunchIcon } from "lucide-react";
+import DatastoreCategories from "@/Shuffle-Core/views/DatastoreCategories";
 
 export interface ContentSegment {
   type: "markdown" | "component" | "expandable";
@@ -3183,6 +3184,382 @@ export const DocDatastoreLink: React.FC<DocDatastoreLinkProps> = ({
   );
 };
 
+// ==========================================
+// DocDatastore: Interactive Datastore Preview & Ingestion Schema Viewer
+// ==========================================
+interface DocDatastoreProps {
+  category?: string;
+  name?: string;
+  compact?: boolean | string;
+  readOnly?: boolean | string;
+  initialTab?: "interactive" | "schema";
+}
+
+export const DocDatastore: React.FC<DocDatastoreProps> = ({
+  category = "shuffle-security_incidents",
+  compact = false,
+  readOnly = false,
+  initialTab = "interactive",
+}) => {
+  const { userInfo } = useAuth();
+  const orgId = userInfo?.active_org?.id;
+  const orgName = userInfo?.active_org?.name;
+  const isLoggedIn = !!(userInfo && orgId);
+  const [activeTab, setActiveTab] = useState<"interactive" | "schema">(initialTab);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+  const isCompact = compact === true || compact === "true";
+  const isReadOnly = readOnly === true || readOnly === "true";
+
+  const datastoreLocalUrl = `/admin/datastore?category=${encodeURIComponent(category)}`;
+
+  const ocsfSamplePayload = useMemo(() => ({
+    class_uid: 2005,
+    class_name: "Incident Finding",
+    category_uid: 2,
+    activity_id: 1,
+    severity_id: 4,
+    severity: "High",
+    status_id: 1,
+    status: "New",
+    finding_info: {
+      title: "Suspicious credential dump via LSASS memory read",
+      desc: "Mimikatz command execution detected on domain controller DC-01",
+      created_time: 1773291000,
+    },
+    observables: [
+      { name: "process.name", type: "process_name", value: "mimikatz.exe" },
+      { name: "device.hostname", type: "hostname", value: "DC-01" },
+      { name: "user.name", type: "user_name", value: "SYSTEM" },
+    ],
+    enrichments: [
+      { name: "mitre_attack", value: "T1003.001 - OS Credential Dumping: LSASS Memory" },
+    ],
+  }), []);
+
+  const curlExample = useMemo(() => {
+    return `curl -X POST "${getApiUrl("")}/api/v1/orgs/${orgId || "<org_id>"}/set_cache" \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer <api_key>" \\
+  -d '{
+    "key": "incident-2026-0042",
+    "category": "${category}",
+    "value": ${JSON.stringify(ocsfSamplePayload, null, 2).replace(/\n/g, "\n    ")}
+  }'`;
+  }, [category, ocsfSamplePayload, orgId]);
+
+  const pythonExample = useMemo(() => {
+    return `# Inside a Shuffle app worker or detection workflow
+incident_record = {
+    "class_uid": 2005,
+    "class_name": "Incident Finding",
+    "activity_id": 1,
+    "severity_id": 4,
+    "finding_info": {
+        "title": "Suspicious credential dump via LSASS memory read",
+        "created_time": int(time.time()),
+    },
+    "observables": [
+        {"name": "process.name", "value": "mimikatz.exe"},
+        {"name": "device.hostname", "value": "DC-01"},
+    ],
+}
+
+# Persist to Shuffle Security Datastore
+self.set_cache(
+    key=f"incident_{int(time.time())}",
+    value=incident_record,
+    category="${category}",
+)`;
+  }, [category]);
+
+  const handleCopy = (code: string, id: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCode(id);
+    toast.success("Snippet copied to clipboard");
+    setTimeout(() => setCopiedCode(null), 2000);
+  };
+
+  return (
+    <Paper
+      sx={{
+        p: { xs: 2, md: 2.5 },
+        my: 2.5,
+        bgcolor: "transparent",
+        backgroundImage: "none",
+        backdropFilter: "blur(12px)",
+        border: "1px solid hsl(var(--border))",
+        borderRadius: 2.5,
+      }}
+    >
+      {/* Header bar */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 2,
+          mb: 2,
+          pb: 1.5,
+          borderBottom: "1px solid hsl(var(--border))",
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
+          <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: "hsl(var(--foreground))" }}>
+            Datastore Console
+          </Typography>
+          <Chip
+            label={category}
+            size="small"
+            variant="outlined"
+            sx={{
+              fontFamily: "monospace",
+              fontWeight: 600,
+              fontSize: "0.78rem",
+              borderColor: "hsl(var(--primary))",
+              color: "hsl(var(--primary))",
+            }}
+          />
+          <Chip
+            label={isLoggedIn ? `Tenant: ${orgName || orgId}` : "Interactive Sample Mode"}
+            size="small"
+            sx={{
+              fontSize: "0.72rem",
+              bgcolor: isLoggedIn ? "hsl(var(--primary) / 0.15)" : "hsl(var(--muted))",
+              color: isLoggedIn ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))",
+              fontWeight: 500,
+            }}
+          />
+        </Box>
+
+        {/* Tab switcher & Open Console */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+          <Box
+            sx={{
+              display: "flex",
+              bgcolor: "hsl(var(--muted) / 0.6)",
+              p: 0.5,
+              borderRadius: 1.5,
+              border: "1px solid hsl(var(--border))",
+            }}
+          >
+            <Button
+              size="small"
+              variant={activeTab === "interactive" ? "contained" : "text"}
+              onClick={() => setActiveTab("interactive")}
+              sx={{
+                textTransform: "none",
+                fontSize: "0.78rem",
+                px: 1.5,
+                py: 0.4,
+                boxShadow: "none",
+              }}
+            >
+              Interactive Datastore
+            </Button>
+            <Button
+              size="small"
+              variant={activeTab === "schema" ? "contained" : "text"}
+              onClick={() => setActiveTab("schema")}
+              sx={{
+                textTransform: "none",
+                fontSize: "0.78rem",
+                px: 1.5,
+                py: 0.4,
+                boxShadow: "none",
+              }}
+            >
+              How Data is Added
+            </Button>
+          </Box>
+
+          <Button
+            variant="outlined"
+            size="small"
+            component="a"
+            href={datastoreLocalUrl}
+            sx={{
+              textTransform: "none",
+              fontSize: "0.78rem",
+              height: 32,
+              fontWeight: 600,
+            }}
+          >
+            Open in Datastore
+          </Button>
+        </Box>
+      </Box>
+
+      {/* Main Tab Content */}
+      {activeTab === "interactive" ? (
+        <Box sx={{ mt: 1 }}>
+          <DatastoreCategories
+            embedded
+            categoryLocked
+            initialCategory={category}
+            compact={isCompact}
+            readOnly={isReadOnly}
+            defaultNewItemTemplate={{
+              key: `incident_${Math.floor(Date.now() / 1000)}`,
+              value: ocsfSamplePayload,
+            }}
+          />
+        </Box>
+      ) : (
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5, mt: 1.5 }}>
+          <Box>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5, color: "hsl(var(--foreground))" }}>
+              OCSF 2005 (Incident Finding) Record Structure
+            </Typography>
+            <Typography variant="body2" sx={{ color: "hsl(var(--muted-foreground))", mb: 1.5, fontSize: "0.85rem" }}>
+              Incidents are stored directly in category <Box component="code" sx={{ fontFamily: "monospace", color: "hsl(var(--primary))" }}>{category}</Box> with key identifiers (e.g. <Box component="code" sx={{ fontFamily: "monospace" }}>incident_&lt;timestamp&gt;</Box> or case IDs). Below is the standard schema payload:
+            </Typography>
+
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 2,
+                borderRadius: 2,
+                bgcolor: "hsl(var(--card))",
+                borderColor: "hsl(var(--border))",
+                position: "relative",
+              }}
+            >
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                <Typography variant="caption" sx={{ fontFamily: "monospace", color: "hsl(var(--muted-foreground))" }}>
+                  JSON Payload (OCSF 2005)
+                </Typography>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => handleCopy(JSON.stringify(ocsfSamplePayload, null, 2), "json")}
+                  sx={{ textTransform: "none", fontSize: "0.72rem", py: 0.2, px: 1 }}
+                >
+                  {copiedCode === "json" ? "Copied" : "Copy JSON"}
+                </Button>
+              </Box>
+              <Box
+                component="pre"
+                sx={{
+                  m: 0,
+                  p: 1.5,
+                  borderRadius: 1,
+                  bgcolor: "hsl(var(--muted) / 0.4)",
+                  fontFamily: "monospace",
+                  fontSize: "0.8rem",
+                  overflowX: "auto",
+                  color: "hsl(var(--foreground))",
+                }}
+              >
+                {JSON.stringify(ocsfSamplePayload, null, 2)}
+              </Box>
+            </Paper>
+          </Box>
+
+          {/* Integration Methods: REST API & Python SDK */}
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
+            {/* REST API Box */}
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 2,
+                borderRadius: 2,
+                bgcolor: "hsl(var(--card))",
+                borderColor: "hsl(var(--border))",
+              }}
+            >
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: "0.85rem" }}>
+                  1. REST API (set_cache)
+                </Typography>
+                <Button
+                  size="small"
+                  variant="text"
+                  onClick={() => handleCopy(curlExample, "curl")}
+                  sx={{ textTransform: "none", fontSize: "0.72rem", p: 0, minWidth: "auto" }}
+                >
+                  {copiedCode === "curl" ? "Copied" : "Copy cURL"}
+                </Button>
+              </Box>
+              <Box
+                component="pre"
+                sx={{
+                  m: 0,
+                  p: 1.5,
+                  borderRadius: 1,
+                  bgcolor: "hsl(var(--muted) / 0.4)",
+                  fontFamily: "monospace",
+                  fontSize: "0.75rem",
+                  overflowX: "auto",
+                  color: "hsl(var(--foreground))",
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-all",
+                }}
+              >
+                {curlExample}
+              </Box>
+            </Paper>
+
+            {/* Python App SDK Box */}
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 2,
+                borderRadius: 2,
+                bgcolor: "hsl(var(--card))",
+                borderColor: "hsl(var(--border))",
+              }}
+            >
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: "0.85rem" }}>
+                  2. Python App Worker SDK
+                </Typography>
+                <Button
+                  size="small"
+                  variant="text"
+                  onClick={() => handleCopy(pythonExample, "python")}
+                  sx={{ textTransform: "none", fontSize: "0.72rem", p: 0, minWidth: "auto" }}
+                >
+                  {copiedCode === "python" ? "Copied" : "Copy Python"}
+                </Button>
+              </Box>
+              <Box
+                component="pre"
+                sx={{
+                  m: 0,
+                  p: 1.5,
+                  borderRadius: 1,
+                  bgcolor: "hsl(var(--muted) / 0.4)",
+                  fontFamily: "monospace",
+                  fontSize: "0.75rem",
+                  overflowX: "auto",
+                  color: "hsl(var(--foreground))",
+                  whiteSpace: "pre-wrap",
+                }}
+              >
+                {pythonExample}
+              </Box>
+            </Paper>
+          </Box>
+
+          {/* Action to switch back and test */}
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 1.5, pt: 1 }}>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={() => setActiveTab("interactive")}
+              sx={{ textTransform: "none", fontWeight: 600, fontSize: "0.82rem" }}
+            >
+              Test in Interactive Datastore
+            </Button>
+          </Box>
+        </Box>
+      )}
+    </Paper>
+  );
+};
+
 interface DocDynamicComponentProps {
   name: string;
   props: Record<string, string>;
@@ -3329,11 +3706,16 @@ export const DocDynamicComponent: React.FC<DocDynamicComponentProps> = ({
         return <DocIncidentAutomation {...props} />;
 
       case "datastore-link":
-      case "datastore-architecture":
+        return <DocDatastoreLink {...props} />;
+
       case "datastore":
+      case "doc-datastore":
+      case "datastore-viewer":
+      case "datastore-categories":
+      case "datastore-architecture":
       case "datastore-console":
       case "datastore-reference":
-        return <DocDatastoreLink {...props} />;
+        return <DocDatastore {...props} />;
 
       case "region-select":
       case "region-selector":

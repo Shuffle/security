@@ -1158,21 +1158,21 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const primaryColor = theme.palette.primary.main;
 
   const inputSx = {
-    height: '46px',
+    height: '43px',
     bgcolor: 'hsl(var(--background))',
     color: 'hsl(var(--foreground))',
-    borderRadius: '10px',
+    borderRadius: '12px',
     fontSize: '0.875rem',
     boxSizing: 'border-box',
     '& .MuiOutlinedInput-input': {
-      height: '46px',
+      height: '43px',
       boxSizing: 'border-box',
       py: 0,
       color: 'hsl(var(--foreground))',
       fontSize: '0.875rem',
     },
     '& input': {
-      height: '46px',
+      height: '43px',
       boxSizing: 'border-box',
       color: 'hsl(var(--foreground))',
       fontSize: '0.875rem',
@@ -1184,7 +1184,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     },
     '& fieldset': {
       borderColor: 'hsl(var(--border))',
-      borderRadius: '10px',
+      borderRadius: '12px',
     },
     '&:hover fieldset': { borderColor: '#FF6600' },
     '&.Mui-focused fieldset': { borderColor: '#FF6600' },
@@ -1417,29 +1417,29 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         autoCorrect="off"
                         InputProps={{
                           sx: {
-                            height: '46px',
+                            height: '43px',
                             bgcolor: 'hsl(var(--card))',
                             color: 'hsl(var(--foreground))',
-                            borderRadius: '10px',
+                            borderRadius: '12px',
                             fontSize: '0.875rem',
                             pr: 0.75,
                             boxSizing: 'border-box',
                             '& .MuiOutlinedInput-input': {
-                              height: '46px',
+                              height: '43px',
                               boxSizing: 'border-box',
                               py: 0,
                               color: 'hsl(var(--foreground))',
                               fontSize: '0.875rem',
                             },
                             '& input': {
-                              height: '46px',
+                              height: '43px',
                               boxSizing: 'border-box',
                               color: 'hsl(var(--foreground))',
                               py: 0,
                             },
                             '& fieldset': {
                               borderColor: 'hsl(var(--border))',
-                              borderRadius: '10px',
+                              borderRadius: '12px',
                             },
                             '&:hover fieldset': { borderColor: '#FF6600' },
                             '&.Mui-focused fieldset': { borderColor: '#FF6600' },
@@ -2317,7 +2317,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                                     border: 'none',
                                     background: 'transparent',
                                     cursor: 'pointer',
-                                    fontSize: '0.8125rem',
+                                    fontSize: '11px',
                                     lineHeight: 1,
                                     color: '#FF6600',
                                     fontWeight: 500,
