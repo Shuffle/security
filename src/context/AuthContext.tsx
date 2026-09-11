@@ -75,7 +75,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   })();
   const cachedToken = (() => {
     if (typeof window === 'undefined') return null;
-    try { return window.localStorage.getItem('session_token'); } catch { return null; }
+    try { return getSessionToken(); } catch { return null; }
   })();
   const [sessionToken, setSessionToken] = useState<string | null>(cachedToken);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(Boolean(cachedToken || cachedUserInfo));
@@ -156,7 +156,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const authMode = typeof localStorage !== 'undefined' ? localStorage.getItem('shuffle_auth_mode') : null;
       let tokenToSend = '';
       if (_token !== undefined) {
-        tokenToSend = _token?.trim() || '';
+        const raw = _token?.trim() || '';
+        if (
+          raw &&
+          raw !== 'authenticated' &&
+          raw !== 'session' &&
+          raw !== 'cookie-session' &&
+          raw !== 'null' &&
+          raw !== 'undefined'
+        ) {
+          tokenToSend = raw;
+        }
       } else if (authMode === 'bearer' || isCapacitorNative()) {
         tokenToSend = getSessionToken() || '';
       }
@@ -254,7 +264,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // errors (slow getinfo, 5xx) leave the cached session in place.
   useEffect(() => {
     const verifyAuth = async () => {
-      const token = localStorage.getItem('session_token');
+      const token = getSessionToken();
       if (token !== sessionToken) setSessionToken(token);
 
       // On native apps with no token and no cached user info, skip boot getinfo
@@ -359,27 +369,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [isAuthenticated, userInfo?.active_org?.id]);
 
-  const login = useCallback(async (token: string, verifiedUserInfo?: any): Promise<boolean> => {
+  const login = useCallback(async (token?: string, verifiedUserInfo?: any): Promise<boolean> => {
     localStorage.removeItem('shuffle_user_info');
     setRuntimeOrgId(null);
     resetRegionUrl();
 
-    // Always store the session token so every subsequent request carries
-    // `Authorization: Bearer <session>` regardless of platform, domain, or SameSite cookie rules.
-    const tokenToStore = token?.trim() || '';
+    const raw = token?.trim() || '';
+    const isValidToken =
+      Boolean(raw) &&
+      raw !== 'authenticated' &&
+      raw !== 'session' &&
+      raw !== 'cookie-session' &&
+      raw !== 'null' &&
+      raw !== 'undefined';
+    const tokenToStore = isValidToken ? raw : '';
 
-    persistSessionToken(tokenToStore);
-    setSessionToken(tokenToStore || null);
+    if (tokenToStore) {
+      persistSessionToken(tokenToStore);
+      setSessionToken(tokenToStore);
+    } else {
+      clearAuthTokens();
+      setSessionToken(null);
+    }
     setIsAuthenticated(false);
     setUserInfo(null);
 
-    if (verifiedUserInfo?.success === true) {
+    if (
+      verifiedUserInfo?.success === true &&
+      (verifiedUserInfo.username || verifiedUserInfo.id || verifiedUserInfo.active_org)
+    ) {
       applyAuthenticatedUserInfo(verifiedUserInfo);
       setIsAuthenticated(true);
       return true;
     }
 
-    const result = await verifyUserInfo(tokenToStore, 2);
+    const result = await verifyUserInfo(tokenToStore || null, 2);
     if (result === 'ok') {
       setIsAuthenticated(true);
       return true;
@@ -395,7 +419,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [applyAuthenticatedUserInfo, fetchUserInfo, verifyUserInfo]);
 
   const refreshUserInfo = useCallback(async () => {
-    const token = localStorage.getItem('session_token');
+    const token = getSessionToken();
     await fetchUserInfo(token);
   }, [fetchUserInfo]);
 

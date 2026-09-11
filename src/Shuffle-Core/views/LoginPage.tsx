@@ -815,14 +815,24 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         const loginData = await loginRes.json().catch(() => ({}));
 
         if (loginData.success !== false) {
+          const adminSessionToken =
+            loginData.session_token ||
+            loginData.token ||
+            loginData.jwt ||
+            loginData.session_id ||
+            (Array.isArray(loginData.cookies)
+              ? loginData.cookies.find((c: any) => c.key === 'session_token' || c.key === '__session')?.value
+              : '') ||
+            '';
+
           if (login) {
             await login(
-              loginData?.jwt || loginData?.token || 'session',
+              adminSessionToken || undefined,
               loginData?.user || { username: trimmedUser }
             );
           }
           if (onLoginSuccess) {
-            await onLoginSuccess(loginData?.jwt || loginData?.token || 'session', loginData?.user);
+            await onLoginSuccess(adminSessionToken || undefined, loginData?.user);
           }
           goToRedirectTarget(from || defaultDestination);
           return;
@@ -1056,24 +1066,77 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         } catch {}
       }
 
-      // Edgecase 5: Session cookie verification vs Bearer token fallback
-      const token =
-        data.jwt ||
+      // Extract session token from cookies array, direct fields, or response
+      const sessionToken =
+        data.session_token ||
         data.token ||
+        data.jwt ||
         data.session_id ||
-        (typeof document !== 'undefined' && document.cookie.includes('session') ? 'cookie-session' : 'authenticated');
+        (Array.isArray(data.cookies)
+          ? data.cookies.find((c: any) => c.key === 'session_token' || c.key === '__session')?.value
+          : '') ||
+        '';
+
+      // Verify the session works before finalizing login.
+      // Try standard cookie verification first (credentials: 'include').
+      // If cookie verification is not working (e.g. strict cross-site blocking),
+      // fall back to Authorization: Bearer <sessionToken> if token exists.
+      let verifiedUserInfo: any = null;
+      let authMode: 'cookie' | 'bearer' = 'cookie';
+
+      try {
+        const cookieResponse = await fetch(getApiUrl('/api/v1/getinfo'), {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (cookieResponse.ok) {
+          const info = await cookieResponse.json().catch(() => null);
+          if (info?.success === true) {
+            verifiedUserInfo = info;
+            authMode = 'cookie';
+          }
+        }
+      } catch {}
+
+      if (!verifiedUserInfo && sessionToken) {
+        try {
+          const bearerResponse = await fetch(getApiUrl('/api/v1/getinfo'), {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${sessionToken}`,
+            },
+          });
+
+          if (bearerResponse.ok) {
+            const info = await bearerResponse.json().catch(() => null);
+            if (info?.success === true) {
+              verifiedUserInfo = info;
+              authMode = 'bearer';
+            }
+          }
+        } catch {}
+      }
 
       if (typeof window !== 'undefined') {
         try {
+          localStorage.setItem('shuffle_auth_mode', authMode);
           localStorage.setItem('shuffle_has_logged_in', 'true');
         } catch {}
       }
 
+      const tokenToPass = authMode === 'bearer' ? sessionToken : (sessionToken || undefined);
+
       if (login) {
-        await login(token, data.user || data);
+        await login(tokenToPass, verifiedUserInfo || (data.user?.username ? data.user : undefined));
       }
       if (onLoginSuccess) {
-        await onLoginSuccess(token, data.user || data);
+        await onLoginSuccess(tokenToPass, verifiedUserInfo || data.user);
       }
 
       if (typeof window !== 'undefined') {

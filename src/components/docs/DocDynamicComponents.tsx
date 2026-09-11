@@ -3192,7 +3192,7 @@ interface DocDatastoreProps {
   name?: string;
   compact?: boolean | string;
   readOnly?: boolean | string;
-  initialTab?: "interactive" | "schema";
+  initialTab?: "interactive" | "schema" | "revisions";
 }
 
 export const DocDatastore: React.FC<DocDatastoreProps> = ({
@@ -3205,7 +3205,7 @@ export const DocDatastore: React.FC<DocDatastoreProps> = ({
   const orgId = userInfo?.active_org?.id;
   const orgName = userInfo?.active_org?.name;
   const isLoggedIn = !!(userInfo && orgId);
-  const [activeTab, setActiveTab] = useState<"interactive" | "schema">(initialTab);
+  const [activeTab, setActiveTab] = useState<"interactive" | "schema" | "revisions">(initialTab);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   const isCompact = compact === true || compact === "true";
@@ -3213,65 +3213,216 @@ export const DocDatastore: React.FC<DocDatastoreProps> = ({
 
   const datastoreLocalUrl = `/admin/datastore?category=${encodeURIComponent(category)}`;
 
-  const ocsfSamplePayload = useMemo(() => ({
-    class_uid: 2005,
-    class_name: "Incident Finding",
-    category_uid: 2,
-    activity_id: 1,
-    severity_id: 4,
-    severity: "High",
-    status_id: 1,
-    status: "New",
-    finding_info: {
-      title: "Suspicious credential dump via LSASS memory read",
-      desc: "Mimikatz command execution detected on domain controller DC-01",
-      created_time: 1773291000,
-    },
-    observables: [
-      { name: "process.name", type: "process_name", value: "mimikatz.exe" },
-      { name: "device.hostname", type: "hostname", value: "DC-01" },
-      { name: "user.name", type: "user_name", value: "SYSTEM" },
-    ],
-    enrichments: [
-      { name: "mitre_attack", value: "T1003.001 - OS Credential Dumping: LSASS Memory" },
-    ],
-  }), []);
+  const categoryMeta = useMemo(() => {
+    const cat = (category || "").toLowerCase();
 
-  const curlExample = useMemo(() => {
-    return `curl -X POST "${getApiUrl("")}/api/v1/orgs/${orgId || "<org_id>"}/set_cache" \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer <api_key>" \\
-  -d '{
-    "key": "incident-2026-0042",
-    "category": "${category}",
-    "value": ${JSON.stringify(ocsfSamplePayload, null, 2).replace(/\n/g, "\n    ")}
-  }'`;
-  }, [category, ocsfSamplePayload, orgId]);
+    if (cat.includes("vuln")) {
+      const payload = {
+        id: "CVE-2024-3094",
+        title: "XZ Utils Backdoor (liblzma)",
+        severity: "critical",
+        score: 10.0,
+        category: "software_cve",
+        status: "open",
+        affected_package: "xz-utils 5.6.0",
+        fixed_version: "5.6.1",
+        affected_hosts: [
+          {
+            hostname: "srv-prod-db-01",
+            path: "/usr/lib/x86_64-linux-gnu/liblzma.so.5.6.0",
+            resolution: "open",
+          },
+        ],
+      };
+      return {
+        title: "Vulnerability Finding",
+        schemaTitle: "Vulnerability Finding Record Structure",
+        description: `Findings are stored directly in category ${category} keyed by advisory identifier (e.g. CVE-2024-3094, GHSA-xxxx).`,
+        defaultKey: "CVE-2024-3094",
+        payload,
+        pythonCode: `# Write or update vulnerability finding in datastore
+self.set_cache(
+    key="CVE-2024-3094",
+    value=${JSON.stringify(payload, null, 4)},
+    category="${category}",
+)`,
+      };
+    }
 
-  const pythonExample = useMemo(() => {
-    return `# Inside a Shuffle app worker or detection workflow
-incident_record = {
-    "class_uid": 2005,
-    "class_name": "Incident Finding",
-    "activity_id": 1,
-    "severity_id": 4,
-    "finding_info": {
-        "title": "Suspicious credential dump via LSASS memory read",
-        "created_time": int(time.time()),
-    },
-    "observables": [
-        {"name": "process.name", "value": "mimikatz.exe"},
-        {"name": "device.hostname", "value": "DC-01"},
-    ],
-}
+    if (cat.includes("asset")) {
+      const payload = {
+        id: "asset-srv-prod-01",
+        hostname: "srv-prod-db-01",
+        os: "Ubuntu 22.04.4 LTS",
+        architecture: "x86_64",
+        cpu_cores: 16,
+        ram_gb: 64,
+        disk_gb: 1024,
+        ip: "10.0.1.42",
+        mac_address: "52:54:00:12:34:56",
+        serial_number: "VMware-42 12 34 56",
+        environment: "production",
+        tags: ["database", "postgresql", "critical"],
+        owner: "data-infra@company.com",
+        status: "active",
+      };
+      return {
+        title: "Hardware Asset Specification",
+        schemaTitle: "Hardware Asset Specification Structure",
+        description: `Hardware specifications, system metadata, and ownership are stored in category ${category} keyed by hostname or asset identifier.`,
+        defaultKey: "srv-prod-db-01",
+        payload,
+        pythonCode: `# Record or update hardware asset metadata in datastore
+self.set_cache(
+    key="srv-prod-db-01",
+    value=${JSON.stringify(payload, null, 4)},
+    category="${category}",
+)`,
+      };
+    }
+
+    if (cat.includes("software")) {
+      const payload = {
+        name: "Docker Engine",
+        version: "26.1.4",
+        publisher: "Docker Inc.",
+        install_type: "system_binary",
+        install_path: "/usr/bin/docker",
+        hosts_count: 8,
+        associated_hosts: ["srv-prod-db-01", "srv-prod-api-01", "srv-runner-02"],
+        last_scanned: 1773291000,
+      };
+      return {
+        title: "Installed Software Catalog",
+        schemaTitle: "Installed Software Catalog Structure",
+        description: `Discovered applications, system packages, and daemon versions are stored in category ${category} keyed by software identifier.`,
+        defaultKey: "sw_docker_engine_26",
+        payload,
+        pythonCode: `# Record installed software catalog entry
+self.set_cache(
+    key="sw_docker_engine_26",
+    value=${JSON.stringify(payload, null, 4)},
+    category="${category}",
+)`,
+      };
+    }
+
+    if (cat.includes("package")) {
+      const payload = {
+        name: "lodash",
+        version: "4.17.20",
+        ecosystem: "npm",
+        manifest_file: "package.json",
+        repository_path: "/Users/dev/repos/auth-service/package.json",
+        host: "dev-macbook-pro-14",
+        has_vulnerability: true,
+        advisory_id: "GHSA-7867-xwm8-2v3q",
+        fixed_version: "4.17.21",
+      };
+      return {
+        title: "Scanned Code Package",
+        schemaTitle: "Scanned Code Package Record Structure",
+        description: `Manifest dependencies (package.json, requirements.txt, Cargo.toml, go.mod) scanned by Host Monitors are stored in category ${category}.`,
+        defaultKey: "pkg_lodash_4_17_20",
+        payload,
+        pythonCode: `# Record code package dependency discovered during repository scan
+self.set_cache(
+    key="pkg_lodash_4_17_20",
+    value=${JSON.stringify(payload, null, 4)},
+    category="${category}",
+)`,
+      };
+    }
+
+    if (cat.includes("sensor")) {
+      const payload = {
+        host_id: "sensor-01-prod-db",
+        hostname: "srv-prod-db-01",
+        platform: "linux",
+        agent_version: "1.4.2",
+        sensor_group: "production-eu",
+        status: "online",
+        last_heartbeat: 1773291000,
+        compliance: {
+          hd_encrypted: true,
+          screenlock: true,
+          firewall_active: true,
+        },
+        capabilities: [
+          "installed_software",
+          "code_scanner",
+          "remote_terminal",
+          "response_actions",
+        ],
+      };
+      return {
+        title: "Sensor Agent Telemetry & Posture",
+        schemaTitle: "Sensor Agent Telemetry Record Structure",
+        description: `Sensor heartbeats, baseline posture check results (disk encryption, screenlock), and capabilities are stored in category ${category}.`,
+        defaultKey: "sensor_srv_prod_db_01",
+        payload,
+        pythonCode: `# Retrieve host posture and compliance from datastore
+sensor = self.get_cache("sensor_srv_prod_db_01", category="${category}")
+if sensor and not sensor.get("compliance", {}).get("hd_encrypted"):
+    print("Warning: Host missing full-disk encryption")`,
+      };
+    }
+
+    // Default: OCSF 2005 Incident Finding
+    const payload = {
+      class_uid: 2005,
+      class_name: "Incident Finding",
+      category_uid: 2,
+      activity_id: 1,
+      severity_id: 4,
+      severity: "High",
+      status_id: 1,
+      status: "New",
+      finding_info: {
+        title: "Suspicious credential dump via LSASS memory read",
+        desc: "Mimikatz command execution detected on domain controller DC-01",
+        created_time: 1773291000,
+      },
+      observables: [
+        { name: "process.name", type: "process_name", value: "mimikatz.exe" },
+        { name: "device.hostname", type: "hostname", value: "DC-01" },
+        { name: "user.name", type: "user_name", value: "SYSTEM" },
+      ],
+      enrichments: [
+        { name: "mitre_attack", value: "T1003.001 - OS Credential Dumping: LSASS Memory" },
+      ],
+    };
+
+    return {
+      title: "OCSF 2005 (Incident Finding)",
+      schemaTitle: "OCSF 2005 (Incident Finding) Record Structure",
+      description: `Incidents are stored directly in category ${category} with key identifiers (e.g. incident_<timestamp> or case IDs).`,
+      defaultKey: `incident_${Math.floor(Date.now() / 1000)}`,
+      payload,
+      pythonCode: `# Inside a Shuffle app worker or detection workflow
+incident_record = ${JSON.stringify(payload, null, 4)}
 
 # Persist to Shuffle Security Datastore
 self.set_cache(
     key=f"incident_{int(time.time())}",
     value=incident_record,
     category="${category}",
-)`;
+)`,
+    };
   }, [category]);
+
+  const curlExample = useMemo(() => {
+    return `curl -X POST "${getApiUrl("")}/api/v1/orgs/${orgId || "<org_id>"}/set_cache" \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer <api_key>" \\
+  -d '{
+    "key": "${categoryMeta.defaultKey}",
+    "category": "${category}",
+    "value": ${JSON.stringify(categoryMeta.payload, null, 2).replace(/\n/g, "\n    ")}
+  }'`;
+  }, [category, categoryMeta, orgId]);
+
+  const pythonExample = categoryMeta.pythonCode;
 
   const handleCopy = (code: string, id: string) => {
     navigator.clipboard.writeText(code);
@@ -3372,6 +3523,20 @@ self.set_cache(
             >
               How Data is Added
             </Button>
+            <Button
+              size="small"
+              variant={activeTab === "revisions" ? "contained" : "text"}
+              onClick={() => setActiveTab("revisions")}
+              sx={{
+                textTransform: "none",
+                fontSize: "0.78rem",
+                px: 1.5,
+                py: 0.4,
+                boxShadow: "none",
+              }}
+            >
+              Revisions & Rollback
+            </Button>
           </Box>
 
           <Button
@@ -3401,19 +3566,19 @@ self.set_cache(
             compact={isCompact}
             readOnly={isReadOnly}
             defaultNewItemTemplate={{
-              key: `incident_${Math.floor(Date.now() / 1000)}`,
-              value: ocsfSamplePayload,
+              key: categoryMeta.defaultKey,
+              value: categoryMeta.payload,
             }}
           />
         </Box>
-      ) : (
+      ) : activeTab === "schema" ? (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5, mt: 1.5 }}>
           <Box>
             <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5, color: "hsl(var(--foreground))" }}>
-              OCSF 2005 (Incident Finding) Record Structure
+              {categoryMeta.schemaTitle}
             </Typography>
             <Typography variant="body2" sx={{ color: "hsl(var(--muted-foreground))", mb: 1.5, fontSize: "0.85rem" }}>
-              Incidents are stored directly in category <Box component="code" sx={{ fontFamily: "monospace", color: "hsl(var(--primary))" }}>{category}</Box> with key identifiers (e.g. <Box component="code" sx={{ fontFamily: "monospace" }}>incident_&lt;timestamp&gt;</Box> or case IDs). Below is the standard schema payload:
+              {categoryMeta.description} Below is the standard schema payload:
             </Typography>
 
             <Paper
@@ -3428,12 +3593,12 @@ self.set_cache(
             >
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
                 <Typography variant="caption" sx={{ fontFamily: "monospace", color: "hsl(var(--muted-foreground))" }}>
-                  JSON Payload (OCSF 2005)
+                  JSON Payload ({categoryMeta.title})
                 </Typography>
                 <Button
                   size="small"
                   variant="outlined"
-                  onClick={() => handleCopy(JSON.stringify(ocsfSamplePayload, null, 2), "json")}
+                  onClick={() => handleCopy(JSON.stringify(categoryMeta.payload, null, 2), "json")}
                   sx={{ textTransform: "none", fontSize: "0.72rem", py: 0.2, px: 1 }}
                 >
                   {copiedCode === "json" ? "Copied" : "Copy JSON"}
@@ -3452,7 +3617,7 @@ self.set_cache(
                   color: "hsl(var(--foreground))",
                 }}
               >
-                {JSON.stringify(ocsfSamplePayload, null, 2)}
+                {JSON.stringify(categoryMeta.payload, null, 2)}
               </Box>
             </Paper>
           </Box>
@@ -3539,6 +3704,245 @@ self.set_cache(
                 }}
               >
                 {pythonExample}
+              </Box>
+            </Paper>
+          </Box>
+
+          {/* Action to switch back and test */}
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 1.5, pt: 1 }}>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={() => setActiveTab("interactive")}
+              sx={{ textTransform: "none", fontWeight: 600, fontSize: "0.82rem" }}
+            >
+              Test in Interactive Datastore
+            </Button>
+          </Box>
+        </Box>
+      ) : (
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5, mt: 1.5 }}>
+          {/* Revisions & Rollback View */}
+          <Box>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5, color: "hsl(var(--foreground))" }}>
+              Immutable Key Revisions & Audit Trail
+            </Typography>
+            <Typography variant="body2" sx={{ color: "hsl(var(--muted-foreground))", mb: 1.5, fontSize: "0.85rem" }}>
+              Every datastore write automatically preserves a historical snapshot. If an automated workflow, script, or user accidentally overwrites data or drops essential fields, any prior revision can be inspected with field diffs and rolled back immediately without data loss.
+            </Typography>
+
+            {/* Revision Timeline List */}
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 2,
+                borderRadius: 2,
+                bgcolor: "hsl(var(--card))",
+                borderColor: "hsl(var(--border))",
+                display: "flex",
+                flexDirection: "column",
+                gap: 1.5,
+              }}
+            >
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pb: 1, borderBottom: "1px solid hsl(var(--border))" }}>
+                <Typography variant="caption" sx={{ fontFamily: "monospace", color: "hsl(var(--muted-foreground))" }}>
+                  Revision History: {categoryMeta.defaultKey} (Category: {category})
+                </Typography>
+                <Chip label="3 Revisions Retained" size="small" variant="outlined" sx={{ fontSize: "0.72rem", height: 22 }} />
+              </Box>
+
+              {/* Revision 3 (Latest) */}
+              <Box sx={{ p: 1.5, borderRadius: 1.5, bgcolor: "hsl(var(--muted) / 0.3)", border: "1px solid hsl(var(--border))" }}>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.82rem" }}>
+                      Revision 3
+                    </Typography>
+                    <Chip label="Current" size="small" sx={{ height: 20, fontSize: "0.68rem", bgcolor: "hsl(var(--primary) / 0.15)", color: "hsl(var(--primary))", fontWeight: 600 }} />
+                  </Box>
+                  <Typography variant="caption" sx={{ color: "hsl(var(--muted-foreground))", fontSize: "0.75rem" }}>
+                    2 minutes ago (15:34:10 UTC)
+                  </Typography>
+                </Box>
+                <Typography variant="caption" sx={{ display: "block", color: "hsl(var(--muted-foreground))", fontFamily: "monospace", fontSize: "0.75rem" }}>
+                  Actor: Workflow: Automated Enrichment (exec_9482)
+                </Typography>
+                <Typography variant="body2" sx={{ mt: 0.5, fontSize: "0.78rem", color: "hsl(var(--foreground))" }}>
+                  Status updated to in_progress, observables verified
+                </Typography>
+              </Box>
+
+              {/* Revision 2 */}
+              <Box sx={{ p: 1.5, borderRadius: 1.5, bgcolor: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }}>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.82rem" }}>
+                      Revision 2
+                    </Typography>
+                    <Chip label="Preserved" size="small" variant="outlined" sx={{ height: 20, fontSize: "0.68rem" }} />
+                  </Box>
+                  <Typography variant="caption" sx={{ color: "hsl(var(--muted-foreground))", fontSize: "0.75rem" }}>
+                    1 hour ago (14:15:02 UTC)
+                  </Typography>
+                </Box>
+                <Typography variant="caption" sx={{ display: "block", color: "hsl(var(--muted-foreground))", fontFamily: "monospace", fontSize: "0.75rem" }}>
+                  Actor: User: sec-analyst@company.com
+                </Typography>
+                <Typography variant="body2" sx={{ mt: 0.5, fontSize: "0.78rem", color: "hsl(var(--foreground))" }}>
+                  Severity confirmed as High, triage tags assigned
+                </Typography>
+                <Box sx={{ mt: 1, display: "flex", justifyContent: "flex-end" }}>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => toast.success(`Simulated rollback: ${categoryMeta.defaultKey} reverted to Revision 2`)}
+                    sx={{ textTransform: "none", fontSize: "0.72rem", height: 26 }}
+                  >
+                    Simulate Rollback to Rev 2
+                  </Button>
+                </Box>
+              </Box>
+
+              {/* Revision 1 */}
+              <Box sx={{ p: 1.5, borderRadius: 1.5, bgcolor: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }}>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.82rem" }}>
+                      Revision 1
+                    </Typography>
+                    <Chip label="Initial" size="small" variant="outlined" sx={{ height: 20, fontSize: "0.68rem" }} />
+                  </Box>
+                  <Typography variant="caption" sx={{ color: "hsl(var(--muted-foreground))", fontSize: "0.75rem" }}>
+                    Yesterday (09:00:15 UTC)
+                  </Typography>
+                </Box>
+                <Typography variant="caption" sx={{ display: "block", color: "hsl(var(--muted-foreground))", fontFamily: "monospace", fontSize: "0.75rem" }}>
+                  Actor: Inbound Webhook: Detection Pipeline (exec_8114)
+                </Typography>
+                <Typography variant="body2" sx={{ mt: 0.5, fontSize: "0.78rem", color: "hsl(var(--foreground))" }}>
+                  Initial record created from raw detection alert
+                </Typography>
+                <Box sx={{ mt: 1, display: "flex", justifyContent: "flex-end" }}>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => toast.success(`Simulated rollback: ${categoryMeta.defaultKey} reverted to Revision 1`)}
+                    sx={{ textTransform: "none", fontSize: "0.72rem", height: 26 }}
+                  >
+                    Simulate Rollback to Rev 1
+                  </Button>
+                </Box>
+              </Box>
+            </Paper>
+          </Box>
+
+          {/* Revisions REST API and Python Code Snippets */}
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 2,
+                borderRadius: 2,
+                bgcolor: "hsl(var(--card))",
+                borderColor: "hsl(var(--border))",
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: "0.82rem" }}>
+                  REST API: Fetch Revisions
+                </Typography>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() =>
+                    handleCopy(
+                      `curl "${getApiUrl("")}/api/v2/datastore/category/${encodeURIComponent(category)}/${encodeURIComponent(categoryMeta.defaultKey)}/revisions" \\\n  -H "Authorization: Bearer <api_key>"`,
+                      "revisions-curl"
+                    )
+                  }
+                  sx={{ textTransform: "none", fontSize: "0.72rem", py: 0.2, px: 1 }}
+                >
+                  {copiedCode === "revisions-curl" ? "Copied" : "Copy cURL"}
+                </Button>
+              </Box>
+              <Box
+                component="pre"
+                sx={{
+                  m: 0,
+                  p: 1.5,
+                  borderRadius: 1,
+                  bgcolor: "hsl(var(--muted) / 0.4)",
+                  fontFamily: "monospace",
+                  fontSize: "0.78rem",
+                  overflowX: "auto",
+                  color: "hsl(var(--foreground))",
+                  flex: 1,
+                }}
+              >
+{`curl "${getApiUrl("")}/api/v2/datastore/category/${encodeURIComponent(category)}/${encodeURIComponent(categoryMeta.defaultKey)}/revisions" \\
+  -H "Authorization: Bearer <api_key>"`}
+              </Box>
+            </Paper>
+
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 2,
+                borderRadius: 2,
+                bgcolor: "hsl(var(--card))",
+                borderColor: "hsl(var(--border))",
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: "0.82rem" }}>
+                  Python SDK: Inspect & Rollback
+                </Typography>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() =>
+                    handleCopy(
+                      `# Fetch all revisions for the key\nrevisions = self.get_cache_revisions(\n    key="${categoryMeta.defaultKey}",\n    category="${category}"\n)\n\n# Roll back key to previous revision state\nif len(revisions) > 1:\n    prior_snapshot = revisions[1]["value"]\n    self.set_cache(\n        key="${categoryMeta.defaultKey}",\n        value=prior_snapshot,\n        category="${category}"\n    )`,
+                      "revisions-py"
+                    )
+                  }
+                  sx={{ textTransform: "none", fontSize: "0.72rem", py: 0.2, px: 1 }}
+                >
+                  {copiedCode === "revisions-py" ? "Copied" : "Copy Python"}
+                </Button>
+              </Box>
+              <Box
+                component="pre"
+                sx={{
+                  m: 0,
+                  p: 1.5,
+                  borderRadius: 1,
+                  bgcolor: "hsl(var(--muted) / 0.4)",
+                  fontFamily: "monospace",
+                  fontSize: "0.78rem",
+                  overflowX: "auto",
+                  color: "hsl(var(--foreground))",
+                  flex: 1,
+                }}
+              >
+{`# Fetch all revisions for the key
+revisions = self.get_cache_revisions(
+    key="${categoryMeta.defaultKey}",
+    category="${category}"
+)
+
+# Roll back key to previous revision state
+if len(revisions) > 1:
+    prior_snapshot = revisions[1]["value"]
+    self.set_cache(
+        key="${categoryMeta.defaultKey}",
+        value=prior_snapshot,
+        category="${category}"
+    )`}
               </Box>
             </Paper>
           </Box>

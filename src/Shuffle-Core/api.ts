@@ -415,8 +415,19 @@ export const getSessionToken = (): string | null => {
       localStorage.removeItem(LEGACY_API_KEY_STORAGE_KEY);
     }
     const stored = localStorage.getItem('session_token');
-    if (stored && stored.trim().length > 0 && stored !== 'null' && stored !== 'undefined') {
+    if (
+      stored &&
+      stored.trim().length > 0 &&
+      stored !== 'null' &&
+      stored !== 'undefined' &&
+      stored !== 'authenticated' &&
+      stored !== 'session' &&
+      stored !== 'cookie-session'
+    ) {
       return stored.trim();
+    }
+    if (stored === 'authenticated' || stored === 'session' || stored === 'cookie-session') {
+      localStorage.removeItem('session_token');
     }
     return null;
   } catch { return null; }
@@ -424,7 +435,15 @@ export const getSessionToken = (): string | null => {
 
 export const setSessionToken = (token: string | null) => {
   clearAuthTokens();
-  if (token && token.trim().length > 0) {
+  if (
+    token &&
+    token.trim().length > 0 &&
+    token !== 'authenticated' &&
+    token !== 'session' &&
+    token !== 'cookie-session' &&
+    token !== 'null' &&
+    token !== 'undefined'
+  ) {
     try { localStorage.setItem('session_token', token.trim()); } catch { /* ignore */ }
   }
 };

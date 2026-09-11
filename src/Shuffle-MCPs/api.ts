@@ -485,8 +485,19 @@ export const getSessionToken = (): string | null => {
       localStorage.removeItem(LEGACY_API_KEY_STORAGE_KEY);
     }
     const stored = localStorage.getItem('session_token');
-    if (stored && stored.trim().length > 0 && stored !== 'null' && stored !== 'undefined') {
+    if (
+      stored &&
+      stored.trim().length > 0 &&
+      stored !== 'null' &&
+      stored !== 'undefined' &&
+      stored !== 'authenticated' &&
+      stored !== 'session' &&
+      stored !== 'cookie-session'
+    ) {
       return stored.trim();
+    }
+    if (stored === 'authenticated' || stored === 'session' || stored === 'cookie-session') {
+      localStorage.removeItem('session_token');
     }
     return null;
   } catch { return null; }
@@ -495,7 +506,15 @@ export const getSessionToken = (): string | null => {
 export const setSessionToken = (token: string | null) => {
   // Always wipe everything first so we can never end up with two tokens.
   clearAuthTokens();
-  if (token && token.trim().length > 0) {
+  if (
+    token &&
+    token.trim().length > 0 &&
+    token !== 'authenticated' &&
+    token !== 'session' &&
+    token !== 'cookie-session' &&
+    token !== 'null' &&
+    token !== 'undefined'
+  ) {
     try { localStorage.setItem('session_token', token.trim()); } catch { /* ignore */ }
   }
 };
@@ -516,6 +535,53 @@ export const ensureShuffleSecurityApiUrl = (url: string): string => {
   if (!url || typeof url !== 'string') return url;
   if (!isOnShuffleSecurity()) return url;
   return mapCloudRegionUrl(url) || url;
+};
+
+/**
+ * Checks whether the backend is hosted on a different domain or subdomain
+ * from the frontend.
+ *
+ * If the backend is on the same domain or subdomain (e.g. uk.shuffle.security
+ * and shuffle.security), standard browser session cookies work via credentials: 'include'.
+ * If the backend is on a completely different domain (e.g. self-hosted instance,
+ * tunnel.schemaless.org, or Lovable preview -> onprem), third-party cookies are
+ * blocked by browsers, so the session token must be sent via Authorization: Bearer.
+ */
+export const isCrossDomainBackend = (targetUrl?: string): boolean => {
+  if (typeof window === 'undefined') return false;
+  try {
+    const backendUrl = targetUrl || API_CONFIG.baseUrl;
+    if (!backendUrl) return false;
+    const backendHost = new URL(backendUrl, window.location.origin).hostname.toLowerCase();
+    const frontendHost = window.location.hostname.toLowerCase();
+
+    if (backendHost === frontendHost) return false;
+
+    // Both on localhost or local loopback
+    const isLocalFrontend = frontendHost === 'localhost' || frontendHost === '127.0.0.1';
+    const isLocalBackend = backendHost === 'localhost' || backendHost === '127.0.0.1';
+    if (isLocalFrontend && isLocalBackend) return false;
+
+    // Extract root domain (e.g. shuffle.security from uk.shuffle.security)
+    const getRootDomain = (host: string): string => {
+      const parts = host.split('.');
+      if (parts.length <= 2) return host;
+      return parts.slice(-2).join('.');
+    };
+
+    const frontendRoot = getRootDomain(frontendHost);
+    const backendRoot = getRootDomain(backendHost);
+
+    // If both belong to the same root domain, browser cookies will work across subdomains
+    if (frontendRoot && backendRoot && frontendRoot === backendRoot) {
+      return false;
+    }
+
+    // Different domains
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 export const API_CONFIG = {
