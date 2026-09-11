@@ -265,7 +265,15 @@ const readCachedCustomHost = (): string | null => {
     if (mode && mode !== 'self-hosted') return null;
     const raw = localStorage.getItem('shuffle_custom_host_url');
     const cleaned = raw ? raw.trim().replace(/\/+$/, '') : null;
-    if (!cleaned) return null;
+    if (!cleaned) {
+      // If accessed via localhost / 127.0.0.1 frontend and not in cloud mode,
+      // default backend instance URL is http://localhost:5001
+      const host = window.location.hostname.toLowerCase();
+      if ((host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || host.endsWith('.localhost')) && mode !== 'cloud') {
+        return 'http://localhost:5001';
+      }
+      return null;
+    }
     // A cloud domain must never be saved as a self-hosted custom host base URL
     if (isShuffleCloudDomain(cleaned)) {
       try {

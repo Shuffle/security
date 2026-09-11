@@ -60,6 +60,30 @@ import { useAuth } from '@/context/AuthContext';
 const SERVER_MODE_STORAGE_KEY = 'shuffle_selected_server_mode';
 const CUSTOM_HOST_STORAGE_KEY = 'shuffle_custom_host_url';
 
+export const isCloudHostDomain = (hostname: string): boolean => {
+  const host = (hostname || '').toLowerCase();
+  return (
+    host === 'shuffle.security' ||
+    host.endsWith('.shuffle.security') ||
+    host === 'shuffler.io' ||
+    host.endsWith('.shuffler.io') ||
+    host.endsWith('.lovable.app') ||
+    host.endsWith('.lovable.dev') ||
+    host.includes('lovableproject.com') ||
+    host.includes('id-preview--')
+  );
+};
+
+export const isLocalhostFrontend = (hostname: string): boolean => {
+  const host = (hostname || '').toLowerCase();
+  return (
+    host === 'localhost' ||
+    host === '127.0.0.1' ||
+    host === '[::1]' ||
+    host.endsWith('.localhost')
+  );
+};
+
 export interface LoginPageProps {
   product?: 'security' | 'automation' | 'core';
   productName?: string;
@@ -244,25 +268,68 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   }, [isAuthenticated, authLoading, navigate, from, location.pathname, defaultDestination]);
 
   // ---------------------------------------------------------------------------
-  // Server Selection Persistence: Remember Cloud vs Self-Hosted choice
+  // Server Selection & Instance URL Persistence
   // ---------------------------------------------------------------------------
-  const [serverMode, setServerMode] = useState<'cloud' | 'self-hosted'>(() => {
-    if (isExplicitAdminSetup) return 'self-hosted';
-    if (typeof window === 'undefined' || !allowSelfHosted) return 'cloud';
-    try {
-      const stored = localStorage.getItem(SERVER_MODE_STORAGE_KEY);
-      if (stored === 'self-hosted' || stored === 'cloud') return stored;
-    } catch {}
-    return 'cloud';
-  });
-
   const [customHostUrl, setCustomHostUrl] = useState<string>(() => {
     if (typeof window === 'undefined') return '';
     try {
-      return localStorage.getItem(CUSTOM_HOST_STORAGE_KEY) || '';
-    } catch {
-      return '';
+      const stored = localStorage.getItem(CUSTOM_HOST_STORAGE_KEY);
+      if (stored && stored.trim()) {
+        return stored.trim();
+      }
+    } catch {}
+
+    const hostname = window.location.hostname;
+    // On local frontend (e.g. localhost:3002 or localhost:3444), if no URL was saved,
+    // automatically input http://localhost:5001
+    if (isLocalhostFrontend(hostname)) {
+      return 'http://localhost:5001';
     }
+
+    return '';
+  });
+
+  const [serverMode, setServerMode] = useState<'cloud' | 'self-hosted'>(() => {
+    if (isExplicitAdminSetup) return 'self-hosted';
+    if (typeof window === 'undefined' || !allowSelfHosted) return 'cloud';
+
+    const hostname = window.location.hostname;
+    const isCloud = isCloudHostDomain(hostname);
+    const isLocal = isLocalhostFrontend(hostname);
+
+    let storedMode: string | null = null;
+    let storedHostUrl: string | null = null;
+    try {
+      storedMode = localStorage.getItem(SERVER_MODE_STORAGE_KEY);
+      storedHostUrl = localStorage.getItem(CUSTOM_HOST_STORAGE_KEY);
+    } catch {}
+
+    // On local frontend (e.g. localhost:3002 or localhost:3444):
+    if (isLocal) {
+      if (storedMode === 'cloud') return 'cloud';
+      // Default to self-hosted for local/onprem frontend
+      return 'self-hosted';
+    }
+
+    // On Cloud / Lovable domains (shuffle.security, shuffler.io, *.lovable.app, etc.):
+    if (isCloud) {
+      // If the user previously selected self-hosted AND actually input an instance URL:
+      if (storedMode === 'self-hosted' && storedHostUrl && storedHostUrl.trim()) {
+        return 'self-hosted';
+      }
+      // If storedMode is 'self-hosted' but no instance URL was input last time,
+      // do NOT default to self-hosted! Default to cloud so the page doesn't break or error.
+      if (storedMode === 'self-hosted') {
+        try {
+          localStorage.setItem(SERVER_MODE_STORAGE_KEY, 'cloud');
+        } catch {}
+      }
+      return 'cloud';
+    }
+
+    // Any other onprem host/IP (e.g. shuffle.mycorp.internal)
+    if (storedMode === 'cloud') return 'cloud';
+    return 'self-hosted';
   });
 
   // Host ping & setup status (Self-Hosted mode only)
@@ -279,6 +346,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   // Auth form states: 'login' | 'register' | 'adminsetup'
   const [authMode, setAuthMode] = useState<'login' | 'register' | 'adminsetup'>(() => {
     if (isExplicitAdminSetup) return 'adminsetup';
+    if (serverMode === 'self-hosted' && mode === 'register') return 'login';
     return mode;
   });
   const isRegister = authMode === 'register';
@@ -288,10 +356,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     if (mode === 'adminsetup' || isExplicitAdminSetup) {
       setAuthMode('adminsetup');
       setServerMode('self-hosted');
+    } else if (serverMode === 'self-hosted' && mode === 'register') {
+      setAuthMode('login');
     } else {
       setAuthMode(mode);
     }
-  }, [mode, isExplicitAdminSetup]);
+  }, [mode, isExplicitAdminSetup, serverMode]);
 
   // SSO Login state (Cloud mode: work email only, hides password field)
   const [loginWithSSO, setLoginWithSSO] = useState<boolean>(() => {
@@ -335,7 +405,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     if (serverMode === 'self-hosted' && customHostUrl.trim()) {
       let normalized = customHostUrl.trim().replace(/\/+$/, '');
       if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
-        normalized = 'https://' + normalized;
+        const isLocal = normalized.startsWith('localhost') || normalized.startsWith('127.0.0.1');
+        normalized = (isLocal ? 'http://' : 'https://') + normalized;
       }
       setHostBaseUrl(normalized);
       setMcpHostBaseUrl(normalized);
@@ -362,27 +433,53 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     if (newMode === 'self-hosted') {
       setIsResetPasswordMode(false);
       setResetEmailSent(false);
+      setLoginWithSSO(false);
+      if (authMode === 'register') {
+        setAuthMode('login');
+      }
+
+      // Restore previously entered instance URL or auto-fill default for localhost
+      let targetUrl = customHostUrl.trim();
+      if (!targetUrl) {
+        try {
+          const saved = localStorage.getItem(CUSTOM_HOST_STORAGE_KEY);
+          if (saved && saved.trim()) {
+            targetUrl = saved.trim();
+            setCustomHostUrl(targetUrl);
+          }
+        } catch {}
+      }
+      if (!targetUrl && typeof window !== 'undefined' && isLocalhostFrontend(window.location.hostname)) {
+        targetUrl = 'http://localhost:5001';
+        setCustomHostUrl(targetUrl);
+      }
+
+      try {
+        localStorage.setItem(SERVER_MODE_STORAGE_KEY, 'self-hosted');
+        if (targetUrl) {
+          localStorage.setItem(CUSTOM_HOST_STORAGE_KEY, targetUrl);
+        }
+      } catch {}
+
+      if (targetUrl) {
+        let normalized = targetUrl.replace(/\/+$/, '');
+        if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
+          const isLocal = normalized.startsWith('localhost') || normalized.startsWith('127.0.0.1');
+          normalized = (isLocal ? 'http://' : 'https://') + normalized;
+        }
+        setHostBaseUrl(normalized);
+        setMcpHostBaseUrl(normalized);
+      }
     } else {
       if (authMode === 'adminsetup') {
         setAuthMode('login');
       }
+      try {
+        localStorage.setItem(SERVER_MODE_STORAGE_KEY, 'cloud');
+      } catch {}
+      setHostBaseUrl(null);
+      setMcpHostBaseUrl(null);
     }
-
-    try {
-      localStorage.setItem(SERVER_MODE_STORAGE_KEY, newMode);
-      if (newMode === 'cloud') {
-        setHostBaseUrl(null);
-        setMcpHostBaseUrl(null);
-      } else if (customHostUrl.trim()) {
-        let normalized = customHostUrl.trim().replace(/\/+$/, '');
-        if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
-          normalized = 'https://' + normalized;
-        }
-        setHostBaseUrl(normalized);
-        setMcpHostBaseUrl(normalized);
-        localStorage.setItem(CUSTOM_HOST_STORAGE_KEY, normalized);
-      }
-    } catch {}
   };
 
   // ---------------------------------------------------------------------------
@@ -545,7 +642,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
     let urlToTest = rawUrl.replace(/\/+$/, '');
     if (!urlToTest.startsWith('http://') && !urlToTest.startsWith('https://')) {
-      urlToTest = 'https://' + urlToTest;
+      const isLocal = urlToTest.startsWith('localhost') || urlToTest.startsWith('127.0.0.1');
+      urlToTest = (isLocal ? 'http://' : 'https://') + urlToTest;
       setCustomHostUrl(urlToTest);
     }
 
@@ -562,6 +660,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     setMcpHostBaseUrl(urlToTest);
     try {
       localStorage.setItem(CUSTOM_HOST_STORAGE_KEY, urlToTest);
+      localStorage.setItem(SERVER_MODE_STORAGE_KEY, 'self-hosted');
     } catch {}
 
     await checkBackendStatus(true, urlToTest);
@@ -814,6 +913,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     }
 
     if (serverMode === 'self-hosted') {
+      if (isRegister) {
+        setError('Self-service registration is not available on self-hosted instances.');
+        return;
+      }
       if (!customHostUrl.trim()) {
         setError('Please provide your self-hosted Shuffle server URL');
         return;
@@ -821,7 +924,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
       let normalized = customHostUrl.trim().replace(/\/+$/, '');
       if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
-        normalized = 'https://' + normalized;
+        const isLocal = normalized.startsWith('localhost') || normalized.startsWith('127.0.0.1');
+        normalized = (isLocal ? 'http://' : 'https://') + normalized;
         setCustomHostUrl(normalized);
       }
 
@@ -836,13 +940,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
       setHostBaseUrl(normalized);
       setMcpHostBaseUrl(normalized);
-      localStorage.setItem(SERVER_MODE_STORAGE_KEY, 'self-hosted');
-      localStorage.setItem(CUSTOM_HOST_STORAGE_KEY, normalized);
+      try {
+        localStorage.setItem(SERVER_MODE_STORAGE_KEY, 'self-hosted');
+        localStorage.setItem(CUSTOM_HOST_STORAGE_KEY, normalized);
+      } catch {}
     } else {
       setHostBaseUrl(null);
       setMcpHostBaseUrl(null);
-      localStorage.setItem(SERVER_MODE_STORAGE_KEY, 'cloud');
-      localStorage.removeItem(CUSTOM_HOST_STORAGE_KEY);
+      try {
+        localStorage.setItem(SERVER_MODE_STORAGE_KEY, 'cloud');
+      } catch {}
     }
 
     setLoading(true);
@@ -853,7 +960,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         body.mfa_code = code;
       }
 
-      const loginUrl = getApiUrl(isRegister ? API_ENDPOINTS.register : API_ENDPOINTS.login);
+      const loginUrl = getApiUrl(serverMode === 'cloud' && isRegister ? API_ENDPOINTS.register : API_ENDPOINTS.login);
       const response = await fetch(loginUrl, {
         method: 'POST',
         headers: {
@@ -1052,8 +1159,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     color: 'hsl(var(--foreground))',
     borderRadius: 2,
     fontSize: '0.875rem',
+    '& .MuiOutlinedInput-input': {
+      py: '11px',
+    },
     '& input': {
       color: 'hsl(var(--foreground))',
+      py: '11px',
     },
     '& input::placeholder': {
       color: 'hsl(var(--muted-foreground))',
@@ -1241,13 +1352,25 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         Instance URL
                       </Typography>
                       <TextField
-                        placeholder="https://shuffle.myorg.internal:3443"
+                        placeholder={
+                          typeof window !== 'undefined' && isLocalhostFrontend(window.location.hostname)
+                            ? 'http://localhost:5001'
+                            : 'https://shuffle.myorg.internal:3443'
+                        }
                         value={customHostUrl}
                         onChange={(e) => {
-                          setCustomHostUrl(e.target.value);
+                          const val = e.target.value;
+                          setCustomHostUrl(val);
                           setHostPingStatus('idle');
                           setHostPingMessage('');
                           setInstanceSsoUrl(null);
+                          try {
+                            if (val.trim()) {
+                              localStorage.setItem(CUSTOM_HOST_STORAGE_KEY, val.trim());
+                            } else {
+                              localStorage.removeItem(CUSTOM_HOST_STORAGE_KEY);
+                            }
+                          } catch {}
                         }}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
@@ -1257,8 +1380,19 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         }}
                         onBlur={() => {
                           const trimmed = customHostUrl.trim();
-                          if (trimmed && isShuffleCloudDomain(trimmed)) {
-                            handlePingHost();
+                          if (trimmed) {
+                            let normalized = trimmed.replace(/\/+$/, '');
+                            if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
+                              const isLocal = normalized.startsWith('localhost') || normalized.startsWith('127.0.0.1');
+                              normalized = (isLocal ? 'http://' : 'https://') + normalized;
+                              setCustomHostUrl(normalized);
+                            }
+                            try {
+                              localStorage.setItem(CUSTOM_HOST_STORAGE_KEY, normalized);
+                            } catch {}
+                            if (isShuffleCloudDomain(normalized)) {
+                              handlePingHost();
+                            }
                           }
                         }}
                         size="small"
@@ -1272,9 +1406,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                             borderRadius: 2,
                             fontSize: '0.85rem',
                             pr: 0.75,
+                            '& .MuiOutlinedInput-input': {
+                              py: '11px',
+                              color: 'hsl(var(--foreground))',
+                            },
                             '& input': {
                               color: 'hsl(var(--foreground))',
-                              py: 1,
+                              py: '11px',
                             },
                             '& fieldset': { borderColor: 'hsl(var(--border))' },
                             '&:hover fieldset': { borderColor: '#FF6600' },
@@ -2105,14 +2243,20 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                               mb: 0.75,
                             }}
                           >
-                            {serverMode === 'cloud' || isRegister
+                            {serverMode === 'cloud' && loginWithSSO
+                              ? 'Work Email'
+                              : serverMode === 'cloud' || isRegister
                               ? 'Email'
                               : isResetPasswordMode
                               ? 'Email or Username'
                               : 'Username or Email'}
                           </Typography>
                           <TextField
-                            placeholder="analyst@organization.com"
+                            placeholder={
+                              serverMode === 'cloud' && loginWithSSO
+                                ? 'name@company.com'
+                                : 'analyst@organization.com'
+                            }
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             size="small"
@@ -2125,7 +2269,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                           />
                         </Box>
 
-                        {!isResetPasswordMode && (
+                        {!isResetPasswordMode && !loginWithSSO && (
                           <Box sx={{ mb: isRegister ? 2 : 2.5 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.75 }}>
                               <Typography
@@ -2281,11 +2425,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                             variant="contained"
                             fullWidth
                             disabled={
-                              loading ||
-                              (!isResetPasswordMode &&
-                                serverMode === 'self-hosted' &&
-                                hostPingStatus !== 'success') ||
-                              (isRegister && !termsAccepted)
+                              serverMode === 'cloud' && loginWithSSO
+                                ? ssoLoading || !username.trim() || !isValidEmail(username)
+                                : loading ||
+                                  (!isResetPasswordMode &&
+                                    serverMode === 'self-hosted' &&
+                                    hostPingStatus !== 'success') ||
+                                  (isRegister && !termsAccepted)
                             }
                             sx={{
                               py: 1.25,
@@ -2306,10 +2452,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                               },
                             }}
                           >
-                            {loading ? (
+                            {loading || ssoLoading ? (
                               <CircularProgress size={22} sx={{ color: '#ffffff' }} />
                             ) : isResetPasswordMode ? (
                               resetEmailSent ? 'Resend Reset Link' : 'Send Reset Link'
+                            ) : serverMode === 'cloud' && loginWithSSO ? (
+                              'Continue with SSO'
                             ) : isRegister ? (
                               'Create Account'
                             ) : (
@@ -2317,6 +2465,73 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                             )}
                           </Button>
                         </Box>
+
+                        {/* Switch back from Cloud SSO to Password login */}
+                        {serverMode === 'cloud' && loginWithSSO && (
+                          <Box sx={{ textAlign: 'center', mt: 1.5 }}>
+                            <Button
+                              variant="text"
+                              size="small"
+                              onClick={() => {
+                                setLoginWithSSO(false);
+                                setSsoError('');
+                                setError('');
+                              }}
+                              sx={{
+                                textTransform: 'none',
+                                color: 'hsl(var(--muted-foreground))',
+                                fontSize: '0.8rem',
+                                fontWeight: 500,
+                                '&:hover': {
+                                  color: 'hsl(var(--foreground))',
+                                  bgcolor: 'transparent',
+                                  textDecoration: 'underline',
+                                },
+                              }}
+                            >
+                              Sign in with password instead
+                            </Button>
+                          </Box>
+                        )}
+
+                        {/* Cloud SSO Button */}
+                        {serverMode === 'cloud' && !isRegister && !loginWithSSO && (
+                          <>
+                            <Box sx={{ display: 'flex', alignItems: 'center', my: 2 }}>
+                              <Box sx={{ flex: 1, height: '1px', bgcolor: 'hsl(var(--border))' }} />
+                              <Typography variant="caption" sx={{ px: 1.5, color: 'hsl(var(--muted-foreground))', fontWeight: 500 }}>
+                                OR
+                              </Typography>
+                              <Box sx={{ flex: 1, height: '1px', bgcolor: 'hsl(var(--border))' }} />
+                            </Box>
+
+                            <Button
+                              fullWidth
+                              variant="outlined"
+                              onClick={() => {
+                                setLoginWithSSO(true);
+                                setPassword('');
+                                setError('');
+                                setSsoError('');
+                              }}
+                              sx={{
+                                py: 1.25,
+                                borderRadius: 2,
+                                fontSize: '0.875rem',
+                                fontWeight: 600,
+                                textTransform: 'none',
+                                borderColor: 'hsl(var(--border))',
+                                color: 'hsl(var(--foreground))',
+                                '&:hover': {
+                                  borderColor: '#FF6600',
+                                  bgcolor: 'rgba(255, 102, 0, 0.05)',
+                                },
+                              }}
+                            >
+                              Sign in with SSO
+                            </Button>
+                          </>
+                        )}
 
                         {/* On-Prem / Self-Hosted SSO Button */}
                         {serverMode === 'self-hosted' && !isRegister && Boolean(instanceSsoUrl) && (
@@ -2338,7 +2553,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                                   window.location.href = instanceSsoUrl!;
                                 }
                               }}
-                              startIcon={<ShieldCheck size={18} />}
                               sx={{
                                 py: 1.25,
                                 borderRadius: 2,
@@ -2365,8 +2579,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             </CardContent>
           </Card>
 
-          {/* Footer / Login <-> Registration switch */}
-          {!mfaRequired && !isResetPasswordMode && !isAdminSetup && (
+          {/* Footer / Login <-> Registration switch (Cloud only) */}
+          {!mfaRequired && !isResetPasswordMode && !isAdminSetup && serverMode === 'cloud' && !loginWithSSO && (
             <Box sx={{ textAlign: 'center', mt: 3, display: 'flex', flexDirection: 'column', gap: 1 }}>
               <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))' }}>
                 {isRegister ? 'Already have an account?' : 'Do not have an account?'}{' '}

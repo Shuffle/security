@@ -475,18 +475,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.removeItem('shuffle_user_info');
       localStorage.removeItem('shuffle_region_url');
       localStorage.removeItem('shuffle_auth_mode');
-      // On web, drop any custom/self-hosted server override so the next login
-      // always starts from the default backend for this domain. Native mobile
-      // keeps it, since the user typed their own server URL there.
-      if (!isCapacitorNative()) {
-        localStorage.removeItem('shuffle_custom_host_url');
-        localStorage.removeItem('shuffle_selected_server_mode');
-      }
+      // Preserved across sessions: shuffle_custom_host_url & shuffle_selected_server_mode
+      // so users do not have to reconfigure their instance URL or mode after logging out.
     } catch { /* ignore */ }
-
-    if (!isCapacitorNative()) {
-      setHostBaseUrl(null);
-    }
 
     setRuntimeOrgId(null);
     clearAuthTokens();
