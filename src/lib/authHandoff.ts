@@ -8,7 +8,6 @@
 import { toast } from '@/lib/toast';
 import { getApiUrl, getAuthHeader, getSessionToken, isCloudDomain } from '@/Shuffle-MCPs/api';
 import { getShuffleCoreBaseUrl } from '@/lib/shuffleUrls';
-import { checkDomainHealth, extractHostname } from '@/lib/domainHealth';
 
 export interface HandoffOptions {
   /** Open in a new browser tab/window instead of navigating the current tab. */
@@ -78,7 +77,10 @@ export async function navigateToShuffleCore(
     }
   }
 
-  const targetHost = extractHostname(targetUrl);
+  let targetHost = '';
+  try {
+    targetHost = new URL(targetUrl).hostname.toLowerCase();
+  } catch { /* ignore */ }
   const currentHost = typeof window !== 'undefined' ? window.location.hostname.toLowerCase() : '';
 
   // On-prem / self-hosted environments share the same domain/host across frontends.
@@ -91,18 +93,6 @@ export async function navigateToShuffleCore(
       window.location.href = targetUrl;
     }
     return true;
-  }
-
-  // Pre-flight domain existence check for cloud domains (e.g. frankfurt.shuffler.io)
-  if (targetHost && (targetHost.endsWith('.shuffler.io') || targetHost.endsWith('.shuffle.security'))) {
-    const health = await checkDomainHealth(targetUrl);
-    if (!health.exists) {
-      if (popupWindow) popupWindow.close();
-      toast.error(
-        health.error || `The domain '${health.domain}' does not exist or is currently being set up.`
-      );
-      return false;
-    }
   }
 
   try {
@@ -193,15 +183,10 @@ export async function navigateToShuffleCore(
     }
 
     return true;
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (popupWindow) popupWindow.close();
-    const isNetwork = err instanceof TypeError || String(err?.message || '').toLowerCase().includes('failed to fetch');
-    if (isNetwork) {
-      const host = extractHostname(targetUrl);
-      toast.error(`Domain '${host}' does not exist or is unreachable. It may still be setting up.`);
-    } else {
-      toast.error(`Failed to navigate to Shuffle Core: ${err?.message || 'Network error'}`);
-    }
+    const msg = err instanceof Error ? err.message : 'Network error';
+    toast.error(`Failed to navigate to Shuffle Core: ${msg}`);
     return false;
   }
 }

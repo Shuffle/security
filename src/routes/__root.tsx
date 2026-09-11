@@ -219,7 +219,6 @@ function AuthenticatedDrawers() {
 
   return (
     <>
-      <GlobalAgentDrawer />
       <GlobalWorkflowRunDrawer />
       <GlobalNotificationsDrawer />
       <DemoTourDrawer />
@@ -259,6 +258,7 @@ function ThemedShell({ children }: { children: ReactNode }) {
         <AppDetailProvider>
           <ScrollToTop />
           <DemoProvider>
+            <GlobalAgentDrawer />
             <AuthenticatedDrawers />
             <GlobalAppDetailDrawer />
             <Suspense

@@ -12,11 +12,6 @@
  */
 
 import { installFetchBreaker, registerProtectedOrigin } from './fetchBreaker';
-import {
-  isDomainCachedUnavailable,
-  checkDomainHealth,
-  broadcastRegionHealth,
-} from '@/lib/domainHealth';
 
 // Install the global fetch breaker as soon as api.ts is imported. Idempotent.
 installFetchBreaker();
@@ -188,7 +183,7 @@ export const isCloudDomain = (): boolean => {
   );
 };
 
-const getDefaultBaseUrl = (): string => {
+export const getDefaultBaseUrl = (): string => {
   const envUrl = getEnvVar('VITE_SHUFFLE_API_URL');
   if (envUrl) return envUrl;
   if (isDevEnvironment()) return DEV_BACKEND;
@@ -270,6 +265,7 @@ const _readCachedCustomHost = (): string | null => {
 };
 
 let _regionUrl: string | null = _cachedRegion.url;
+export const getRegionUrl = (): string | null => _regionUrl;
 let _trackedOrgId: string | null = _cachedRegion.orgId;
 // Host-injected base URL (highest priority — set via setHostBaseUrl or from saved custom host).
 let _hostBaseUrl: string | null = _readCachedCustomHost();
@@ -333,28 +329,6 @@ export const setRegionUrl = (regionUrl: string | undefined | null, orgId: string
       if (!isDefaultCloud) {
         _regionUrl = normalized;
         persistRegion(_regionUrl, _trackedOrgId);
-
-        if (typeof window !== 'undefined') {
-          checkDomainHealth(_regionUrl).then((health) => {
-            if (!health.exists) {
-              console.warn(`[API] Configured region domain '${health.domain}' does not exist or is currently being set up. Requests will use default cloud backend.`);
-              broadcastRegionHealth({
-                domain: health.domain,
-                regionUrl: normalized,
-                exists: false,
-                error: health.error,
-                fallbackUrl: PROD_BACKEND,
-              });
-            } else {
-              broadcastRegionHealth({
-                domain: health.domain,
-                regionUrl: normalized,
-                exists: true,
-                fallbackUrl: PROD_BACKEND,
-              });
-            }
-          }).catch(() => {});
-        }
         return;
       }
     } else {
@@ -477,11 +451,7 @@ export const API_CONFIG = {
   get baseUrl(): string {
     // In test/dev environments (Lovable preview, VITE_SHUFFLE_API_URL) the
     // test backend always wins — region_url must not redirect us to prod.
-    let effectiveRegion = _regionUrl;
-    if (effectiveRegion && isDomainCachedUnavailable(effectiveRegion)) {
-      effectiveRegion = null;
-    }
-    const url = _hostBaseUrl || (isDevEnvironment() || getEnvVar('VITE_SHUFFLE_API_URL') ? getDefaultBaseUrl() : (effectiveRegion || getDefaultBaseUrl()));
+    const url = _hostBaseUrl || (isDevEnvironment() || getEnvVar('VITE_SHUFFLE_API_URL') ? getDefaultBaseUrl() : (_regionUrl || getDefaultBaseUrl()));
     try { registerProtectedOrigin(url); } catch { /* noop */ }
     return url;
   },
@@ -501,7 +471,6 @@ export const getApiUrl = (endpoint: string): string => `${API_CONFIG.baseUrl}${e
 // Common endpoints
 export const API_ENDPOINTS = {
   login: '/api/v1/login',
-  loginSso: '/api/v1/login/sso',
   checkusers: '/api/v1/checkusers',
   register: '/api/v1/users/register',
   registerAdmin: '/api/v1/register',

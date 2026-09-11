@@ -42,14 +42,39 @@ export const extractHostname = (input?: string | null): string => {
 };
 
 /**
+ * Extract normalized target info preserving protocol, hostname, and port.
+ */
+export const extractTargetInfo = (input?: string | null): { hostname: string; probeUrl: string; cacheKey: string } => {
+  if (!input || typeof input !== 'string') return { hostname: '', probeUrl: '', cacheKey: '' };
+  const trimmed = input.trim();
+  if (!trimmed) return { hostname: '', probeUrl: '', cacheKey: '' };
+
+  try {
+    const toParse = trimmed.includes('://') ? trimmed : `https://${trimmed}`;
+    const parsed = new URL(toParse);
+    const hostname = parsed.hostname.toLowerCase();
+    const probeUrl = `${parsed.protocol}//${parsed.host}/api/v1/health`;
+    const cacheKey = parsed.host.toLowerCase();
+    return { hostname, probeUrl, cacheKey };
+  } catch {
+    const hostname = trimmed.split('/')[0].split(':')[0].toLowerCase();
+    return {
+      hostname,
+      probeUrl: `https://${hostname}/api/v1/health`,
+      cacheKey: hostname,
+    };
+  }
+};
+
+/**
  * Check if a domain or URL exists and is reachable via HTTP probe.
  */
 export const checkDomainHealth = async (
   domainOrUrl?: string | null,
   forceCheck = false,
 ): Promise<DomainHealthResult> => {
-  const hostname = extractHostname(domainOrUrl);
-  if (!hostname) {
+  const { hostname, probeUrl, cacheKey } = extractTargetInfo(domainOrUrl);
+  if (!hostname || !cacheKey) {
     return {
       domain: '',
       exists: true,
@@ -69,12 +94,11 @@ export const checkDomainHealth = async (
   }
 
   // Return cached result if valid and not forcing a recheck
-  const cached = healthCache.get(hostname);
+  const cached = healthCache.get(cacheKey);
   if (!forceCheck && cached && Date.now() - cached.lastChecked < CACHE_TTL_MS) {
     return cached;
   }
 
-  const probeUrl = `https://${hostname}/api/v1/health`;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
 
@@ -99,12 +123,12 @@ export const checkDomainHealth = async (
       statusCode: res.status || 200,
       lastChecked: Date.now(),
     };
-    healthCache.set(hostname, result);
+    healthCache.set(cacheKey, result);
     return result;
-  } catch (err: any) {
+  } catch (err: unknown) {
     clearTimeout(timeoutId);
 
-    const isAbort = err?.name === 'AbortError';
+    const isAbort = (err as Error)?.name === 'AbortError';
     const result: DomainHealthResult = {
       domain: hostname,
       exists: false,
@@ -115,24 +139,29 @@ export const checkDomainHealth = async (
       lastChecked: Date.now(),
     };
 
-    healthCache.set(hostname, result);
+    healthCache.set(cacheKey, result);
     return result;
   }
 };
 
 /** Synchronously check if a domain was previously probed and found unavailable. */
 export const isDomainCachedUnavailable = (domainOrUrl?: string | null): boolean => {
-  const hostname = extractHostname(domainOrUrl);
-  if (!hostname) return false;
-  const cached = healthCache.get(hostname);
-  return Boolean(cached && !cached.exists);
+  const { cacheKey } = extractTargetInfo(domainOrUrl);
+  if (!cacheKey) return false;
+  const cached = healthCache.get(cacheKey);
+  if (!cached) return false;
+  if (Date.now() - cached.lastChecked >= CACHE_TTL_MS) {
+    healthCache.delete(cacheKey);
+    return false;
+  }
+  return !cached.exists;
 };
 
 /** Mark a domain as unavailable in cache after a confirmed network/DNS failure. */
 export const markDomainUnavailable = (domainOrUrl?: string | null, error?: string) => {
-  const hostname = extractHostname(domainOrUrl);
-  if (!hostname) return;
-  healthCache.set(hostname, {
+  const { hostname, cacheKey } = extractTargetInfo(domainOrUrl);
+  if (!cacheKey) return;
+  healthCache.set(cacheKey, {
     domain: hostname,
     exists: false,
     reachable: false,
@@ -143,9 +172,9 @@ export const markDomainUnavailable = (domainOrUrl?: string | null, error?: strin
 
 /** Mark a domain as available in cache. */
 export const markDomainAvailable = (domainOrUrl?: string | null) => {
-  const hostname = extractHostname(domainOrUrl);
-  if (!hostname) return;
-  healthCache.set(hostname, {
+  const { hostname, cacheKey } = extractTargetInfo(domainOrUrl);
+  if (!cacheKey) return;
+  healthCache.set(cacheKey, {
     domain: hostname,
     exists: true,
     reachable: true,

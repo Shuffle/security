@@ -388,6 +388,7 @@ export const DocShuffleAI: React.FC<DocShuffleAIProps> = ({
           alignItems: "center",
           gap: 1.5,
           flexWrap: "wrap",
+          verticalAlign: "middle",
         }}
       >
         <Tooltip title="Configure or swap LLM provider (Shuffle AI, OpenAI, Gemini, Ollama...)">
@@ -424,11 +425,19 @@ export const DocShuffleAI: React.FC<DocShuffleAIProps> = ({
               borderRadius: isPill ? 999 : 2,
               px: 1.75,
               py: 0.6,
+              lineHeight: 1.4,
+              display: "inline-flex",
+              alignItems: "center",
               color: "hsl(var(--foreground))",
               borderColor: "hsl(var(--border))",
               backgroundColor: "hsl(var(--card))",
               boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
               transition: "all 0.15s ease",
+              "& .MuiButton-startIcon": {
+                display: "inline-flex",
+                alignItems: "center",
+                my: 0,
+              },
               "&:hover": {
                 borderColor: "hsl(var(--primary))",
                 backgroundColor: "hsl(var(--muted) / 0.5)",
@@ -441,8 +450,17 @@ export const DocShuffleAI: React.FC<DocShuffleAIProps> = ({
         </Tooltip>
         {!isCompact && (
           <Typography
+            component="span"
             variant="body2"
-            sx={{ color: "hsl(var(--muted-foreground))", fontSize: "0.825rem" }}
+            sx={{
+              color: "hsl(var(--muted-foreground))",
+              fontSize: "0.825rem",
+              lineHeight: 1.4,
+              m: 0,
+              p: 0,
+              display: "inline-flex",
+              alignItems: "center",
+            }}
           >
             {helperText ||
               "Click to configure or swap the model provider in the sidebar."}

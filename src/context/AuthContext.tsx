@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
-import { getApiUrl, getAuthHeader, getSessionAuthHeader, setRegionUrl, resetRegionUrl, getTrackedOrgId, applyRegionFromPayload, setHostBaseUrl, getHostBaseUrl, setSessionToken as persistSessionToken, clearAuthTokens, getSessionToken, isDevEnvironment, isCloud, mapCloudRegionUrl } from '@/Shuffle-MCPs/api';
+import { getApiUrl, getAuthHeader, getSessionAuthHeader, setRegionUrl, resetRegionUrl, getTrackedOrgId, applyRegionFromPayload, setHostBaseUrl, getHostBaseUrl, setSessionToken as persistSessionToken, clearAuthTokens, getSessionToken, isDevEnvironment, isCloud, mapCloudRegionUrl, getDefaultBaseUrl, getRegionUrl } from '@/Shuffle-MCPs/api';
 import { setRuntimeOrgId } from '@/Shuffle-MCPs/datastore';
 import { invalidateAuthenticatedAppsCache } from '@/Shuffle-MCPs/authenticatedApps';
 import { isCapacitorNative } from '@/Shuffle-MCPs/api';
@@ -161,15 +161,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         tokenToSend = getSessionToken() || '';
       }
 
-      const response = await fetch(getApiUrl('/api/v1/getinfo'), {
-        method: 'GET',
-        credentials: 'include',
-        signal: controller.signal,
-        headers: {
-          ...(tokenToSend ? { Authorization: `Bearer ${tokenToSend}` } : {}),
-          'Content-Type': 'application/json',
-        },
-      });
+      let response: Response;
+      try {
+        response = await fetch(getApiUrl('/api/v1/getinfo'), {
+          method: 'GET',
+          credentials: 'include',
+          signal: controller.signal,
+          headers: {
+            ...(tokenToSend ? { Authorization: `Bearer ${tokenToSend}` } : {}),
+            'Content-Type': 'application/json',
+          },
+        });
+      } catch (fetchErr: unknown) {
+        // If an active custom/regional backend is unreachable (e.g. network failure, DNS error,
+        // or tenant region setup in progress), attempt emergency recovery via default cloud backend
+        // so the session is preserved, userInfo.orgs is loaded, and the user can switch tenants.
+        const currentRegion = getRegionUrl();
+        const defaultBase = getDefaultBaseUrl();
+        if (currentRegion && currentRegion !== defaultBase) {
+          console.warn(`[Auth] Configured region '${currentRegion}' unreachable on getinfo. Attempting fallback to default backend '${defaultBase}'.`);
+          try {
+            response = await fetch(`${defaultBase}/api/v1/getinfo`, {
+              method: 'GET',
+              credentials: 'include',
+              signal: controller.signal,
+              headers: {
+                ...(tokenToSend ? { Authorization: `Bearer ${tokenToSend}` } : {}),
+                'Content-Type': 'application/json',
+              },
+            });
+            if (response.ok) {
+              resetRegionUrl();
+            }
+          } catch {
+            throw fetchErr;
+          }
+        } else {
+          throw fetchErr;
+        }
+      }
 
       const data = await response.json().catch(() => ({} as any));
 
@@ -370,6 +400,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [fetchUserInfo]);
 
   const setActiveOrg = useCallback(async (orgId: string) => {
+    const previousRegionUrl = getRegionUrl();
+    const previousOrgId = getTrackedOrgId();
+
     try {
       // Trace every org-change call so we can attribute unexpected ones
       // (e.g. fired from /incidents without the user clicking the switcher).
@@ -393,6 +426,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // Optimistically resolve target org from existing org list
       const targetOrg = userInfo?.orgs?.find(o => o.id === orgId);
+      let targetRegionUrl: string | null = null;
       if (targetOrg) {
         // 1. Immediately broadcast org-change event so ThemeContext primes theme and brand color in 0ms
         try {
@@ -405,7 +439,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // 3. If target org has region_url, apply immediately
         if (targetOrg.region_url) {
           const mapped = mapCloudRegionUrl(targetOrg.region_url);
-          applyRegionFromPayload({ region_url: mapped || targetOrg.region_url }, orgId);
+          targetRegionUrl = mapped || targetOrg.region_url;
+          applyRegionFromPayload({ region_url: targetRegionUrl }, orgId);
         } else {
           resetRegionUrl();
         }
@@ -416,7 +451,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const next = { ...prev, active_org: targetOrg };
           try {
             localStorage.setItem('shuffle_user_info', JSON.stringify(next));
-          } catch {}
+          } catch { /* ignore */ }
           return next;
         });
       } else {
@@ -431,15 +466,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // Important: Use getSessionAuthHeader() so we DO NOT attach a stale Org-Id header.
       // Org-Id is explicitly passed in the URL path and body.
-      const response = await fetch(getApiUrl('/api/v1/orgs/' + orgId + '/change'), {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          ...getSessionAuthHeader(),
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ org_id: orgId }),
-      });
+      let response: Response | null = null;
+      try {
+        response = await fetch(getApiUrl('/api/v1/orgs/' + orgId + '/change'), {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            ...getSessionAuthHeader(),
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ org_id: orgId }),
+        });
+      } catch (targetFetchErr: unknown) {
+        // Target region was unreachable (DNS error, connection refused, offline host).
+        // Fall back to default cloud backend for org change so the user isn't bricked!
+        const defaultBase = getDefaultBaseUrl();
+        console.warn(`[Auth] Target region '${targetRegionUrl}' unreachable on org change. Attempting fallback via '${defaultBase}'.`);
+        try {
+          response = await fetch(`${defaultBase}/api/v1/orgs/${orgId}/change`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              ...getSessionAuthHeader(),
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ org_id: orgId }),
+          });
+          // Org change succeeded on fallback default backend — ensure region stays reset to default
+          resetRegionUrl();
+        } catch (fallbackErr) {
+          // Both failed: roll back region URL to previous working region so reload doesn't brick
+          console.error('[Auth] Org change failed on both target region and default backend:', fallbackErr);
+          if (previousRegionUrl) {
+            setRegionUrl(previousRegionUrl, previousOrgId);
+          } else {
+            resetRegionUrl();
+          }
+          throw targetFetchErr;
+        }
+      }
 
       if (!response.ok) {
         console.warn('Org change API returned non-OK:', response.status);

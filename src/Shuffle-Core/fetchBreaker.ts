@@ -1,5 +1,3 @@
-import { markDomainUnavailable } from '@/lib/domainHealth';
-
 /**
  * Rewrites any backend API request pointing to *.shuffler.io to *.shuffle.security
  * while running on Shuffle Security.
@@ -296,16 +294,6 @@ export const installFetchBreaker = () => {
       entry.failures.push(ts);
       prune(entry.failures, ts, ROLLING_WINDOW_MS);
       onProbeFailure(ts);
-
-      if (err instanceof TypeError || String(err?.message || '').toLowerCase().includes('failed to fetch')) {
-        try {
-          const rawUrl = typeof finalInput === 'string' ? finalInput : (finalInput as any).url || '';
-          const u = new URL(rawUrl, window.location.href);
-          if (u.hostname.endsWith('.shuffle.security') && u.hostname !== 'uk.shuffle.security') {
-            markDomainUnavailable(u.hostname, `Domain '${u.hostname}' does not exist or is currently being set up.`);
-          }
-        } catch { /* ignore */ }
-      }
 
       if (!isProbe && entry.failures.length >= FAIL_THRESHOLD) {
         trip(entry, ts);

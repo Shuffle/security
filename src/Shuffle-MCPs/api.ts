@@ -11,11 +11,6 @@
  */
 
 import { installFetchBreaker, registerProtectedOrigin } from '@/Shuffle-MCPs/fetchBreaker';
-import {
-  isDomainCachedUnavailable,
-  checkDomainHealth,
-  broadcastRegionHealth,
-} from '@/lib/domainHealth';
 
 // Install the global fetch breaker as soon as api.ts is imported. Idempotent —
 // safe to call multiple times.
@@ -207,7 +202,7 @@ export const isCloud = (): boolean => isCloudDomain();
  */
 export const isOnprem = (): boolean => !isDevEnvironment() && !isCloudDomain();
 
-const getDefaultBaseUrl = (): string => {
+export const getDefaultBaseUrl = (): string => {
   const envUrl = getEnvVar('VITE_SHUFFLE_API_URL');
   if (envUrl) {
     return envUrl;
@@ -258,6 +253,7 @@ const readCachedRegion = (): { url: string | null; orgId: string | null } => {
 
 const cached = readCachedRegion();
 let _regionUrl: string | null = cached.url;
+export const getRegionUrl = (): string | null => _regionUrl;
 const readCachedCustomHost = (): string | null => {
   if (typeof window === 'undefined') return null;
   try {
@@ -375,28 +371,6 @@ export const setRegionUrl = (regionUrl: string | undefined | null, orgId: string
         _regionUrl = normalized;
         persistRegion(_regionUrl, _trackedOrgId);
         console.log(`[API] Region URL set to: ${_regionUrl}`);
-
-        if (typeof window !== 'undefined') {
-          checkDomainHealth(_regionUrl).then((health) => {
-            if (!health.exists) {
-              console.warn(`[API] Configured region domain '${health.domain}' does not exist or is currently being set up. Requests will use default cloud backend.`);
-              broadcastRegionHealth({
-                domain: health.domain,
-                regionUrl: normalized,
-                exists: false,
-                error: health.error,
-                fallbackUrl: PROD_BACKEND,
-              });
-            } else {
-              broadcastRegionHealth({
-                domain: health.domain,
-                regionUrl: normalized,
-                exists: true,
-                fallbackUrl: PROD_BACKEND,
-              });
-            }
-          }).catch(() => {});
-        }
         return;
       }
     } else {
@@ -549,11 +523,7 @@ export const API_CONFIG = {
   get baseUrl(): string {
     // In test/dev environments (Lovable preview, VITE_SHUFFLE_API_URL) the
     // test backend always wins — region_url must not redirect us to prod.
-    let effectiveRegion = _regionUrl;
-    if (effectiveRegion && isDomainCachedUnavailable(effectiveRegion)) {
-      effectiveRegion = null;
-    }
-    const url = _hostBaseUrl || (isDevEnvironment() || getEnvVar('VITE_SHUFFLE_API_URL') ? getDefaultBaseUrl() : (effectiveRegion || getDefaultBaseUrl()));
+    const url = _hostBaseUrl || (isDevEnvironment() || getEnvVar('VITE_SHUFFLE_API_URL') ? getDefaultBaseUrl() : (_regionUrl || getDefaultBaseUrl()));
     // Register origin once so the breaker watches it. registerProtectedOrigin
     // is idempotent.
     try { registerProtectedOrigin(url); } catch { /* noop */ }
@@ -628,7 +598,6 @@ export const shuffleFetch = (url: string, init?: RequestInit): Promise<Response>
 // Common endpoints
 export const API_ENDPOINTS = {
   login: '/api/v1/login',
-  loginSso: '/api/v1/login/sso',
   checkusers: '/api/v1/checkusers',
   register: '/api/v1/users/register',
   registerAdmin: '/api/v1/register',

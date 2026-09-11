@@ -622,9 +622,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const initialCheckRanRef = useRef(false);
   useEffect(() => {
     if (initialCheckRanRef.current) return;
+    initialCheckRanRef.current = true;
     const hasHost = Boolean((customHostUrl.trim() || getHostBaseUrl() || '').trim());
     if (isExplicitAdminSetup || (serverMode === 'self-hosted' && hasHost)) {
-      initialCheckRanRef.current = true;
       checkBackendStatus(true);
     }
   }, [serverMode, isExplicitAdminSetup, customHostUrl, checkBackendStatus]);
@@ -681,7 +681,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     setSsoLoading(true);
 
     try {
-      const ssoEndpoint = getApiUrl(API_ENDPOINTS.loginSso);
+      const ssoEndpoint = getApiUrl(API_ENDPOINTS.login);
       const res = await fetch(ssoEndpoint, {
         method: 'POST',
         headers: {
@@ -689,7 +689,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           Accept: 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({ username: username.trim() }),
+        body: JSON.stringify({
+          username: username.trim(),
+          sso: true,
+        }),
       });
 
       const data = await res.json().catch(() => ({}));
@@ -715,7 +718,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         setSsoError(
           data.reason ||
             data.message ||
-            'No Single Sign-On provider found for this email domain. Please sign in with your password.'
+            'Single Sign-On is not configured for this account. Please sign in with your password.'
         );
         return;
       }
@@ -1207,7 +1210,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           color: 'hsl(var(--foreground))',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: { xs: 'flex-start', md: 'center' },
+          justifyContent: 'flex-start',
           alignItems: 'center',
           px: { xs: 2, sm: 2.5 },
           py: { xs: 2, sm: 4 },
@@ -1330,15 +1333,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           >
             <CardContent sx={{ p: { xs: 2.5, sm: 3 } }}>
               {/* Self-Hosted Server URL Configuration */}
-              <AnimatePresence>
+              <AnimatePresence initial={false}>
                 {!mfaRequired && serverMode === 'self-hosted' && !isAdminSetup && !isWaitingForBackend && (
                   <motion.div
+                    key="self-hosted-url-config"
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.2 }}
+                    transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+                    style={{ overflow: 'hidden' }}
                   >
-                    <Box sx={{ mb: 2.5 }}>
+                    <Box sx={{ pb: 2.5 }}>
                       <Typography
                         sx={{
                           fontSize: '0.75rem',
@@ -2271,7 +2276,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
                         {!isResetPasswordMode && !loginWithSSO && (
                           <Box sx={{ mb: isRegister ? 2 : 2.5 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.75 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.75, minHeight: 24 }}>
                               <Typography
                                 sx={{
                                   fontSize: '0.8rem',
@@ -2495,82 +2500,104 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         )}
 
                         {/* Cloud SSO Button */}
-                        {serverMode === 'cloud' && !isRegister && !loginWithSSO && (
-                          <>
-                            <Box sx={{ display: 'flex', alignItems: 'center', my: 2 }}>
-                              <Box sx={{ flex: 1, height: '1px', bgcolor: 'hsl(var(--border))' }} />
-                              <Typography variant="caption" sx={{ px: 1.5, color: 'hsl(var(--muted-foreground))', fontWeight: 500 }}>
-                                OR
-                              </Typography>
-                              <Box sx={{ flex: 1, height: '1px', bgcolor: 'hsl(var(--border))' }} />
-                            </Box>
-
-                            <Button
-                              fullWidth
-                              variant="outlined"
-                              onClick={() => {
-                                setLoginWithSSO(true);
-                                setPassword('');
-                                setError('');
-                                setSsoError('');
-                              }}
-                              sx={{
-                                py: 1.25,
-                                borderRadius: 2,
-                                fontSize: '0.875rem',
-                                fontWeight: 600,
-                                textTransform: 'none',
-                                borderColor: 'hsl(var(--border))',
-                                color: 'hsl(var(--foreground))',
-                                '&:hover': {
-                                  borderColor: '#FF6600',
-                                  bgcolor: 'rgba(255, 102, 0, 0.05)',
-                                },
-                              }}
+                        <AnimatePresence initial={false}>
+                          {serverMode === 'cloud' && !isRegister && !loginWithSSO && (
+                            <motion.div
+                              key="cloud-sso-section"
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+                              style={{ overflow: 'hidden' }}
                             >
-                              Sign in with SSO
-                            </Button>
-                          </>
-                        )}
+                              <Box sx={{ pt: 2 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                  <Box sx={{ flex: 1, height: '1px', bgcolor: 'hsl(var(--border))' }} />
+                                  <Typography variant="caption" sx={{ px: 1.5, color: 'hsl(var(--muted-foreground))', fontWeight: 500 }}>
+                                    OR
+                                  </Typography>
+                                  <Box sx={{ flex: 1, height: '1px', bgcolor: 'hsl(var(--border))' }} />
+                                </Box>
+
+                                <Button
+                                  fullWidth
+                                  variant="outlined"
+                                  onClick={() => {
+                                    setLoginWithSSO(true);
+                                    setPassword('');
+                                    setError('');
+                                    setSsoError('');
+                                  }}
+                                  sx={{
+                                    py: 1.25,
+                                    borderRadius: 2,
+                                    fontSize: '0.875rem',
+                                    fontWeight: 600,
+                                    textTransform: 'none',
+                                    borderColor: 'hsl(var(--border))',
+                                    color: 'hsl(var(--foreground))',
+                                    '&:hover': {
+                                      borderColor: '#FF6600',
+                                      bgcolor: 'rgba(255, 102, 0, 0.05)',
+                                    },
+                                  }}
+                                >
+                                  Sign in with SSO
+                                </Button>
+                              </Box>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
 
                         {/* On-Prem / Self-Hosted SSO Button */}
-                        {serverMode === 'self-hosted' && !isRegister && Boolean(instanceSsoUrl) && (
-                          <>
-                            <Box sx={{ display: 'flex', alignItems: 'center', my: 2 }}>
-                              <Box sx={{ flex: 1, height: '1px', bgcolor: 'hsl(var(--border))' }} />
-                              <Typography variant="caption" sx={{ px: 1.5, color: 'hsl(var(--muted-foreground))', fontWeight: 500 }}>
-                                OR
-                              </Typography>
-                              <Box sx={{ flex: 1, height: '1px', bgcolor: 'hsl(var(--border))' }} />
-                            </Box>
-
-                            <Button
-                              fullWidth
-                              variant="outlined"
-                              onClick={() => {
-                                if (typeof window !== 'undefined') {
-                                  if (from) sessionStorage.setItem('shuffle_redirect_after_login', from);
-                                  window.location.href = instanceSsoUrl!;
-                                }
-                              }}
-                              sx={{
-                                py: 1.25,
-                                borderRadius: 2,
-                                fontSize: '0.875rem',
-                                fontWeight: 600,
-                                textTransform: 'none',
-                                borderColor: 'hsl(var(--border))',
-                                color: 'hsl(var(--foreground))',
-                                '&:hover': {
-                                  borderColor: '#FF6600',
-                                  bgcolor: 'rgba(255, 102, 0, 0.05)',
-                                },
-                              }}
+                        <AnimatePresence initial={false}>
+                          {serverMode === 'self-hosted' && !isRegister && Boolean(instanceSsoUrl) && (
+                            <motion.div
+                              key="self-hosted-sso-section"
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+                              style={{ overflow: 'hidden' }}
                             >
-                              Sign in with SSO
-                            </Button>
-                          </>
-                        )}
+                              <Box sx={{ pt: 2 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                  <Box sx={{ flex: 1, height: '1px', bgcolor: 'hsl(var(--border))' }} />
+                                  <Typography variant="caption" sx={{ px: 1.5, color: 'hsl(var(--muted-foreground))', fontWeight: 500 }}>
+                                    OR
+                                  </Typography>
+                                  <Box sx={{ flex: 1, height: '1px', bgcolor: 'hsl(var(--border))' }} />
+                                </Box>
+
+                                <Button
+                                  fullWidth
+                                  variant="outlined"
+                                  onClick={() => {
+                                    if (typeof window !== 'undefined') {
+                                      if (from) sessionStorage.setItem('shuffle_redirect_after_login', from);
+                                      window.location.href = instanceSsoUrl!;
+                                    }
+                                  }}
+                                  sx={{
+                                    py: 1.25,
+                                    borderRadius: 2,
+                                    fontSize: '0.875rem',
+                                    fontWeight: 600,
+                                    textTransform: 'none',
+                                    borderColor: 'hsl(var(--border))',
+                                    color: 'hsl(var(--foreground))',
+                                    '&:hover': {
+                                      borderColor: '#FF6600',
+                                      bgcolor: 'rgba(255, 102, 0, 0.05)',
+                                    },
+                                  }}
+                                >
+                                  Sign in with SSO
+                                </Button>
+                              </Box>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -2580,35 +2607,46 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           </Card>
 
           {/* Footer / Login <-> Registration switch (Cloud only) */}
-          {!mfaRequired && !isResetPasswordMode && !isAdminSetup && serverMode === 'cloud' && !loginWithSSO && (
-            <Box sx={{ textAlign: 'center', mt: 3, display: 'flex', flexDirection: 'column', gap: 1 }}>
-              <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))' }}>
-                {isRegister ? 'Already have an account?' : 'Do not have an account?'}{' '}
-                <Box
-                  component="button"
-                  type="button"
-                  onClick={() => {
-                    const next = isRegister ? 'login' : 'register';
-                    setAuthMode(next);
-                    setError('');
-                    setNotice('');
-                    setPassword('');
-                  }}
-                  sx={{
-                    background: 'none',
-                    border: 'none',
-                    p: 0,
-                    cursor: 'pointer',
-                    font: 'inherit',
-                    color: '#FF6600',
-                    fontWeight: 600,
-                  }}
-                >
-                  {isRegister ? 'Sign in' : 'Sign up'}
+          <AnimatePresence initial={false}>
+            {!mfaRequired && !isResetPasswordMode && !isAdminSetup && serverMode === 'cloud' && !loginWithSSO && (
+              <motion.div
+                key="cloud-footer-section"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+                style={{ overflow: 'hidden' }}
+              >
+                <Box sx={{ textAlign: 'center', pt: 3, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Typography sx={{ fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))' }}>
+                    {isRegister ? 'Already have an account?' : 'Do not have an account?'}{' '}
+                    <Box
+                      component="button"
+                      type="button"
+                      onClick={() => {
+                        const next = isRegister ? 'login' : 'register';
+                        setAuthMode(next);
+                        setError('');
+                        setNotice('');
+                        setPassword('');
+                      }}
+                      sx={{
+                        background: 'none',
+                        border: 'none',
+                        p: 0,
+                        cursor: 'pointer',
+                        font: 'inherit',
+                        color: '#FF6600',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {isRegister ? 'Sign in' : 'Sign up'}
+                    </Box>
+                  </Typography>
                 </Box>
-              </Typography>
-            </Box>
-          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       </Box>
     </Box>
