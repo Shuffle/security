@@ -48,6 +48,7 @@ import { Route as CondUsecasesIndexRouteImport } from './routes/_cond.usecases.i
 import { Route as CondVulnerabilitiesIndexRouteImport } from './routes/_cond.vulnerabilities.index'
 import { Route as CondVulnerabilitiesSplatRouteImport } from './routes/_cond.vulnerabilities.$'
 import { Route as DashAdminIndexRouteImport } from './routes/_dash.admin.index'
+import { Route as DashAdminDatastoreRouteImport } from './routes/_dash.admin.datastore'
 import { Route as DashAdminLocationsRouteImport } from './routes/_dash.admin.locations'
 import { Route as DashAdminPreferencesRouteImport } from './routes/_dash.admin.preferences'
 import { Route as DashAdminRuntimeLocationsRouteImport } from './routes/_dash.admin.runtime-locations'
@@ -293,6 +294,11 @@ const CondVulnerabilitiesSplatRoute =
 const DashAdminIndexRoute = DashAdminIndexRouteImport.update({
   id: '/admin/',
   path: '/admin/',
+  getParentRoute: () => DashRoute,
+} as any)
+const DashAdminDatastoreRoute = DashAdminDatastoreRouteImport.update({
+  id: '/admin/datastore',
+  path: '/admin/datastore',
   getParentRoute: () => DashRoute,
 } as any)
 const DashAdminLocationsRoute = DashAdminLocationsRouteImport.update({
@@ -604,6 +610,7 @@ export interface FileRoutesByFullPath {
   '/apps/$appname': typeof CondAppsAppnameRoute
   '/forms/$id': typeof CondFormsIdRoute
   '/vulnerabilities/$': typeof CondVulnerabilitiesSplatRoute
+  '/admin/datastore': typeof DashAdminDatastoreRoute
   '/admin/locations': typeof DashAdminLocationsRoute
   '/admin/preferences': typeof DashAdminPreferencesRoute
   '/admin/runtime-locations': typeof DashAdminRuntimeLocationsRoute
@@ -694,6 +701,7 @@ export interface FileRoutesByTo {
   '/apps/$appname': typeof CondAppsAppnameRoute
   '/forms/$id': typeof CondFormsIdRoute
   '/vulnerabilities/$': typeof CondVulnerabilitiesSplatRoute
+  '/admin/datastore': typeof DashAdminDatastoreRoute
   '/admin/locations': typeof DashAdminLocationsRoute
   '/admin/preferences': typeof DashAdminPreferencesRoute
   '/admin/runtime-locations': typeof DashAdminRuntimeLocationsRoute
@@ -788,6 +796,7 @@ export interface FileRoutesById {
   '/_cond/apps/$appname': typeof CondAppsAppnameRoute
   '/_cond/forms/$id': typeof CondFormsIdRoute
   '/_cond/vulnerabilities/$': typeof CondVulnerabilitiesSplatRoute
+  '/_dash/admin/datastore': typeof DashAdminDatastoreRoute
   '/_dash/admin/locations': typeof DashAdminLocationsRoute
   '/_dash/admin/preferences': typeof DashAdminPreferencesRoute
   '/_dash/admin/runtime-locations': typeof DashAdminRuntimeLocationsRoute
@@ -880,6 +889,7 @@ export interface FileRouteTypes {
     | '/apps/$appname'
     | '/forms/$id'
     | '/vulnerabilities/$'
+    | '/admin/datastore'
     | '/admin/locations'
     | '/admin/preferences'
     | '/admin/runtime-locations'
@@ -970,6 +980,7 @@ export interface FileRouteTypes {
     | '/apps/$appname'
     | '/forms/$id'
     | '/vulnerabilities/$'
+    | '/admin/datastore'
     | '/admin/locations'
     | '/admin/preferences'
     | '/admin/runtime-locations'
@@ -1063,6 +1074,7 @@ export interface FileRouteTypes {
     | '/_cond/apps/$appname'
     | '/_cond/forms/$id'
     | '/_cond/vulnerabilities/$'
+    | '/_dash/admin/datastore'
     | '/_dash/admin/locations'
     | '/_dash/admin/preferences'
     | '/_dash/admin/runtime-locations'
@@ -1421,6 +1433,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin/'
       preLoaderRoute: typeof DashAdminIndexRouteImport
+      parentRoute: typeof DashRoute
+    }
+    '/_dash/admin/datastore': {
+      id: '/_dash/admin/datastore'
+      path: '/admin/datastore'
+      fullPath: '/admin/datastore'
+      preLoaderRoute: typeof DashAdminDatastoreRouteImport
       parentRoute: typeof DashRoute
     }
     '/_dash/admin/locations': {
@@ -1823,6 +1842,7 @@ interface DashRouteChildren {
   DashSettingsRoute: typeof DashSettingsRoute
   DashTemplatesRoute: typeof DashTemplatesRoute
   DashUsersRoute: typeof DashUsersRoute
+  DashAdminDatastoreRoute: typeof DashAdminDatastoreRoute
   DashAdminLocationsRoute: typeof DashAdminLocationsRoute
   DashAdminPreferencesRoute: typeof DashAdminPreferencesRoute
   DashAdminRuntimeLocationsRoute: typeof DashAdminRuntimeLocationsRoute
@@ -1878,6 +1898,7 @@ const DashRouteChildren: DashRouteChildren = {
   DashSettingsRoute: DashSettingsRoute,
   DashTemplatesRoute: DashTemplatesRoute,
   DashUsersRoute: DashUsersRoute,
+  DashAdminDatastoreRoute: DashAdminDatastoreRoute,
   DashAdminLocationsRoute: DashAdminLocationsRoute,
   DashAdminPreferencesRoute: DashAdminPreferencesRoute,
   DashAdminRuntimeLocationsRoute: DashAdminRuntimeLocationsRoute,

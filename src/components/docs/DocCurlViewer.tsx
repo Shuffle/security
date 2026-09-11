@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { Box, Typography, Button, Chip, CircularProgress, Collapse } from '@mui/material';
 import { useUserApiKey } from '@/hooks/useUserApiKey';
 import { getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
@@ -187,58 +187,140 @@ export function parseCurlCommand(raw: string): ParsedCurl {
   };
 }
 
-/**
- * Highlight and format JSON tokens for clean display.
- */
-function renderJsonLine(line: string, index: number) {
-  // Regex parsing key-value pairs or tokens in formatted JSON
-  // Group 1: Leading whitespace
-  // Group 2: Key "string":
-  // Group 3: String value "string"
-  // Group 4: Number / Boolean / Null
-  // Group 5: Punctuation { } [ ] ,
-  const regex = /^(\s*)(?:(".*?")(\s*:\s*))?(.*)$/;
-  const match = line.match(regex);
-
-  if (!match) {
-    return <div key={index}>{line}</div>;
-  }
-
-  const [, indent, keyPart, colonPart, valPart] = match;
-
-  return (
-    <div key={index} style={{ whiteSpace: 'pre' }}>
-      <span>{indent}</span>
-      {keyPart && <span style={{ color: '#7dd3fc', fontWeight: 500 }}>{keyPart}</span>}
-      {colonPart && <span style={{ color: '#94a3b8' }}>{colonPart}</span>}
-      {valPart && renderJsonValue(valPart)}
-    </div>
-  );
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
-function renderJsonValue(val: string) {
-  const trimmed = val.trim();
-  if (trimmed.startsWith('"')) {
-    const hasComma = trimmed.endsWith(',');
-    const str = hasComma ? trimmed.slice(0, -1) : trimmed;
-    return (
-      <>
-        <span style={{ color: '#86efac' }}>{str}</span>
-        {hasComma && <span style={{ color: '#94a3b8' }}>,</span>}
-      </>
-    );
+/**
+ * Token-based syntax highlighter for cURL commands.
+ */
+function highlightCurl(code: string): string {
+  const COL = {
+    curl: '#38bdf8',      // cyan
+    flag: '#f59e0b',      // amber
+    method: '#10b981',    // emerald
+    string: '#86efac',    // light green
+    url: '#60a5fa',       // blue
+    key: '#c084fc',       // purple
+    authKey: '#facc15',   // yellow
+    number: '#fdba74',    // orange
+    punct: '#94a3b8',     // slate
+    backslash: '#64748b', // muted slate
+  };
+
+  const wrap = (color: string, text: string, fontWeight: string = 'normal') =>
+    `<span style="color:${color};font-weight:${fontWeight}">${escapeHtml(text)}</span>`;
+
+  const out: string[] = [];
+  let i = 0;
+  const n = code.length;
+
+  while (i < n) {
+    const ch = code[i];
+
+    // Trailing backslash
+    if (ch === '\\') {
+      out.push(wrap(COL.backslash, ch, 'bold'));
+      i++;
+      continue;
+    }
+
+    // Quoted strings
+    if (ch === "'" || ch === '"') {
+      const quote = ch;
+      let j = i + 1;
+      let isJsonPayload = false;
+
+      // Check if quote begins an indented/multiline JSON body
+      if (quote === "'" && (code[j] === '{' || code[j] === '[' || code.slice(j, j + 10).includes('{'))) {
+        isJsonPayload = true;
+      }
+
+      if (isJsonPayload) {
+        out.push(wrap(COL.punct, quote));
+        i++;
+        continue;
+      }
+
+      // Normal string
+      while (j < n && code[j] !== quote) {
+        if (code[j] === '\\' && j + 1 < n) j += 2;
+        else j++;
+      }
+      j = Math.min(j + 1, n);
+      const strVal = code.slice(i, j);
+
+      if (strVal.includes('http://') || strVal.includes('https://') || strVal.startsWith("'/api/") || strVal.startsWith('"/api/')) {
+        out.push(wrap(COL.url, strVal));
+      } else if (strVal.toLowerCase().includes('bearer ')) {
+        const parts = strVal.split(/(bearer\s+)/i);
+        if (parts.length >= 3) {
+          out.push(wrap(COL.key, parts[0]));
+          out.push(wrap(COL.punct, parts[1]));
+          out.push(wrap(COL.authKey, parts.slice(2).join(''), 'bold'));
+        } else {
+          out.push(wrap(COL.string, strVal));
+        }
+      } else {
+        out.push(wrap(COL.string, strVal));
+      }
+      i = j;
+      continue;
+    }
+
+    // Flags: -X, -H, -d, --data, etc.
+    if (ch === '-' && (i === 0 || /\s/.test(code[i - 1]))) {
+      let j = i + 1;
+      if (j < n && code[j] === '-') j++;
+      while (j < n && /[\w-]/.test(code[j])) j++;
+      const flag = code.slice(i, j);
+      out.push(wrap(COL.flag, flag, 'bold'));
+      i = j;
+      continue;
+    }
+
+    // Numbers
+    if (/\d/.test(ch)) {
+      let j = i;
+      while (j < n && /[\d.]/.test(code[j])) j++;
+      out.push(wrap(COL.number, code.slice(i, j)));
+      i = j;
+      continue;
+    }
+
+    // Identifiers & methods
+    if (/[A-Za-z_]/.test(ch)) {
+      let j = i;
+      while (j < n && /[\w]/.test(code[j])) j++;
+      const word = code.slice(i, j);
+      if (word === 'curl') {
+        out.push(wrap(COL.curl, word, 'bold'));
+      } else if (['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'].includes(word.toUpperCase())) {
+        out.push(wrap(COL.method, word, 'bold'));
+      } else {
+        out.push(escapeHtml(word));
+      }
+      i = j;
+      continue;
+    }
+
+    // Punctuation & symbols
+    if (['{', '}', '[', ']', ':', ','].includes(ch)) {
+      out.push(wrap(COL.punct, ch));
+      i++;
+      continue;
+    }
+
+    out.push(escapeHtml(ch));
+    i++;
   }
-  if (/^(true|false|null|\d+(\.\d+)?),?$/.test(trimmed)) {
-    const hasComma = trimmed.endsWith(',');
-    const valText = hasComma ? trimmed.slice(0, -1) : trimmed;
-    return (
-      <>
-        <span style={{ color: '#fdba74' }}>{valText}</span>
-        {hasComma && <span style={{ color: '#94a3b8' }}>,</span>}
-      </>
-    );
-  }
-  return <span style={{ color: '#cbd5e1' }}>{val}</span>;
+
+  return out.join('');
 }
 
 export const DocCurlViewer: React.FC<DocCurlViewerProps> = ({ rawCurl }) => {
@@ -250,6 +332,20 @@ export const DocCurlViewer: React.FC<DocCurlViewerProps> = ({ rawCurl }) => {
   const [responseStatus, setResponseStatus] = useState<string | null>(null);
   const [responseDuration, setResponseDuration] = useState<number | null>(null);
   const [isResponseOpen, setIsResponseOpen] = useState(false);
+
+  // User edited command state
+  const [editedCommand, setEditedCommand] = useState<string | null>(null);
+
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const highlightRef = useRef<HTMLDivElement | null>(null);
+
+  // Synchronize scroll between textarea and syntax highlight overlay
+  const handleScroll = useCallback((e: React.UIEvent<HTMLTextAreaElement>) => {
+    if (highlightRef.current) {
+      highlightRef.current.scrollTop = e.currentTarget.scrollTop;
+      highlightRef.current.scrollLeft = e.currentTarget.scrollLeft;
+    }
+  }, []);
 
   // Parse constituent parts of raw cURL
   const parsed = useMemo(() => parseCurlCommand(rawCurl), [rawCurl]);
@@ -291,7 +387,6 @@ export const DocCurlViewer: React.FC<DocCurlViewerProps> = ({ rawCurl }) => {
         result.push({ key: h.key, value: val, isAuth });
       }
 
-      // If no auth header was in original cURL, add standard Authorization header
       if (!hasAuth && parsed.headers.length === 0) {
         result.push({
           key: 'Authorization',
@@ -313,7 +408,31 @@ export const DocCurlViewer: React.FC<DocCurlViewerProps> = ({ rawCurl }) => {
     return parsed.rawBody;
   }, [parsed.bodyJson, parsed.rawBody]);
 
-  // Generate plain-text executable cURL command for clipboard copy and HTTP execution
+  // Default display command
+  const initialDisplayCommand = useMemo(() => {
+    const lines: string[] = [];
+    const headers = getProcessedHeaders(!showKey);
+
+    lines.push(`curl -X ${parsed.method} '${targetUrl}' \\`);
+
+    for (let i = 0; i < headers.length; i++) {
+      const h = headers[i];
+      const isLast = i === headers.length - 1 && !formattedJsonString;
+      lines.push(`  -H '${h.key}: ${h.value}'${isLast ? '' : ' \\'}`);
+    }
+
+    if (formattedJsonString) {
+      const indentedJson = formattedJsonString
+        .split('\n')
+        .map((l, idx) => (idx === 0 ? l : `    ${l}`))
+        .join('\n');
+      lines.push(`  -d '${indentedJson}'`);
+    }
+
+    return lines.join('\n');
+  }, [parsed.method, targetUrl, getProcessedHeaders, showKey, formattedJsonString]);
+
+  // Executable command with unmasked key
   const runnableCommand = useMemo(() => {
     const lines: string[] = [];
     const headers = getProcessedHeaders(false);
@@ -337,13 +456,46 @@ export const DocCurlViewer: React.FC<DocCurlViewerProps> = ({ rawCurl }) => {
     return lines.join('\n');
   }, [parsed.method, targetUrl, getProcessedHeaders, formattedJsonString]);
 
+  // Active command (current text being shown and edited)
+  const currentCommand = editedCommand !== null ? editedCommand : initialDisplayCommand;
+  const isModified = editedCommand !== null && editedCommand !== initialDisplayCommand;
+
+  // Real command to execute or copy (substituting real apiKey if masked key exists in user edited text)
+  const runnableActiveCommand = useMemo(() => {
+    if (editedCommand === null) return runnableCommand;
+    if (apiKey && maskedApiKey && editedCommand.includes(maskedApiKey)) {
+      return editedCommand.replaceAll(maskedApiKey, apiKey);
+    }
+    return editedCommand;
+  }, [editedCommand, runnableCommand, apiKey, maskedApiKey]);
+
+  // Reset handler
+  const handleReset = useCallback(() => {
+    setEditedCommand(null);
+    toast.success('cURL command reset');
+  }, []);
+
   // Copy handler
   const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(runnableCommand);
+    navigator.clipboard.writeText(runnableActiveCommand);
     setCopied(true);
     toast.success('cURL command copied to clipboard');
     setTimeout(() => setCopied(false), 2000);
-  }, [runnableCommand]);
+  }, [runnableActiveCommand]);
+
+  // Toggle key visibility
+  const handleToggleKey = useCallback(() => {
+    const nextShowKey = !showKey;
+    setShowKey(nextShowKey);
+
+    if (editedCommand !== null && apiKey && maskedApiKey) {
+      if (nextShowKey) {
+        setEditedCommand(editedCommand.replaceAll(maskedApiKey, apiKey));
+      } else {
+        setEditedCommand(editedCommand.replaceAll(apiKey, maskedApiKey));
+      }
+    }
+  }, [showKey, editedCommand, apiKey, maskedApiKey]);
 
   // Run in Shuffle via HTTP App
   const handleRun = useCallback(async () => {
@@ -361,7 +513,7 @@ export const DocCurlViewer: React.FC<DocCurlViewerProps> = ({ rawCurl }) => {
         parameters: [
           {
             name: 'statement',
-            value: runnableCommand,
+            value: runnableActiveCommand,
             schema: { type: 'string' },
           },
         ],
@@ -412,12 +564,7 @@ export const DocCurlViewer: React.FC<DocCurlViewerProps> = ({ rawCurl }) => {
     } finally {
       setIsRunning(false);
     }
-  }, [runnableCommand]);
-
-  const displayHeaders = useMemo(
-    () => getProcessedHeaders(!showKey),
-    [getProcessedHeaders, showKey]
-  );
+  }, [runnableActiveCommand]);
 
   const methodColor = useMemo(() => {
     switch (parsed.method) {
@@ -443,8 +590,7 @@ export const DocCurlViewer: React.FC<DocCurlViewerProps> = ({ rawCurl }) => {
         borderColor: 'divider',
         borderRadius: '6px',
         overflow: 'hidden',
-        backgroundColor: 'background.paper',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+        backgroundColor: 'transparent',
         fontFamily: 'monospace',
       }}
     >
@@ -458,8 +604,7 @@ export const DocCurlViewer: React.FC<DocCurlViewerProps> = ({ rawCurl }) => {
           py: 1,
           borderBottom: '1px solid',
           borderColor: 'divider',
-          backgroundColor: (theme) =>
-            theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+          backgroundColor: 'transparent',
           flexWrap: 'wrap',
           gap: 1,
         }}
@@ -492,18 +637,20 @@ export const DocCurlViewer: React.FC<DocCurlViewerProps> = ({ rawCurl }) => {
             cURL
           </Typography>
 
-          <Chip
-            label={isAuthenticated && apiKey ? 'Active Key' : 'Demo Key'}
-            size="small"
-            variant="outlined"
-            sx={{
-              height: '20px',
-              fontSize: '0.68rem',
-              borderColor: isAuthenticated && apiKey ? 'success.main' : 'divider',
-              color: isAuthenticated && apiKey ? 'success.main' : 'text.secondary',
-              borderRadius: '3px',
-            }}
-          />
+          {isAuthenticated && apiKey && (
+            <Chip
+              label="Active Key"
+              size="small"
+              variant="outlined"
+              sx={{
+                height: '20px',
+                fontSize: '0.68rem',
+                borderColor: 'success.main',
+                color: 'success.main',
+                borderRadius: '3px',
+              }}
+            />
+          )}
         </Box>
 
         {/* Right Actions */}
@@ -511,7 +658,7 @@ export const DocCurlViewer: React.FC<DocCurlViewerProps> = ({ rawCurl }) => {
           {isAuthenticated && apiKey && (
             <Button
               size="small"
-              onClick={() => setShowKey(!showKey)}
+              onClick={handleToggleKey}
               sx={{
                 textTransform: 'none',
                 fontSize: '0.75rem',
@@ -523,6 +670,28 @@ export const DocCurlViewer: React.FC<DocCurlViewerProps> = ({ rawCurl }) => {
               }}
             >
               {showKey ? 'Hide Key' : 'Show Key'}
+            </Button>
+          )}
+
+          {isModified && (
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={handleReset}
+              sx={{
+                textTransform: 'none',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                height: '26px',
+                py: 0,
+                px: 1.2,
+                borderRadius: '4px',
+                borderColor: 'divider',
+                color: 'text.secondary',
+                '&:hover': { color: 'text.primary', borderColor: 'text.secondary' },
+              }}
+            >
+              Reset
             </Button>
           )}
 
@@ -578,81 +747,73 @@ export const DocCurlViewer: React.FC<DocCurlViewerProps> = ({ rawCurl }) => {
         </Box>
       </Box>
 
-      {/* Code Display Area */}
+      {/* Editable Code Area */}
       <Box
         sx={{
-          p: 1.5,
-          fontSize: '0.82rem',
-          lineHeight: 1.6,
-          overflowX: 'auto',
-          backgroundColor: (theme) =>
-            theme.palette.mode === 'dark' ? '#0f172a' : '#f8fafc',
-          color: (theme) =>
-            theme.palette.mode === 'dark' ? '#e2e8f0' : '#1e293b',
+          position: 'relative',
+          width: '100%',
+          backgroundColor: 'transparent',
+          overflow: 'hidden',
         }}
       >
-        {/* Line 1: curl -X METHOD 'URL' \ */}
-        <div style={{ whiteSpace: 'pre' }}>
-          <span style={{ color: '#38bdf8', fontWeight: 600 }}>curl</span>
-          <span> </span>
-          <span style={{ color: '#f59e0b' }}>-X</span>
-          <span> </span>
-          <span style={{ color: methodColor, fontWeight: 600 }}>{parsed.method}</span>
-          <span> </span>
-          <span style={{ color: '#60a5fa' }}>'{targetUrl}'</span>
-          {(displayHeaders.length > 0 || formattedJsonString) && (
-            <span style={{ color: '#64748b' }}> \</span>
-          )}
-        </div>
+        {/* Highlighted text layer */}
+        <Box
+          ref={highlightRef}
+          aria-hidden
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            p: 1.5,
+            m: 0,
+            fontFamily: 'Consolas, Monaco, "Courier New", monospace',
+            fontSize: '0.82rem',
+            lineHeight: 1.6,
+            letterSpacing: 'normal',
+            whiteSpace: 'pre',
+            overflow: 'hidden',
+            pointerEvents: 'none',
+            color: 'text.primary',
+            boxSizing: 'border-box',
+            border: 'none',
+          }}
+          dangerouslySetInnerHTML={{ __html: highlightCurl(currentCommand) + '\n' }}
+        />
 
-        {/* Header Lines */}
-        {displayHeaders.map((h, idx) => {
-          const isLast = idx === displayHeaders.length - 1 && !formattedJsonString;
-          return (
-            <div key={`h-${idx}`} style={{ whiteSpace: 'pre' }}>
-              <span>  </span>
-              <span style={{ color: '#f59e0b' }}>-H</span>
-              <span style={{ color: '#94a3b8' }}> '</span>
-              <span style={{ color: '#c084fc', fontWeight: 500 }}>{h.key}:</span>
-              <span> </span>
-              {h.isAuth && h.value.startsWith('Bearer ') ? (
-                <>
-                  <span style={{ color: '#94a3b8' }}>Bearer </span>
-                  <span style={{ color: '#facc15', fontWeight: 600 }}>
-                    {h.value.replace(/^Bearer\s*/, '')}
-                  </span>
-                </>
-              ) : (
-                <span style={{ color: '#86efac' }}>{h.value}</span>
-              )}
-              <span style={{ color: '#94a3b8' }}>'</span>
-              {!isLast && <span style={{ color: '#64748b' }}> \</span>}
-            </div>
-          );
-        })}
-
-        {/* Body Lines */}
-        {formattedJsonString && (
-          <>
-            <div style={{ whiteSpace: 'pre' }}>
-              <span>  </span>
-              <span style={{ color: '#f59e0b' }}>-d</span>
-              <span style={{ color: '#94a3b8' }}> '&#123;</span>
-            </div>
-            {formattedJsonString
-              .split('\n')
-              .slice(1, -1)
-              .map((line, idx) => (
-                <div key={`body-${idx}`} style={{ paddingLeft: '16px' }}>
-                  {renderJsonLine(line, idx)}
-                </div>
-              ))}
-            <div style={{ whiteSpace: 'pre' }}>
-              <span>  </span>
-              <span style={{ color: '#94a3b8' }}>&#125;'</span>
-            </div>
-          </>
-        )}
+        {/* Interactive textarea layer */}
+        <Box
+          component="textarea"
+          ref={textareaRef}
+          value={currentCommand}
+          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditedCommand(e.target.value)}
+          onScroll={handleScroll}
+          spellCheck={false}
+          rows={Math.max(3, currentCommand.split('\n').length)}
+          sx={{
+            position: 'relative',
+            display: 'block',
+            width: '100%',
+            p: 1.5,
+            m: 0,
+            fontFamily: 'Consolas, Monaco, "Courier New", monospace',
+            fontSize: '0.82rem',
+            lineHeight: 1.6,
+            letterSpacing: 'normal',
+            color: 'transparent',
+            WebkitTextFillColor: 'transparent',
+            backgroundColor: 'transparent',
+            border: 'none',
+            outline: 'none',
+            resize: 'vertical',
+            caretColor: (theme) => (theme.palette.mode === 'dark' ? '#38bdf8' : '#0284c7'),
+            whiteSpace: 'pre',
+            overflow: 'auto',
+            boxSizing: 'border-box',
+            '&::selection': {
+              color: 'inherit',
+              backgroundColor: 'rgba(56, 189, 248, 0.25)',
+            },
+          }}
+        />
       </Box>
 
       {/* Inline Test Response Panel */}
@@ -661,8 +822,7 @@ export const DocCurlViewer: React.FC<DocCurlViewerProps> = ({ rawCurl }) => {
           sx={{
             borderTop: '1px solid',
             borderColor: 'divider',
-            backgroundColor: (theme) =>
-              theme.palette.mode === 'dark' ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.03)',
+            backgroundColor: 'transparent',
             p: 1.5,
           }}
         >
@@ -761,10 +921,8 @@ export const DocCurlViewer: React.FC<DocCurlViewerProps> = ({ rawCurl }) => {
               fontSize: '0.78rem',
               maxHeight: '280px',
               overflowY: 'auto',
-              backgroundColor: (theme) =>
-                theme.palette.mode === 'dark' ? '#090d16' : '#f1f5f9',
-              color: (theme) =>
-                theme.palette.mode === 'dark' ? '#cbd5e1' : '#334155',
+              backgroundColor: 'transparent',
+              color: (theme) => (theme.palette.mode === 'dark' ? '#cbd5e1' : '#334155'),
               border: '1px solid',
               borderColor: 'divider',
               whiteSpace: 'pre-wrap',

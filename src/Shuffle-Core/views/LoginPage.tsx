@@ -1158,22 +1158,34 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const primaryColor = theme.palette.primary.main;
 
   const inputSx = {
+    height: '46px',
     bgcolor: 'hsl(var(--background))',
     color: 'hsl(var(--foreground))',
-    borderRadius: 2,
+    borderRadius: '10px',
     fontSize: '0.875rem',
+    boxSizing: 'border-box',
     '& .MuiOutlinedInput-input': {
-      py: '11px',
+      height: '46px',
+      boxSizing: 'border-box',
+      py: 0,
+      color: 'hsl(var(--foreground))',
+      fontSize: '0.875rem',
     },
     '& input': {
+      height: '46px',
+      boxSizing: 'border-box',
       color: 'hsl(var(--foreground))',
-      py: '11px',
+      fontSize: '0.875rem',
+      py: 0,
     },
     '& input::placeholder': {
       color: 'hsl(var(--muted-foreground))',
       opacity: 0.8,
     },
-    '& fieldset': { borderColor: 'hsl(var(--border))' },
+    '& fieldset': {
+      borderColor: 'hsl(var(--border))',
+      borderRadius: '10px',
+    },
     '&:hover fieldset': { borderColor: '#FF6600' },
     '&.Mui-focused fieldset': { borderColor: '#FF6600' },
   };
@@ -1400,26 +1412,35 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                             }
                           }
                         }}
-                        size="small"
                         fullWidth
                         autoCapitalize="none"
                         autoCorrect="off"
                         InputProps={{
                           sx: {
+                            height: '46px',
                             bgcolor: 'hsl(var(--card))',
                             color: 'hsl(var(--foreground))',
-                            borderRadius: 2,
-                            fontSize: '0.85rem',
+                            borderRadius: '10px',
+                            fontSize: '0.875rem',
                             pr: 0.75,
+                            boxSizing: 'border-box',
                             '& .MuiOutlinedInput-input': {
-                              py: '11px',
+                              height: '46px',
+                              boxSizing: 'border-box',
+                              py: 0,
                               color: 'hsl(var(--foreground))',
+                              fontSize: '0.875rem',
                             },
                             '& input': {
+                              height: '46px',
+                              boxSizing: 'border-box',
                               color: 'hsl(var(--foreground))',
-                              py: '11px',
+                              py: 0,
                             },
-                            '& fieldset': { borderColor: 'hsl(var(--border))' },
+                            '& fieldset': {
+                              borderColor: 'hsl(var(--border))',
+                              borderRadius: '10px',
+                            },
                             '&:hover fieldset': { borderColor: '#FF6600' },
                             '&.Mui-focused fieldset': { borderColor: '#FF6600' },
                           },
@@ -1985,8 +2006,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         <Box sx={{ mb: 2.5 }}>
                           <Typography
                             sx={{
-                              fontSize: '0.8rem',
-                              fontWeight: 600,
+                              fontSize: '0.875rem',
+                              fontWeight: 500,
                               color: 'hsl(var(--foreground))',
                               mb: 0.75,
                             }}
@@ -1997,7 +2018,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                             placeholder="analyst@organization.com"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
-                            size="small"
                             fullWidth
                             required
                             autoCapitalize="none"
@@ -2090,8 +2110,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         <Box sx={{ mb: 2 }}>
                           <Typography
                             sx={{
-                              fontSize: '0.8rem',
-                              fontWeight: 600,
+                              fontSize: '0.875rem',
+                              fontWeight: 500,
                               color: 'hsl(var(--foreground))',
                               mb: 0.75,
                             }}
@@ -2102,7 +2122,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                             placeholder="admin"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
-                            size="small"
                             fullWidth
                             required
                             autoCapitalize="none"
@@ -2114,8 +2133,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         <Box sx={{ mb: 2 }}>
                           <Typography
                             sx={{
-                              fontSize: '0.8rem',
-                              fontWeight: 600,
+                              fontSize: '0.875rem',
+                              fontWeight: 500,
                               color: 'hsl(var(--foreground))',
                               mb: 0.75,
                             }}
@@ -2127,7 +2146,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                             placeholder="Enter password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            size="small"
                             fullWidth
                             required
                             InputProps={{
@@ -2151,8 +2169,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         <Box sx={{ mb: 2.5 }}>
                           <Typography
                             sx={{
-                              fontSize: '0.8rem',
-                              fontWeight: 600,
+                              fontSize: '0.875rem',
+                              fontWeight: 500,
                               color: 'hsl(var(--foreground))',
                               mb: 0.75,
                             }}
@@ -2164,7 +2182,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                             placeholder="Enter password again"
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
-                            size="small"
                             fullWidth
                             required
                             InputProps={{
@@ -2242,8 +2259,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         <Box sx={{ mb: 2 }}>
                           <Typography
                             sx={{
-                              fontSize: '0.8rem',
-                              fontWeight: 600,
+                              fontSize: '0.875rem',
+                              fontWeight: 500,
                               color: 'hsl(var(--foreground))',
                               mb: 0.75,
                             }}
@@ -2264,7 +2281,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                             }
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
-                            size="small"
                             fullWidth
                             required
                             autoCapitalize="none"
@@ -2279,36 +2295,40 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.75, minHeight: 24 }}>
                               <Typography
                                 sx={{
-                                  fontSize: '0.8rem',
-                                  fontWeight: 600,
+                                  fontSize: '0.875rem',
+                                  fontWeight: 500,
                                   color: 'hsl(var(--foreground))',
                                 }}
                               >
                                 Password
                               </Typography>
                               {serverMode === 'cloud' && !isRegister && (
-                                <Button
+                                <Box
+                                  component="button"
+                                  type="button"
                                   onClick={() => {
                                     setIsResetPasswordMode(true);
                                     setError('');
                                     setResetEmailSent(false);
                                   }}
-                                  size="small"
                                   sx={{
                                     p: 0,
-                                    minWidth: 0,
-                                    fontSize: '0.75rem',
-                                    textTransform: 'none',
+                                    m: 0,
+                                    border: 'none',
+                                    background: 'transparent',
+                                    cursor: 'pointer',
+                                    fontSize: '0.8125rem',
+                                    lineHeight: 1,
                                     color: '#FF6600',
                                     fontWeight: 500,
+                                    fontFamily: 'inherit',
                                     '&:hover': {
-                                      bgcolor: 'transparent',
                                       textDecoration: 'underline',
                                     },
                                   }}
                                 >
                                   Forgot password?
-                                </Button>
+                                </Box>
                               )}
                             </Box>
                             <TextField
@@ -2316,7 +2336,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                               placeholder={isRegister ? 'At least 10 characters' : 'Enter password'}
                               value={password}
                               onChange={(e) => setPassword(e.target.value)}
-                              size="small"
                               fullWidth
                               required
                               autoComplete={isRegister ? 'new-password' : 'current-password'}
@@ -2343,8 +2362,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                           <Box sx={{ mb: 2 }}>
                             <Typography
                               sx={{
-                                fontSize: '0.8rem',
-                                fontWeight: 600,
+                                fontSize: '0.875rem',
+                                fontWeight: 500,
                                 color: 'hsl(var(--foreground))',
                                 mb: 0.75,
                               }}
@@ -2356,7 +2375,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                               placeholder="Enter password again"
                               value={confirmPassword}
                               onChange={(e) => setConfirmPassword(e.target.value)}
-                              size="small"
                               fullWidth
                               required
                               autoComplete="new-password"

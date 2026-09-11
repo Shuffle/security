@@ -23,6 +23,7 @@ import UsersPage from './UsersPage';
 import OrgPreferencesPage from './OrgPreferencesPage';
 import RuntimeLocationsTab from '@/components/settings/RuntimeLocationsTab';
 import { TenantManagement } from '@/Shuffle-Core';
+import DatastoreCategories from '@/Shuffle-Core/views/DatastoreCategories';
 import { SegmentedControl, type SegmentedItem } from '@/components/ui/segmented-control';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useTheme as useAppTheme } from '@/context/ThemeContext';
@@ -67,10 +68,14 @@ const AdminPage = () => {
     if (location.pathname === '/admin/tenants') return 2;
     if (location.pathname === '/admin/runtime-locations' || location.pathname === '/admin/locations') return 3;
     if (location.pathname === '/admin/preferences') return 4;
+    if (location.pathname === '/admin/datastore') return 5;
     const searchParams = new URLSearchParams(location.search);
     const tabParam = searchParams.get('admin_tab') || searchParams.get('tab');
+    if (tabParam === 'users') return 1;
+    if (tabParam === 'tenants') return 2;
     if (tabParam === 'runtime-locations' || tabParam === 'locations') return 3;
     if (tabParam === 'preferences') return 4;
+    if (tabParam === 'datastore') return 5;
     return 0;
   }, [location.pathname, location.search]);
 
@@ -96,6 +101,30 @@ const AdminPage = () => {
 
   // Auto-open create tenant dialog trigger
   const [createTenantTrigger, setCreateTenantTrigger] = useState(0);
+
+  // Tab redirection: /admin?tab=datastore&category=... -> /admin/datastore?category=...
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tabParam = params.get('tab') || params.get('admin_tab');
+    if (tabParam && (location.pathname === '/admin' || location.pathname === '/admin/')) {
+      const tabRoutes: Record<string, string> = {
+        datastore: '/admin/datastore',
+        users: '/admin/users',
+        tenants: '/admin/tenants',
+        'runtime-locations': '/admin/runtime-locations',
+        locations: '/admin/runtime-locations',
+        preferences: '/admin/preferences',
+      };
+      const target = tabRoutes[tabParam.toLowerCase()];
+      if (target) {
+        params.delete('tab');
+        params.delete('admin_tab');
+        const remaining = params.toString();
+        navigate(`${target}${remaining ? `?${remaining}` : ''}`, { replace: true });
+        return;
+      }
+    }
+  }, [location.pathname, location.search, navigate]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -149,6 +178,7 @@ const AdminPage = () => {
     else if (newValue === 2) navigate('/admin/tenants');
     else if (newValue === 3) navigate('/admin/runtime-locations');
     else if (newValue === 4) navigate('/admin/preferences');
+    else if (newValue === 5) navigate('/admin/datastore');
   };
 
   // Fetch org details
@@ -317,8 +347,8 @@ const AdminPage = () => {
       </Box>
 
       {(() => {
-        type TabValue = 'overview' | 'users' | 'tenants' | 'runtime-locations' | 'preferences';
-        const valueByIndex: TabValue[] = ['overview', 'users', 'tenants', 'runtime-locations', 'preferences'];
+        type TabValue = 'overview' | 'users' | 'tenants' | 'runtime-locations' | 'preferences' | 'datastore';
+        const valueByIndex: TabValue[] = ['overview', 'users', 'tenants', 'runtime-locations', 'preferences', 'datastore'];
         const currentValue: TabValue = valueByIndex[activeTab] ?? 'overview';
         const options: SegmentedItem<TabValue>[] = [
           { value: 'overview', label: 'Overview' },
@@ -326,6 +356,7 @@ const AdminPage = () => {
           { value: 'tenants', label: 'Tenants' },
           { value: 'runtime-locations', label: 'Runtime Locations' },
           { value: 'preferences', label: 'Preferences' },
+          { value: 'datastore', label: 'Datastore' },
         ];
         return (
           <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 2.5, sm: 4 }, maxWidth: '100%', overflowX: 'auto', pb: 0.5 }}>
@@ -533,6 +564,7 @@ const AdminPage = () => {
           } as any)}
         />
       )}
+      {activeTab === 5 && <DatastoreCategories embedded />}
       
     </Box>
     </>

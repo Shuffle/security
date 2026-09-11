@@ -1,13 +1,22 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
+  Avatar,
   Box,
   Button,
   ButtonBase,
   Chip,
   Collapse,
+  FormControl,
+  IconButton,
   InputBase,
+  InputLabel,
+  MenuItem,
+  Paper,
+  Select,
+  type SelectChangeEvent,
   Skeleton,
   Stack,
+  TextField,
   Tooltip,
   Typography,
 } from "@mui/material";
@@ -29,20 +38,23 @@ import { openAgentDrawer } from "@/lib/agentDrawer";
 import { fetchAuthenticatedApps } from "@/Shuffle-MCPs/authenticatedApps";
 import { resolveActiveLLMProvider } from "@/Shuffle-MCPs/llmProviderDetect";
 import { DocCurlViewer } from "./DocCurlViewer";
+import { DocIncidentDashboard } from "./DocIncidentDashboard";
 import { IngestionSourcesRow } from "@/components/ingestion/IngestionSourcesRow";
 import { useNavigate } from "@/lib/router-compat";
 import { useDatastore } from "@/hooks/useDatastore";
-import { DATASTORE_CATEGORIES } from "@/Shuffle-MCPs/datastore";
+import { DATASTORE_CATEGORIES, type CategoryAutomation } from "@/Shuffle-MCPs/datastore";
 import { useVulnerabilities } from "@/hooks/useVulnerabilities";
 import { useHostMonitorCount } from "@/hooks/useHostMonitorCount";
-import { getApiUrl, getAuthHeader } from "@/Shuffle-MCPs/api";
+import { getApiUrl, getAuthHeader, getRegionUrl, setRegionUrl, getShuffleCoreUrl } from "@/Shuffle-MCPs/api";
 import { ComponentErrorBoundary } from "@/components/common/ComponentErrorBoundary";
-import { UsecaseDrawer } from "@/Shuffle-Core";
+import { UsecaseDrawer, CategoryAutomationsDialog } from "@/Shuffle-Core";
 import { API_CONFIG } from "@/Shuffle-MCPs/api";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { AutomationReadinessBanner } from "@/components/incidents/AutomationReadinessBanner";
 import { VulnerabilityReadinessBanner } from "@/components/vulnerabilities/VulnerabilityReadinessBanner";
+import { toast } from "@/lib/toast";
+import { Rocket as RocketLaunchIcon } from "lucide-react";
 
 export interface ContentSegment {
   type: "markdown" | "component" | "expandable";
@@ -1284,13 +1296,99 @@ export const DocAutomationReadiness: React.FC<DocAutomationReadinessProps> = ({
 }) => {
   const target = (type || category || "incidents").toLowerCase();
   const isVuln = target.includes("vuln");
+  const { isAuthenticated, sessionToken, userInfo } = useAuth();
+  const isLoggedIn = Boolean(isAuthenticated && (sessionToken || userInfo?.id));
 
   return (
     <Box sx={{ my: 3 }}>
       {isVuln ? (
         <VulnerabilityReadinessBanner />
-      ) : (
+      ) : isLoggedIn ? (
         <AutomationReadinessBanner />
+      ) : (
+        <Paper
+          sx={{
+            p: 2.5,
+            bgcolor: "transparent",
+            backgroundImage: "none",
+            backdropFilter: "blur(12px)",
+            border: "1px solid hsl(var(--border))",
+            borderRadius: 2.5,
+          }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 2,
+              flexWrap: "wrap",
+              gap: 1,
+            }}
+          >
+            <Box>
+              <Typography sx={{ fontWeight: 600, fontSize: "0.95rem", color: "hsl(var(--foreground))" }}>
+                Incident Automation Readiness
+              </Typography>
+              <Typography sx={{ fontSize: "0.8rem", color: "hsl(var(--muted-foreground))" }}>
+                Foundational response workflows and status across Ingestion, Enrichment, Routing, and Default Config.
+              </Typography>
+            </Box>
+            <Chip
+              label="Public Documentation Preview"
+              size="small"
+              variant="outlined"
+              sx={{
+                height: 22,
+                fontSize: "0.72rem",
+                borderColor: "hsl(var(--border))",
+                color: "hsl(var(--muted-foreground))",
+              }}
+            />
+          </Box>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(4, 1fr)" },
+              gap: 1.5,
+            }}
+          >
+            {[
+              { label: "Ingestion", desc: "Inbound webhook trigger running", status: "Active in Cloud" },
+              { label: "Enrichment", desc: "Threat feeds & IOC extraction", status: "Active in Cloud" },
+              { label: "Assign & Escalate", desc: "SLA escalation workflows", status: "Active in Cloud" },
+              { label: "Default config", desc: "IOC types & security rules", status: "Active in Cloud" },
+            ].map((pillar) => (
+              <Box
+                key={pillar.label}
+                sx={{
+                  p: 1.5,
+                  borderRadius: 1.5,
+                  border: "1px solid hsl(var(--border))",
+                  bgcolor: "hsl(var(--muted) / 0.15)",
+                }}
+              >
+                <Typography sx={{ fontSize: "0.82rem", fontWeight: 600, color: "hsl(var(--foreground))", mb: 0.25 }}>
+                  {pillar.label}
+                </Typography>
+                <Typography sx={{ fontSize: "0.75rem", color: "hsl(var(--muted-foreground))", mb: 1 }}>
+                  {pillar.desc}
+                </Typography>
+                <Chip
+                  label={pillar.status}
+                  size="small"
+                  sx={{
+                    height: 18,
+                    fontSize: "0.68rem",
+                    bgcolor: "rgba(74, 222, 128, 0.12)",
+                    color: "#22c55e",
+                    fontWeight: 600,
+                  }}
+                />
+              </Box>
+            ))}
+          </Box>
+        </Paper>
       )}
     </Box>
   );
@@ -1299,238 +1397,7 @@ export const DocAutomationReadiness: React.FC<DocAutomationReadinessProps> = ({
 // ==========================================
 // 1. Live Incident Status & Queue Telemetry
 // ==========================================
-interface DocIncidentStatusProps {
-  title?: string;
-  subtitle?: string;
-}
-
-export const DocIncidentStatus: React.FC<DocIncidentStatusProps> = ({
-  title = "Live Incident Queue & Health",
-  subtitle = "Real-time queue metrics and telemetry from your active Shuffle incident pipeline.",
-}) => {
-  const navigate = useNavigate();
-  const { items, isLoading, fetchItems } = useDatastore({
-    category: DATASTORE_CATEGORIES.INCIDENTS,
-  });
-
-  const counts = useMemo(() => {
-    let open = 0;
-    let newCount = 0;
-    let inProgress = 0;
-    let critical = 0;
-    let resolved = 0;
-
-    for (const item of items) {
-      try {
-        const val =
-          typeof item?.value === "string" ? JSON.parse(item.value) : item?.value;
-        const status = String(val?.status || val?.status_id || "").toLowerCase();
-        const sev = String(val?.severity || val?.severity_id || "").toLowerCase();
-
-        if (status === "resolved" || status === "closed") {
-          resolved++;
-        } else {
-          open++;
-          if (status === "in_progress" || status === "in progress") inProgress++;
-          else newCount++;
-        }
-
-        if (sev === "critical" || sev === "high" || sev === "1" || sev === "2") {
-          critical++;
-        }
-      } catch {
-        // ignore parse error
-      }
-    }
-
-    return { total: items.length, open, newCount, inProgress, critical, resolved };
-  }, [items]);
-
-  return (
-    <Box
-      sx={{
-        my: 3,
-        p: 2.5,
-        borderRadius: 2.5,
-        border: "1px solid hsl(var(--border))",
-        backgroundColor: "hsl(var(--card))",
-      }}
-    >
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: 1.5,
-          mb: 2,
-        }}
-      >
-        <Box>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
-            <Box
-              sx={{
-                width: 8,
-                height: 8,
-                borderRadius: "50%",
-                bgcolor: "#22c55e",
-                boxShadow: "0 0 8px #22c55e",
-              }}
-            />
-            <Typography
-              sx={{
-                fontSize: "1.05rem",
-                fontWeight: 600,
-                color: "hsl(var(--foreground))",
-              }}
-            >
-              {title}
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{
-                px: 1,
-                py: 0.25,
-                borderRadius: 1,
-                bgcolor: "rgba(34, 197, 94, 0.12)",
-                color: "#22c55e",
-                fontWeight: 600,
-                fontSize: "0.72rem",
-              }}
-            >
-              Live Telemetry
-            </Typography>
-          </Box>
-          {subtitle && (
-            <Typography
-              sx={{
-                fontSize: "0.85rem",
-                color: "hsl(var(--muted-foreground))",
-              }}
-            >
-              {subtitle}
-            </Typography>
-          )}
-        </Box>
-        <Stack direction="row" spacing={1}>
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={() => fetchItems()}
-            disabled={isLoading}
-            sx={{
-              textTransform: "none",
-              fontWeight: 500,
-              borderRadius: 1.5,
-            }}
-          >
-            {isLoading ? "Refreshing..." : "Refresh"}
-          </Button>
-          <Button
-            variant="contained"
-            size="small"
-            onClick={() => navigate("/incidents")}
-            sx={{
-              textTransform: "none",
-              fontWeight: 600,
-              borderRadius: 1.5,
-            }}
-          >
-            Open Incidents
-          </Button>
-        </Stack>
-      </Box>
-
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: { xs: "repeat(2, 1fr)", sm: "repeat(4, 1fr)" },
-          gap: 1.5,
-        }}
-      >
-        <Box
-          onClick={() => navigate("/incidents?status=new")}
-          sx={{
-            p: 1.75,
-            borderRadius: 2,
-            border: "1px solid hsl(var(--border))",
-            bgcolor: "hsl(var(--background))",
-            cursor: "pointer",
-            transition: "all 0.15s ease",
-            "&:hover": { borderColor: "hsl(var(--primary))", transform: "translateY(-1px)" },
-          }}
-        >
-          <Typography sx={{ fontSize: "0.75rem", color: "hsl(var(--muted-foreground))", fontWeight: 500, mb: 0.5 }}>
-            New Detections
-          </Typography>
-          <Typography sx={{ fontSize: "1.4rem", fontWeight: 700, color: "hsl(var(--foreground))" }}>
-            {isLoading ? <Skeleton width={40} height={32} /> : counts.newCount}
-          </Typography>
-        </Box>
-
-        <Box
-          onClick={() => navigate("/incidents?status=in_progress")}
-          sx={{
-            p: 1.75,
-            borderRadius: 2,
-            border: "1px solid hsl(var(--border))",
-            bgcolor: "hsl(var(--background))",
-            cursor: "pointer",
-            transition: "all 0.15s ease",
-            "&:hover": { borderColor: "hsl(var(--primary))", transform: "translateY(-1px)" },
-          }}
-        >
-          <Typography sx={{ fontSize: "0.75rem", color: "hsl(var(--muted-foreground))", fontWeight: 500, mb: 0.5 }}>
-            In Progress
-          </Typography>
-          <Typography sx={{ fontSize: "1.4rem", fontWeight: 700, color: "hsl(var(--foreground))" }}>
-            {isLoading ? <Skeleton width={40} height={32} /> : counts.inProgress}
-          </Typography>
-        </Box>
-
-        <Box
-          onClick={() => navigate("/incidents?severity=critical")}
-          sx={{
-            p: 1.75,
-            borderRadius: 2,
-            border: "1px solid rgba(239, 68, 68, 0.25)",
-            bgcolor: "rgba(239, 68, 68, 0.04)",
-            cursor: "pointer",
-            transition: "all 0.15s ease",
-            "&:hover": { borderColor: "#ef4444", transform: "translateY(-1px)" },
-          }}
-        >
-          <Typography sx={{ fontSize: "0.75rem", color: "#ef4444", fontWeight: 600, mb: 0.5 }}>
-            Critical / High
-          </Typography>
-          <Typography sx={{ fontSize: "1.4rem", fontWeight: 700, color: "#ef4444" }}>
-            {isLoading ? <Skeleton width={40} height={32} /> : counts.critical}
-          </Typography>
-        </Box>
-
-        <Box
-          onClick={() => navigate("/incidents?status=resolved")}
-          sx={{
-            p: 1.75,
-            borderRadius: 2,
-            border: "1px solid hsl(var(--border))",
-            bgcolor: "hsl(var(--background))",
-            cursor: "pointer",
-            transition: "all 0.15s ease",
-            "&:hover": { borderColor: "hsl(var(--primary))", transform: "translateY(-1px)" },
-          }}
-        >
-          <Typography sx={{ fontSize: "0.75rem", color: "hsl(var(--muted-foreground))", fontWeight: 500, mb: 0.5 }}>
-            Resolved
-          </Typography>
-          <Typography sx={{ fontSize: "1.4rem", fontWeight: 700, color: "#22c55e" }}>
-            {isLoading ? <Skeleton width={40} height={32} /> : counts.resolved}
-          </Typography>
-        </Box>
-      </Box>
-    </Box>
-  );
-};
+export { DocIncidentDashboard, DocIncidentDashboard as DocIncidentStatus };
 
 // ==========================================
 // 2. Live Vulnerability Backlog & Risk Stats
@@ -2433,6 +2300,889 @@ export const DocSystemHealth: React.FC<DocSystemHealthProps> = ({
   );
 };
 
+// ==========================================
+// 8. Organization Region Selector
+// ==========================================
+interface DocRegionSelectProps {
+  name?: string;
+  description?: string;
+  region?: string;
+}
+
+interface RegionOption {
+  value: string;
+  label: string;
+  code: string;
+  apiBase: string;
+}
+
+const REGION_OPTIONS: RegionOption[] = [
+  {
+    value: "https://uk.shuffle.security",
+    label: "UK (London - default)",
+    code: "UK",
+    apiBase: "https://uk.shuffler.io/api/v1",
+  },
+  {
+    value: "https://us.shuffle.security",
+    label: "US (California)",
+    code: "US",
+    apiBase: "https://california.shuffler.io/api/v1",
+  },
+  {
+    value: "https://frankfurt.shuffle.security",
+    label: "Germany (Frankfurt)",
+    code: "DE",
+    apiBase: "https://frankfurt.shuffler.io/api/v1",
+  },
+  {
+    value: "https://eu.shuffle.security",
+    label: "EU",
+    code: "EU",
+    apiBase: "https://eu.shuffle.security/api/v1",
+  },
+  {
+    value: "https://ca.shuffle.security",
+    label: "Canada (Montréal)",
+    code: "CA",
+    apiBase: "https://ca.shuffler.io/api/v1",
+  },
+  {
+    value: "https://au.shuffle.security",
+    label: "Australia (Sydney)",
+    code: "AUS",
+    apiBase: "https://au.shuffler.io/api/v1",
+  },
+];
+
+const normalizeRegionUrl = (url?: string | null): string => {
+  if (!url) return "https://uk.shuffle.security";
+  const trimmed = url.trim().toLowerCase();
+  if (trimmed.includes("california") || trimmed.includes("us.") || trimmed.includes("us-")) {
+    return "https://us.shuffle.security";
+  }
+  if (trimmed.includes("frankfurt") || trimmed.includes("de.") || trimmed.includes("de-")) {
+    return "https://frankfurt.shuffle.security";
+  }
+  if (trimmed.includes("ca.") || trimmed.includes("canada")) {
+    return "https://ca.shuffle.security";
+  }
+  if (trimmed.includes("au.") || trimmed.includes("australia") || trimmed.includes("aus")) {
+    return "https://au.shuffle.security";
+  }
+  if (trimmed.includes("eu.") || trimmed.includes("eu-") || trimmed.includes("eu2")) {
+    return "https://eu.shuffle.security";
+  }
+  if (trimmed.includes("uk.") || trimmed.includes("london") || trimmed.includes("shuffler.io")) {
+    return "https://uk.shuffle.security";
+  }
+  return url;
+};
+
+export const DocRegionSelect: React.FC<DocRegionSelectProps> = ({
+  name: propName,
+  description: propDescription,
+  region: propRegion,
+}) => {
+  const navigate = useNavigate();
+  const { isAuthenticated, sessionToken, userInfo, refreshUserInfo } = useAuth();
+  const isLoggedIn = Boolean(isAuthenticated && (sessionToken || userInfo?.id));
+  const orgId = userInfo?.active_org?.id || userInfo?.org_id;
+
+  const defaultOrgName = isLoggedIn
+    ? (userInfo?.active_org?.name || "Organization")
+    : "Shuffle Cloud (Public API)";
+  const defaultOrgDescription = isLoggedIn
+    ? ((userInfo?.active_org as any)?.description || "")
+    : "Public cloud endpoint and interactive API documentation console. Sign in to configure your tenant.";
+  const defaultRegionUrl = normalizeRegionUrl(
+    propRegion || (isLoggedIn ? userInfo?.active_org?.region_url : getRegionUrl())
+  );
+
+  const [orgName, setOrgName] = useState(propName || defaultOrgName);
+  const [orgDescription, setOrgDescription] = useState(propDescription || defaultOrgDescription);
+  const [selectedRegion, setSelectedRegion] = useState(defaultRegionUrl);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [copied, setCopied] = useState(false);
+
+  // Sync with fetched org details when authenticated
+  useEffect(() => {
+    if (!isLoggedIn || !orgId) return;
+    let cancelled = false;
+
+    fetch(getApiUrl(`/api/v1/orgs/${orgId}`), {
+      credentials: "include",
+      headers: { ...getAuthHeader() },
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled || !data) return;
+        if (!propName && data.name) {
+          setOrgName(data.name);
+        }
+        if (!propDescription && data.description !== undefined) {
+          setOrgDescription(data.description || "");
+        }
+        if (!propRegion && data.region_url) {
+          setSelectedRegion(normalizeRegionUrl(data.region_url));
+        }
+      })
+      .catch(() => {
+        // Keep fallback state
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoggedIn, orgId, propName, propDescription, propRegion]);
+
+  const allOptions = useMemo(() => {
+    const exists = REGION_OPTIONS.some((o) => o.value === selectedRegion);
+    if (!exists && selectedRegion) {
+      return [
+        ...REGION_OPTIONS,
+        {
+          value: selectedRegion,
+          label: selectedRegion,
+          code: "CUSTOM",
+          apiBase: `${selectedRegion.replace(/\/+$/, "")}/api/v1`,
+        },
+      ];
+    }
+    return REGION_OPTIONS;
+  }, [selectedRegion]);
+
+  const currentBaseUrl = useMemo(() => {
+    const match = allOptions.find((o) => o.value === selectedRegion);
+    if (match) return match.apiBase;
+    if (!selectedRegion) return "https://uk.shuffler.io/api/v1";
+    return `${selectedRegion.replace(/\/+$/, "")}/api/v1`;
+  }, [allOptions, selectedRegion]);
+
+  const handleRegionChange = async (event: SelectChangeEvent<string>) => {
+    const newUrl = event.target.value;
+    setSelectedRegion(newUrl);
+
+    if (isLoggedIn && orgId) {
+      setSaveStatus("saving");
+      try {
+        const payload: Record<string, string> = {
+          org_id: orgId,
+          region_url: newUrl,
+        };
+        const response = await fetch(getApiUrl(`/api/v1/orgs/${orgId}`), {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            ...getAuthHeader(),
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.reason || "Failed to update organization region");
+        }
+
+        setRegionUrl(newUrl, orgId);
+        await refreshUserInfo();
+        setSaveStatus("saved");
+        toast.success("Region updated successfully");
+        setTimeout(() => setSaveStatus("idle"), 2500);
+      } catch (err) {
+        setSaveStatus("error");
+        toast.error(err instanceof Error ? err.message : "Failed to update region");
+        setTimeout(() => setSaveStatus("idle"), 3500);
+      }
+    } else {
+      setRegionUrl(newUrl);
+      setSaveStatus("saved");
+      setTimeout(() => setSaveStatus("idle"), 2500);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!isLoggedIn || !orgId) {
+      navigate("/login");
+      return;
+    }
+    setSaveStatus("saving");
+    try {
+      const payload: Record<string, string> = {
+        org_id: orgId,
+        name: orgName,
+        region_url: selectedRegion,
+        description: orgDescription,
+      };
+      const response = await fetch(getApiUrl(`/api/v1/orgs/${orgId}`), {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          ...getAuthHeader(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.reason || "Failed to update organization");
+      }
+
+      setRegionUrl(selectedRegion, orgId);
+      await refreshUserInfo();
+      setSaveStatus("saved");
+      toast.success("Tenant updated successfully");
+      setTimeout(() => setSaveStatus("idle"), 2500);
+    } catch (err) {
+      setSaveStatus("error");
+      toast.error(err instanceof Error ? err.message : "Failed to update tenant");
+      setTimeout(() => setSaveStatus("idle"), 3500);
+    }
+  };
+
+  const handleCopyUrl = () => {
+    navigator.clipboard.writeText(currentBaseUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <Paper
+      sx={{
+        p: 3,
+        my: 3,
+        bgcolor: "transparent",
+        backgroundImage: "none",
+        backdropFilter: "blur(12px)",
+        border: "1px solid hsl(var(--border))",
+        borderRadius: 2.5,
+      }}
+    >
+      {/* Header: Avatar, Name, Status, and Auth CTA */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          mb: 3,
+          flexWrap: "wrap",
+          gap: 2,
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <Avatar
+            sx={{
+              width: 52,
+              height: 52,
+              bgcolor: "hsl(var(--primary))",
+              color: "hsl(var(--primary-foreground))",
+              fontSize: "1.35rem",
+              fontWeight: 600,
+              borderRadius: 2.5,
+            }}
+            variant="rounded"
+          >
+            {isLoggedIn ? (orgName?.charAt(0)?.toUpperCase() || "O") : "S"}
+          </Avatar>
+          <Box>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.25 }}>
+              <Typography
+                sx={{
+                  fontWeight: 600,
+                  fontSize: "1.05rem",
+                  color: "hsl(var(--foreground))",
+                }}
+              >
+                {isLoggedIn ? orgName : "Shuffle Cloud (Public API)"}
+              </Typography>
+              <Chip
+                label={
+                  isLoggedIn
+                    ? saveStatus === "saving"
+                      ? "Updating"
+                      : saveStatus === "saved"
+                        ? "Updated"
+                        : "Active Tenant"
+                    : "Guest / Public"
+                }
+                size="small"
+                variant="outlined"
+                sx={{
+                  height: 20,
+                  fontSize: "0.68rem",
+                  fontWeight: 600,
+                  borderColor: isLoggedIn ? "rgba(34, 197, 94, 0.4)" : "hsl(var(--border))",
+                  color: isLoggedIn ? "#22c55e" : "hsl(var(--muted-foreground))",
+                }}
+              />
+            </Box>
+            <Typography
+              sx={{
+                fontSize: "0.8rem",
+                color: "hsl(var(--muted-foreground))",
+                lineHeight: 1.4,
+              }}
+            >
+              {isLoggedIn
+                ? "Your organization's active deployment region and API configuration."
+                : "You are not signed in. Select a region below to test the API endpoint, or sign in to configure your tenant."}
+            </Typography>
+          </Box>
+        </Box>
+
+        {!isLoggedIn && (
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => navigate("/login")}
+            sx={{
+              textTransform: "none",
+              fontWeight: 600,
+              fontSize: "0.8rem",
+              borderRadius: 1.5,
+              borderColor: "hsl(var(--border))",
+              color: "hsl(var(--foreground))",
+              "&:hover": { borderColor: "hsl(var(--primary))", bgcolor: "hsl(var(--muted))" },
+            }}
+          >
+            Sign In
+          </Button>
+        )}
+      </Box>
+
+      {/* Name and Region Row - Matching in-product AdminPage structure */}
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
+          gap: 2,
+          mb: 2.5,
+        }}
+      >
+        <TextField
+          label="Name"
+          value={orgName}
+          onChange={(e) => setOrgName(e.target.value)}
+          disabled={!isLoggedIn}
+          fullWidth
+          size="small"
+          placeholder="Organization name"
+          sx={{
+            "& .MuiOutlinedInput-root": {
+              color: "hsl(var(--foreground))",
+              bgcolor: "hsl(var(--background))",
+              "& fieldset": { borderColor: "hsl(var(--border))" },
+              "&:hover fieldset": { borderColor: "hsl(var(--primary))" },
+            },
+            "& .MuiInputLabel-root": { color: "hsl(var(--muted-foreground))" },
+          }}
+        />
+
+        <FormControl size="small" sx={{ minWidth: { xs: "100%", sm: 220 } }}>
+          <InputLabel
+            id="doc-region-select-label"
+            sx={{ color: "hsl(var(--muted-foreground))" }}
+          >
+            Region
+          </InputLabel>
+          <Select
+            labelId="doc-region-select-label"
+            id="doc-region-select"
+            value={selectedRegion}
+            label="Region"
+            onChange={handleRegionChange}
+            disabled={saveStatus === "saving"}
+            sx={{
+              color: "hsl(var(--foreground))",
+              bgcolor: "hsl(var(--background))",
+              "& fieldset": { borderColor: "hsl(var(--border))" },
+              "&:hover fieldset": { borderColor: "hsl(var(--primary))" },
+            }}
+          >
+            {allOptions.map((opt) => (
+              <MenuItem key={opt.value} value={opt.value}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    width: "100%",
+                    alignItems: "center",
+                  }}
+                >
+                  <span>{opt.label}</span>
+                  <Typography
+                    component="span"
+                    sx={{
+                      fontSize: "0.72rem",
+                      fontFamily: "monospace",
+                      color: "hsl(var(--muted-foreground))",
+                      ml: 1.5,
+                    }}
+                  >
+                    {opt.code}
+                  </Typography>
+                </Box>
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
+
+      {/* Description Row - Matching in-product AdminPage structure */}
+      <TextField
+        label="Description"
+        value={orgDescription}
+        onChange={(e) => setOrgDescription(e.target.value)}
+        disabled={!isLoggedIn}
+        multiline
+        rows={2}
+        fullWidth
+        size="small"
+        placeholder="Tenant description"
+        sx={{
+          mb: 2.5,
+          "& .MuiOutlinedInput-root": {
+            color: "hsl(var(--foreground))",
+            bgcolor: "hsl(var(--background))",
+            "& fieldset": { borderColor: "hsl(var(--border))" },
+            "&:hover fieldset": { borderColor: "hsl(var(--primary))" },
+          },
+          "& .MuiInputLabel-root": { color: "hsl(var(--muted-foreground))" },
+        }}
+      />
+
+      {/* Footer: Live API Base URL & Actions */}
+      <Box
+        sx={{
+          pt: 2,
+          borderTop: "1px solid hsl(var(--border))",
+          display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
+          alignItems: { xs: "flex-start", sm: "center" },
+          justifyContent: "space-between",
+          gap: 2,
+        }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1.25,
+            flexWrap: "wrap",
+          }}
+        >
+          <Typography
+            sx={{
+              fontSize: "0.75rem",
+              fontWeight: 600,
+              color: "hsl(var(--muted-foreground))",
+            }}
+          >
+            API Base URL:
+          </Typography>
+          <Typography
+            sx={{
+              fontSize: "0.8rem",
+              fontFamily: "monospace",
+              color: "hsl(var(--foreground))",
+              bgcolor: "hsl(var(--muted))",
+              px: 1,
+              py: 0.35,
+              borderRadius: 1,
+              border: "1px solid hsl(var(--border))",
+            }}
+          >
+            {currentBaseUrl}
+          </Typography>
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={handleCopyUrl}
+            sx={{
+              textTransform: "none",
+              fontSize: "0.75rem",
+              fontWeight: 500,
+              borderRadius: 1,
+              height: 28,
+              borderColor: "hsl(var(--border))",
+              color: copied ? "#22c55e" : "hsl(var(--foreground))",
+              "&:hover": { borderColor: "hsl(var(--primary))" },
+            }}
+          >
+            {copied ? "Copied" : "Copy Base URL"}
+          </Button>
+        </Box>
+
+        {isLoggedIn && (
+          <Button
+            variant="contained"
+            size="small"
+            onClick={handleSave}
+            disabled={saveStatus === "saving"}
+            sx={{
+              textTransform: "none",
+              fontWeight: 600,
+              fontSize: "0.8rem",
+              bgcolor: "hsl(var(--primary))",
+              color: "hsl(var(--primary-foreground))",
+              height: 32,
+              px: 3,
+              borderRadius: 1.5,
+              "&:hover": { bgcolor: "hsl(var(--primary) / 0.9)" },
+            }}
+          >
+            {saveStatus === "saving"
+              ? "Saving..."
+              : saveStatus === "saved"
+                ? "Saved"
+                : "Save Changes"}
+          </Button>
+        )}
+      </Box>
+    </Paper>
+  );
+};
+
+// ==========================================
+// 19. Automation for Incidents (Rocket Button)
+// ==========================================
+interface DocIncidentAutomationProps {
+  category?: string;
+}
+
+export const DocIncidentAutomation: React.FC<DocIncidentAutomationProps> = ({
+  category = DATASTORE_CATEGORIES.INCIDENTS,
+}) => {
+  const navigate = useNavigate();
+  const { isAuthenticated, sessionToken, userInfo } = useAuth();
+  const isLoggedIn = Boolean(isAuthenticated && (sessionToken || userInfo?.id));
+  const orgName = isLoggedIn
+    ? (userInfo?.active_org?.name || "Active Tenant")
+    : "Shuffle Cloud (Public)";
+  const orgId = userInfo?.active_org?.id || userInfo?.org_id || null;
+
+  const { categoryConfig, fetchItems } = useDatastore({ category });
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [automations, setAutomations] = useState<CategoryAutomation[]>([]);
+
+  useEffect(() => {
+    if (categoryConfig?.automations && categoryConfig.automations.length > 0) {
+      setAutomations(categoryConfig.automations);
+    } else {
+      setAutomations([
+        {
+          name: "Run AI Agent",
+          description: "Runs an AI Agent to triage and summarize incidents.",
+          enabled: true,
+          type: "ai_agent",
+          options: [{ key: "action", value: "Triage and investigate incoming alert" }],
+        },
+        {
+          name: "Enrich",
+          description: "Enriches observables against active threat intelligence feeds.",
+          enabled: true,
+          type: "enrich",
+          options: [],
+        },
+        {
+          name: "Run workflow",
+          description: "Executes automated incident response workflows.",
+          enabled: false,
+          type: "workflow",
+          options: [{ key: "workflow_id", value: "" }],
+        },
+      ]);
+    }
+  }, [categoryConfig]);
+
+  const enabledCount = useMemo(() => {
+    return automations.filter((a) => a.enabled).length;
+  }, [automations]);
+
+  const hasEnabled = enabledCount > 0;
+
+  return (
+    <Paper
+      sx={{
+        p: 2.5,
+        my: 3,
+        bgcolor: "transparent",
+        backgroundImage: "none",
+        backdropFilter: "blur(12px)",
+        border: "1px solid hsl(var(--border))",
+        borderRadius: 2.5,
+      }}
+    >
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 2,
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          {/* Exact in-product Rocket launch button */}
+          <Tooltip title="Automation for Incidents">
+            <IconButton
+              data-tour="incidents-automation-button"
+              onClick={() => setDialogOpen(true)}
+              sx={{
+                width: 44,
+                height: 44,
+                color: hasEnabled ? "#4ade80" : "hsl(var(--muted-foreground))",
+                border: "1px solid",
+                borderColor: hasEnabled ? "rgba(74, 222, 128, 0.5)" : "hsl(var(--border))",
+                borderRadius: 2,
+                bgcolor: hasEnabled ? "rgba(74, 222, 128, 0.08)" : "transparent",
+                "&:hover": {
+                  borderColor: hasEnabled ? "#4ade80" : "hsl(var(--foreground))",
+                  bgcolor: hasEnabled ? "rgba(74, 222, 128, 0.16)" : "hsl(var(--muted))",
+                },
+              }}
+            >
+              <RocketLaunchIcon size={22} />
+            </IconButton>
+          </Tooltip>
+
+          <Box>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.25, flexWrap: "wrap" }}>
+              <Typography sx={{ fontWeight: 600, fontSize: "0.95rem", color: "hsl(var(--foreground))" }}>
+                Automation for Incidents
+              </Typography>
+              <Chip
+                label={hasEnabled ? `${enabledCount} active` : "Not configured"}
+                size="small"
+                sx={{
+                  height: 20,
+                  fontSize: "0.68rem",
+                  fontWeight: 600,
+                  bgcolor: hasEnabled ? "rgba(74, 222, 128, 0.15)" : "hsl(var(--muted))",
+                  color: hasEnabled ? "#22c55e" : "hsl(var(--muted-foreground))",
+                }}
+              />
+              <Chip
+                label={isLoggedIn ? `Tenant: ${orgName}` : "Guest / Public Mode"}
+                size="small"
+                variant="outlined"
+                sx={{
+                  height: 20,
+                  fontSize: "0.68rem",
+                  fontWeight: 500,
+                  borderColor: "hsl(var(--border))",
+                  color: "hsl(var(--muted-foreground))",
+                }}
+              />
+            </Box>
+            <Typography sx={{ fontSize: "0.8rem", color: "hsl(var(--muted-foreground))" }}>
+              {isLoggedIn
+                ? `Active tenant: ${orgName}. Click the rocket button to configure triggers, response workflows, and AI prompts.`
+                : "Live automation console for incidents. Click the rocket button to preview and configure automations."}
+            </Typography>
+          </Box>
+        </Box>
+
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          {!isLoggedIn && (
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => navigate("/login")}
+              sx={{
+                textTransform: "none",
+                fontWeight: 500,
+                fontSize: "0.8rem",
+                borderRadius: 1.5,
+                borderColor: "hsl(var(--border))",
+                color: "hsl(var(--foreground))",
+                "&:hover": { borderColor: "hsl(var(--primary))" },
+              }}
+            >
+              Sign In
+            </Button>
+          )}
+          <Button
+            variant="contained"
+            size="small"
+            onClick={() => setDialogOpen(true)}
+            sx={{
+              textTransform: "none",
+              fontWeight: 600,
+              fontSize: "0.8rem",
+              borderRadius: 1.5,
+              bgcolor: "hsl(var(--primary))",
+              color: "hsl(var(--primary-foreground))",
+              "&:hover": { bgcolor: "hsl(var(--primary) / 0.9)" },
+            }}
+          >
+            Configure Automations
+          </Button>
+        </Box>
+      </Box>
+
+      <CategoryAutomationsDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        category={category}
+        automations={automations}
+        onAutomationsChange={setAutomations}
+        initialSettings={categoryConfig?.settings}
+        orgId={orgId}
+        onSaved={() => {
+          fetchItems();
+          toast.success("Automations updated successfully");
+        }}
+      />
+    </Paper>
+  );
+};
+
+// ==========================================
+// 20. Datastore Architecture Link
+// ==========================================
+interface DocDatastoreLinkProps {
+  category?: string;
+  name?: string;
+}
+
+export const DocDatastoreLink: React.FC<DocDatastoreLinkProps> = ({
+  category = "shuffle-security_incidents",
+}) => {
+  const datastorePath = `/admin?tab=datastore&category=${encodeURIComponent(category)}`;
+  const datastoreUrl = getShuffleCoreUrl(datastorePath);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(datastoreUrl);
+    setCopied(true);
+    toast.success("Datastore link copied to clipboard");
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <Paper
+      sx={{
+        p: 2.5,
+        my: 2.5,
+        bgcolor: "transparent",
+        backgroundImage: "none",
+        backdropFilter: "blur(12px)",
+        border: "1px solid hsl(var(--border))",
+        borderRadius: 2.5,
+      }}
+    >
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 2,
+        }}
+      >
+        <Box>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
+            <Typography sx={{ fontWeight: 600, fontSize: "0.95rem", color: "hsl(var(--foreground))" }}>
+              Shuffle Core Datastore
+            </Typography>
+            <Chip
+              label={category}
+              size="small"
+              variant="outlined"
+              sx={{
+                height: 20,
+                fontSize: "0.72rem",
+                fontFamily: "monospace",
+                borderColor: "hsl(var(--border))",
+                color: "hsl(var(--foreground))",
+              }}
+            />
+          </Box>
+          <Typography sx={{ fontSize: "0.8rem", color: "hsl(var(--muted-foreground))" }}>
+            Query, inspect, and manage raw OCSF 2005 records, keys, and datastore cache in the Shuffle Core admin console.
+          </Typography>
+        </Box>
+
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Button
+            variant="contained"
+            size="small"
+            component="a"
+            href={datastoreUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{
+              textTransform: "none",
+              fontWeight: 600,
+              fontSize: "0.8rem",
+              bgcolor: "hsl(var(--primary))",
+              color: "hsl(var(--primary-foreground))",
+              height: 32,
+              px: 2,
+              borderRadius: 1.5,
+              "&:hover": { bgcolor: "hsl(var(--primary) / 0.9)" },
+            }}
+          >
+            Open in Datastore
+          </Button>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={handleCopy}
+            sx={{
+              textTransform: "none",
+              fontWeight: 500,
+              fontSize: "0.8rem",
+              height: 32,
+              borderRadius: 1.5,
+              borderColor: "hsl(var(--border))",
+              color: copied ? "#22c55e" : "hsl(var(--foreground))",
+              "&:hover": { borderColor: "hsl(var(--primary))" },
+            }}
+          >
+            {copied ? "Copied" : "Copy Link"}
+          </Button>
+        </Box>
+      </Box>
+
+      <Box
+        sx={{
+          mt: 1.75,
+          pt: 1.5,
+          borderTop: "1px solid hsl(var(--border))",
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+          flexWrap: "wrap",
+        }}
+      >
+        <Typography sx={{ fontSize: "0.75rem", fontWeight: 600, color: "hsl(var(--muted-foreground))" }}>
+          Direct Link:
+        </Typography>
+        <Typography
+          component="a"
+          href={datastoreUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          sx={{
+            fontSize: "0.78rem",
+            fontFamily: "monospace",
+            color: "hsl(var(--primary))",
+            textDecoration: "none",
+            "&:hover": { textDecoration: "underline" },
+            wordBreak: "break-all",
+          }}
+        >
+          {datastoreUrl}
+        </Typography>
+      </Box>
+    </Paper>
+  );
+};
+
 interface DocDynamicComponentProps {
   name: string;
   props: Record<string, string>;
@@ -2516,11 +3266,13 @@ export const DocDynamicComponent: React.FC<DocDynamicComponentProps> = ({
       case "soc-usecases":
         return <DocUsecases {...props} />;
 
+      case "incident-dashboard":
+      case "incident-activity":
       case "incident-status":
       case "incident-stats":
       case "incidents-status":
       case "incidents-stats":
-        return <DocIncidentStatus {...props} />;
+        return <DocIncidentDashboard {...props} />;
 
       case "vuln-status":
       case "vuln-stats":
@@ -2567,6 +3319,30 @@ export const DocDynamicComponent: React.FC<DocDynamicComponentProps> = ({
       case "vulnerability-readiness":
       case "vulnerabilities-readiness":
         return <DocAutomationReadiness {...props} type="vulnerabilities" />;
+
+      case "automation-for-incidents":
+      case "incident-automation":
+      case "category-automations":
+      case "category-automation":
+      case "rocket-button":
+      case "incident-automations":
+        return <DocIncidentAutomation {...props} />;
+
+      case "datastore-link":
+      case "datastore-architecture":
+      case "datastore":
+      case "datastore-console":
+      case "datastore-reference":
+        return <DocDatastoreLink {...props} />;
+
+      case "region-select":
+      case "region-selector":
+      case "region":
+      case "regions":
+      case "select-region":
+      case "current-region":
+      case "shuffle-region":
+        return <DocRegionSelect {...props} />;
 
       default:
         return null;

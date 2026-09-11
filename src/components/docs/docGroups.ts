@@ -14,14 +14,14 @@ export const DOC_GROUPS: DocGroupDefinition[] = [
   {
     id: 'usability',
     label: 'Usability',
-    description: 'Platform overview, getting started, tenants, and features.',
-    slugs: ['getting_started', 'getting-started', 'about', 'tenants', 'features'],
+    description: 'Platform overview, getting started, tenants, features, and API reference.',
+    slugs: ['getting_started', 'getting-started', 'about', 'tenants', 'features', 'api'],
   },
   {
     id: 'automation',
     label: 'Automation',
-    description: 'Workflows, apps, and playbook automations.',
-    slugs: ['workflows', 'apps'],
+    description: 'Workflows, apps, AI agents, and playbook automations.',
+    slugs: ['workflows', 'apps', 'ai'],
   },
   {
     id: 'security',
@@ -32,8 +32,8 @@ export const DOC_GROUPS: DocGroupDefinition[] = [
   {
     id: 'infrastructure',
     label: 'Infrastructure',
-    description: 'AI agents, architecture, configuration, extensions, APIs, and troubleshooting.',
-    slugs: ['ai', 'architecture', 'configuration', 'extensions', 'api', 'troubleshooting'],
+    description: 'Architecture, configuration, extensions, and troubleshooting.',
+    slugs: ['architecture', 'configuration', 'extensions', 'troubleshooting'],
   },
 ];
 
