@@ -681,12 +681,13 @@ export const API_ENDPOINTS = {
 export const getAuthHeader = (overrideOrgId?: string | null): Record<string, string> => {
   const headers: Record<string, string> = {};
 
-  // Normal cookie login is the primary authentication method for cloud and self-hosted.
-  // Authorization: Bearer is used as a fallback if cookies are unavailable
-  // (e.g. Capacitor native app, or explicit bearer fallback mode).
+  // Normal cookie login is the primary authentication method when the frontend
+  // and backend share the same domain or subdomain.
+  // Authorization: Bearer is used if cookies are unavailable (e.g. cross-domain
+  // backend connection, Capacitor native app, or explicit bearer fallback mode).
   const authMode = typeof localStorage !== 'undefined' ? localStorage.getItem('shuffle_auth_mode') : null;
   const token = getSessionToken();
-  if (token && (authMode === 'bearer' || isCapacitorNative())) {
+  if (token && (authMode === 'bearer' || isCapacitorNative() || isCrossDomainBackend())) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
@@ -714,7 +715,7 @@ export const getAuthHeader = (overrideOrgId?: string | null): Record<string, str
 export const getSessionAuthHeader = (): Record<string, string> => {
   const authMode = typeof localStorage !== 'undefined' ? localStorage.getItem('shuffle_auth_mode') : null;
   const token = getSessionToken();
-  if (token && (authMode === 'bearer' || isCapacitorNative())) {
+  if (token && (authMode === 'bearer' || isCapacitorNative() || isCrossDomainBackend())) {
     return { Authorization: `Bearer ${token}` };
   }
   return {};

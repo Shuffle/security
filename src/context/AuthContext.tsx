@@ -1,8 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
-import { getApiUrl, getAuthHeader, getSessionAuthHeader, setRegionUrl, resetRegionUrl, getTrackedOrgId, applyRegionFromPayload, setHostBaseUrl, getHostBaseUrl, setSessionToken as persistSessionToken, clearAuthTokens, getSessionToken, isDevEnvironment, isCloud, mapCloudRegionUrl, getDefaultBaseUrl, getRegionUrl } from '@/Shuffle-MCPs/api';
+import { getApiUrl, getAuthHeader, getSessionAuthHeader, setRegionUrl, resetRegionUrl, getTrackedOrgId, applyRegionFromPayload, setHostBaseUrl, getHostBaseUrl, setSessionToken as persistSessionToken, clearAuthTokens, getSessionToken, isDevEnvironment, isCloud, mapCloudRegionUrl, getDefaultBaseUrl, getRegionUrl, isCapacitorNative, isCrossDomainBackend } from '@/Shuffle-MCPs/api';
 import { setRuntimeOrgId } from '@/Shuffle-MCPs/datastore';
 import { invalidateAuthenticatedAppsCache } from '@/Shuffle-MCPs/authenticatedApps';
-import { isCapacitorNative } from '@/Shuffle-MCPs/api';
 
 const TAB_FOCUS_GETINFO_COOLDOWN_MS = 60 * 1000; // 60 seconds cooldown between tab-in getinfo audits
 
@@ -167,7 +166,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         ) {
           tokenToSend = raw;
         }
-      } else if (authMode === 'bearer' || isCapacitorNative()) {
+      } else if (authMode === 'bearer' || isCapacitorNative() || isCrossDomainBackend()) {
         tokenToSend = getSessionToken() || '';
       }
 
@@ -275,9 +274,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Step 1: Attempt standard cookie login first (or use token if on native/bearer mode)
+      // Step 1: Attempt standard cookie login first (or use token if on native/bearer/cross-domain mode)
       const authMode = typeof localStorage !== 'undefined' ? localStorage.getItem('shuffle_auth_mode') : null;
-      const preferBearer = (authMode === 'bearer' || isCapacitorNative()) && Boolean(token);
+      const preferBearer = (authMode === 'bearer' || isCapacitorNative() || isCrossDomainBackend()) && Boolean(token);
       let result = await fetchUserInfo(preferBearer ? token : null);
 
       // Step 2: If cookie login failed with unauthenticated and we have a session token,

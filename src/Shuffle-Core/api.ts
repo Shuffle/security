@@ -466,6 +466,53 @@ export const ensureShuffleSecurityApiUrl = (url: string): string => {
   return mapCloudRegionUrl(url) || url;
 };
 
+/**
+ * Checks whether the backend is hosted on a different domain or subdomain
+ * from the frontend.
+ *
+ * If the backend is on the same domain or subdomain (e.g. uk.shuffle.security
+ * and shuffle.security), standard browser session cookies work via credentials: 'include'.
+ * If the backend is on a completely different domain (e.g. self-hosted instance,
+ * tunnel.schemaless.org, or Lovable preview -> onprem), third-party cookies are
+ * blocked by browsers, so the session token must be sent via Authorization: Bearer.
+ */
+export const isCrossDomainBackend = (targetUrl?: string): boolean => {
+  if (typeof window === 'undefined') return false;
+  try {
+    const backendUrl = targetUrl || API_CONFIG.baseUrl;
+    if (!backendUrl) return false;
+    const backendHost = new URL(backendUrl, window.location.origin).hostname.toLowerCase();
+    const frontendHost = window.location.hostname.toLowerCase();
+
+    if (backendHost === frontendHost) return false;
+
+    // Both on localhost or local loopback
+    const isLocalFrontend = frontendHost === 'localhost' || frontendHost === '127.0.0.1';
+    const isLocalBackend = backendHost === 'localhost' || backendHost === '127.0.0.1';
+    if (isLocalFrontend && isLocalBackend) return false;
+
+    // Extract root domain (e.g. shuffle.security from uk.shuffle.security)
+    const getRootDomain = (host: string): string => {
+      const parts = host.split('.');
+      if (parts.length <= 2) return host;
+      return parts.slice(-2).join('.');
+    };
+
+    const frontendRoot = getRootDomain(frontendHost);
+    const backendRoot = getRootDomain(backendHost);
+
+    // If both belong to the same root domain, browser cookies will work across subdomains
+    if (frontendRoot && backendRoot && frontendRoot === backendRoot) {
+      return false;
+    }
+
+    // Different domains
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 export const API_CONFIG = {
   get baseUrl(): string {
     // In test/dev environments (Lovable preview, VITE_SHUFFLE_API_URL) the
@@ -507,12 +554,13 @@ export const API_ENDPOINTS = {
 export const getAuthHeader = (overrideOrgId?: string | null): Record<string, string> => {
   const headers: Record<string, string> = {};
 
-  // Normal cookie login is the primary authentication method for cloud and self-hosted.
-  // Authorization: Bearer is used as a fallback if cookies are unavailable
-  // (e.g. Capacitor native app, or explicit bearer fallback mode).
+  // Normal cookie login is the primary authentication method when the frontend
+  // and backend share the same domain or subdomain.
+  // Authorization: Bearer is used if cookies are unavailable (e.g. cross-domain
+  // backend connection, Capacitor native app, or explicit bearer fallback mode).
   const authMode = typeof localStorage !== 'undefined' ? localStorage.getItem('shuffle_auth_mode') : null;
   const token = getSessionToken();
-  if (token && (authMode === 'bearer' || isCapacitorNative())) {
+  if (token && (authMode === 'bearer' || isCapacitorNative() || isCrossDomainBackend())) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
@@ -540,7 +588,7 @@ export const getAuthHeader = (overrideOrgId?: string | null): Record<string, str
 export const getSessionAuthHeader = (): Record<string, string> => {
   const authMode = typeof localStorage !== 'undefined' ? localStorage.getItem('shuffle_auth_mode') : null;
   const token = getSessionToken();
-  if (token && (authMode === 'bearer' || isCapacitorNative())) {
+  if (token && (authMode === 'bearer' || isCapacitorNative() || isCrossDomainBackend())) {
     return { Authorization: `Bearer ${token}` };
   }
   return {};
