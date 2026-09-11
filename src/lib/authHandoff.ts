@@ -6,7 +6,7 @@
  */
 
 import { toast } from '@/lib/toast';
-import { getApiUrl, getAuthHeader, getSessionToken } from '@/Shuffle-MCPs/api';
+import { getApiUrl, getAuthHeader, getSessionToken, isCloudDomain } from '@/Shuffle-MCPs/api';
 import { getShuffleCoreBaseUrl } from '@/lib/shuffleUrls';
 import { checkDomainHealth, extractHostname } from '@/lib/domainHealth';
 
@@ -68,12 +68,32 @@ export async function navigateToShuffleCore(
 
   // When opening in a new tab, open blank window immediately within user gesture to avoid popup blockers
   let popupWindow: Window | null = null;
+  const popupName = `shuffle_handoff_${Date.now()}`;
   if (isNewTab && typeof window !== 'undefined') {
-    popupWindow = window.open('about:blank', '_blank');
+    popupWindow = window.open('about:blank', popupName);
+    if (popupWindow) {
+      try {
+        popupWindow.name = popupName;
+      } catch { /* ignore */ }
+    }
+  }
+
+  const targetHost = extractHostname(targetUrl);
+  const currentHost = typeof window !== 'undefined' ? window.location.hostname.toLowerCase() : '';
+
+  // On-prem / self-hosted environments share the same domain/host across frontends.
+  // Because cookies are scoped to the hostname and ignore port numbers (RFC 6265),
+  // the session cookie is already present in the browser and no auth handoff is needed.
+  if (!isCloudDomain() || (targetHost && currentHost && targetHost === currentHost)) {
+    if (popupWindow) {
+      popupWindow.location.href = targetUrl;
+    } else if (typeof window !== 'undefined') {
+      window.location.href = targetUrl;
+    }
+    return true;
   }
 
   // Pre-flight domain existence check for cloud domains (e.g. frankfurt.shuffler.io)
-  const targetHost = extractHostname(targetUrl);
   if (targetHost && (targetHost.endsWith('.shuffler.io') || targetHost.endsWith('.shuffle.security'))) {
     const health = await checkDomainHealth(targetUrl);
     if (!health.exists) {
@@ -136,12 +156,40 @@ export async function navigateToShuffleCore(
       }
     } catch { /* ignore */ }
 
-    const exchangeUrl = `${targetCoreBase}/api/v1/auth/exchange?ticket=${encodeURIComponent(data.ticket)}&redirect=${encodeURIComponent(targetUrl)}`;
+    // Use an auto-submitting POST form so ticket, user_id, and redirect do not leak in URL access logs
+    if (typeof document !== 'undefined') {
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = `${targetCoreBase}/api/v1/auth/exchange`;
+      if (popupWindow) {
+        form.target = popupWindow.name || popupName;
+      }
 
-    if (popupWindow) {
-      popupWindow.location.href = exchangeUrl;
-    } else if (typeof window !== 'undefined') {
-      window.location.href = exchangeUrl;
+      const fields: Record<string, string> = {
+        ticket: data.ticket,
+        user_id: data.user_id || '',
+        redirect: targetUrl,
+      };
+
+      for (const [key, value] of Object.entries(fields)) {
+        if (!value) continue;
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = value;
+        form.appendChild(input);
+      }
+
+      document.body.appendChild(form);
+      form.submit();
+      form.remove();
+    } else {
+      const fallbackUrl = `${targetCoreBase}/api/v1/auth/exchange?ticket=${encodeURIComponent(data.ticket)}&user_id=${encodeURIComponent(data.user_id || '')}&redirect=${encodeURIComponent(targetUrl)}`;
+      if (popupWindow) {
+        popupWindow.location.href = fallbackUrl;
+      } else if (typeof window !== 'undefined') {
+        window.location.href = fallbackUrl;
+      }
     }
 
     return true;
