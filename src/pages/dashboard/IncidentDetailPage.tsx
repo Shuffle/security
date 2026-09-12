@@ -6956,6 +6956,7 @@ const IncidentDetailPage = () => {
                 : isQuiet
                   ? 'transparent'
                   : 'hsl(var(--card))',
+              mb: isSimple ? 1.5 : 0,
               opacity: skip.skipped ? 0.85 : 1,
               cursor: 'pointer',
               transition: 'border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease',
