@@ -6944,11 +6944,13 @@ const IncidentDetailPage = () => {
               px: 1.25,
               py: 0.75,
               borderRadius: 1.5,
-              border: skip.skipped
-                ? '1px dashed hsl(var(--border))'
-                : isQuiet
-                  ? '1px solid transparent'
-                  : '1px solid hsl(var(--border))',
+              border: isSimple
+                ? 'none'
+                : skip.skipped
+                  ? '1px dashed hsl(var(--border))'
+                  : isQuiet
+                    ? '1px solid transparent'
+                    : '1px solid hsl(var(--border))',
               bgcolor: skip.skipped
                 ? 'hsl(var(--muted) / 0.2)'
                 : isQuiet
