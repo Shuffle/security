@@ -54,7 +54,9 @@ export const SimpleCaseLayout = ({
     const target = taskId
       ? document.querySelector(`[data-simple-task-id="${CSS.escape(taskId)}"]`)
       : refs.current[key];
-    target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (!(target instanceof HTMLElement)) return;
+    setActiveSection(key);
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const openTasks = taskItems.filter((task) => !task.completed && !task.disabled);
@@ -71,34 +73,34 @@ export const SimpleCaseLayout = ({
   } as const;
 
   return (
-    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', xl: '280px minmax(480px, 1fr) 220px' }, gap: { xs: 3, xl: 5 }, alignItems: 'start' }}>
-      <Box sx={{ order: { xs: 2, xl: 1 }, position: { xl: 'sticky' }, top: { xl: 24 }, minWidth: 0, maxHeight: { xl: 'calc(100vh - 48px)' }, overflowY: { xl: 'auto' } }}>
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: 'minmax(220px, 260px) minmax(0, 1fr) minmax(180px, 220px)' }, gap: { xs: 3, lg: 3 }, alignItems: 'start' }}>
+      <Box sx={{ order: { xs: 2, lg: 1 }, position: { lg: 'sticky' }, top: { lg: 24 }, minWidth: 0, maxHeight: { lg: 'calc(100vh - 48px)' }, overflowY: { lg: 'auto' } }}>
         <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', mb: 1.5 }}>
           Timeline
         </Typography>
         {timeline}
       </Box>
 
-      <Box sx={{ order: { xs: 1, xl: 2 }, minWidth: 0, maxWidth: 820, width: '100%', mx: 'auto' }}>
-        <Box ref={(node: HTMLElement | null) => { refs.current.narrative = node; }} data-simple-section="narrative" sx={sectionSx}>
+      <Box sx={{ order: { xs: 1, lg: 2 }, minWidth: 0, maxWidth: 820, width: '100%', mx: 'auto' }}>
+        <Box id="simple-case-narrative" ref={(node: HTMLElement | null) => { refs.current.narrative = node; }} data-simple-section="narrative" sx={sectionSx}>
           <Typography component="h2" sx={{ fontSize: '1.15rem', fontWeight: 700, mb: 2.5 }}>{narrativeLabel}</Typography>
           {narrative}
         </Box>
-        <Box ref={(node: HTMLElement | null) => { refs.current.tasks = node; }} data-simple-section="tasks" sx={sectionSx}>
+        <Box id="simple-case-tasks" ref={(node: HTMLElement | null) => { refs.current.tasks = node; }} data-simple-section="tasks" sx={sectionSx}>
           <Typography component="h2" sx={{ fontSize: '1.15rem', fontWeight: 700, mb: 2.5 }}>Tasks</Typography>
           {tasks}
         </Box>
-        <Box ref={(node: HTMLElement | null) => { refs.current.observables = node; }} data-simple-section="observables" sx={sectionSx}>
+        <Box id="simple-case-observables" ref={(node: HTMLElement | null) => { refs.current.observables = node; }} data-simple-section="observables" sx={sectionSx}>
           <Typography component="h2" sx={{ fontSize: '1.15rem', fontWeight: 700, mb: 2.5 }}>Observables</Typography>
           {observables}
         </Box>
-        <Box ref={(node: HTMLElement | null) => { refs.current.correlations = node; }} data-simple-section="correlations" sx={{ ...sectionSx, pb: 2 }}>
+        <Box id="simple-case-correlations" ref={(node: HTMLElement | null) => { refs.current.correlations = node; }} data-simple-section="correlations" sx={{ ...sectionSx, pb: 2 }}>
           <Typography component="h2" sx={{ fontSize: '1.15rem', fontWeight: 700, mb: 2.5 }}>Correlations</Typography>
           {correlations}
         </Box>
       </Box>
 
-      <Box component="nav" aria-label="Case contents" sx={{ display: { xs: 'none', xl: 'block' }, order: 3, position: 'sticky', top: 24 }}>
+      <Box component="nav" aria-label="Case contents" sx={{ display: { xs: 'none', lg: 'block' }, order: 3, position: 'sticky', top: 24, minWidth: 0 }}>
         <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', mb: 1.25 }}>
           Contents
         </Typography>
