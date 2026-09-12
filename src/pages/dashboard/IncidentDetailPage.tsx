@@ -6532,6 +6532,10 @@ const IncidentDetailPage = () => {
       return b.timestamp - a.timestamp;     // otherwise newest first
     });
 
+    // Simple-mode timeline reads bottom-to-top (oldest first, input at bottom).
+    if (variant === 'simple') {
+      items.reverse();
+    }
 
     if (items.length === 0) {
       const allHidden = activeTimelineFilters.size === 0;
