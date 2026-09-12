@@ -270,34 +270,11 @@ export const DatastoreValueCell: React.FC<DatastoreValueCellProps> = ({
   );
 };
 
-export const getCategoryGroup = (cat: string): string => {
-  if (!cat || cat === 'default' || cat === 'protected' || cat === 'all') {
-    return 'General';
-  }
-  if (cat.startsWith('shuffle-security_')) {
-    return 'Shuffle Security';
-  }
-  if (cat.includes('_')) {
-    const prefix = cat.split('_')[0];
-    return prefix.charAt(0).toUpperCase() + prefix.slice(1);
-  }
-  return 'Custom';
+export const getCategoryDisplayLabel = (data: string): string => {
+  if (!data) return '';
+  return data.charAt(0).toUpperCase() + data.slice(1).replaceAll('_', ' ');
 };
 
-export const getCategoryDisplayLabel = (cat: string): string => {
-  if (cat === 'default') return 'Default (All)';
-  if (cat === 'protected') return 'Protected (Credentials & Secrets)';
-  if (cat === 'all') return 'All Categories';
-  if (cat.startsWith('shuffle-security_')) {
-    const suffix = cat.replace('shuffle-security_', '');
-    return suffix.charAt(0).toUpperCase() + suffix.slice(1);
-  }
-  if (cat.includes('_')) {
-    const parts = cat.split('_');
-    return parts.map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
-  }
-  return cat.charAt(0).toUpperCase() + cat.slice(1);
-};
 
 const DEFAULT_CATEGORIES: string[] = [
   'default',
@@ -403,24 +380,55 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
   const [createCategoryDialogOpen, setCreateCategoryDialogOpen] = useState<boolean>(false);
   const [newCategoryName, setNewCategoryName] = useState<string>('');
 
-  // Grouped & sorted categories for dropdown
-  const sortedCategories = useMemo(() => {
-    const groupOrder: Record<string, number> = {
-      General: 1,
-      'Shuffle Security': 2,
-      Custom: 99,
-    };
+  // Inline category input state (matches CacheView inline "+ Category" toggle)
+  const [renderTextBox, setRenderTextBox] = useState<boolean>(false);
+  const [newCategoryInlineInput, setNewCategoryInlineInput] = useState<string>('');
 
+  // Calculate dynamic category groups from category names (matches CacheView: prefixes with 2+ occurrences)
+  const datastoreCategoryGroups = useMemo(() => {
+    const foundstartwords: Record<string, number> = {};
+    const groups: string[] = [];
+    for (const cat of categories) {
+      if (!cat.includes('_')) continue;
+      const startword = cat.split('_')[0];
+      if (startword.length <= 2) continue;
+      if (!foundstartwords[startword]) {
+        foundstartwords[startword] = 1;
+      } else {
+        foundstartwords[startword] += 1;
+        if (foundstartwords[startword] === 2) {
+          groups.push(startword);
+        }
+      }
+    }
+    return groups;
+  }, [categories]);
+
+  // Group getter matching CacheView: only groups if startword has 2+ occurrences
+  const getCategoryGroup = useCallback(
+    (data: string): string => {
+      if (!data || !data.includes('_')) return '';
+      const firstword = data.split('_')[0];
+      if (datastoreCategoryGroups.includes(firstword)) {
+        return firstword.charAt(0).toUpperCase() + firstword.slice(1);
+      }
+      return '';
+    },
+    [datastoreCategoryGroups]
+  );
+
+  // Grouped & sorted categories for dropdown (matches CacheView grouping)
+  const sortedCategories = useMemo(() => {
     return [...categories].sort((a, b) => {
       const groupA = getCategoryGroup(a);
       const groupB = getCategoryGroup(b);
-      const orderA = groupOrder[groupA] ?? 50;
-      const orderB = groupOrder[groupB] ?? 50;
-      if (orderA !== orderB) return orderA - orderB;
+      // Ungrouped items (like "default", "protected") first
+      if (!groupA && groupB) return -1;
+      if (groupA && !groupB) return 1;
       if (groupA !== groupB) return groupA.localeCompare(groupB);
       return a.localeCompare(b);
     });
-  }, [categories]);
+  }, [categories, getCategoryGroup]);
 
   // Suborg distribution
   const { subOrgs } = useSubOrgs(orgId || '');
@@ -1072,91 +1080,97 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
               </Button>
             )}
 
-            {/* 2. Category Autocomplete + Plus button */}
+            {/* 2. Category Autocomplete + Inline Plus / Textfield (matching CacheView) */}
             {!categoryLocked && !hideCategorySelector && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Autocomplete
-                  freeSolo
+                  id="category-choice"
                   size="small"
                   options={sortedCategories}
                   groupBy={(option) => getCategoryGroup(option)}
-                  getOptionLabel={(option) => (typeof option === 'string' ? option : '')}
                   value={selectedCategory}
+                  isOptionEqualToValue={(option, val) => option === val}
                   onChange={(_, newValue) => {
                     if (typeof newValue === 'string' && newValue.trim()) {
                       handleCategoryChange(newValue.trim());
                     }
                   }}
-                  inputValue={categoryInputValue}
-                  onInputChange={(_, newInputValue) => {
-                    setCategoryInputValue(newInputValue);
+                  getOptionLabel={(data) => {
+                    if (!data) return '';
+                    return data.charAt(0).toUpperCase() + data.slice(1).replaceAll('_', ' ');
                   }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && categoryInputValue.trim()) {
-                      e.preventDefault();
-                      handleCategoryChange(categoryInputValue.trim());
+                  sx={{
+                    minWidth: 260,
+                    maxWidth: 320,
+                  }}
+                  ListboxProps={{
+                    sx: {
+                      maxHeight: '60vh',
+                      border: '1px solid hsl(var(--border))',
+                      bgcolor: 'hsl(var(--popover))',
+                      color: 'hsl(var(--popover-foreground))',
+                      p: 0.5,
+                    },
+                  }}
+                  renderGroup={(params) => {
+                    if (!params.group) {
+                      return <ul key={params.key} style={{ padding: 0 }}>{params.children}</ul>;
                     }
-                  }}
-                  sx={{ minWidth: 200, maxWidth: 280 }}
-                  renderGroup={(params) => (
-                    <li key={params.key}>
-                      <ListSubheader
-                        sx={{
-                          bgcolor: 'hsl(var(--muted))',
-                          color: 'hsl(var(--muted-foreground))',
-                          fontWeight: 700,
-                          fontSize: '0.72rem',
-                          lineHeight: '26px',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em',
-                        }}
-                      >
-                        {params.group}
-                      </ListSubheader>
-                      <ul style={{ padding: 0 }}>{params.children}</ul>
-                    </li>
-                  )}
-                  renderOption={(props, option, { selected }) => {
-                    const { key, ...restProps } = props;
-                    const label = getCategoryDisplayLabel(option);
                     return (
-                      <Box
-                        component="li"
-                        key={key || option}
+                      <li key={params.key}>
+                        <ListSubheader
+                          sx={{
+                            bgcolor: 'hsl(var(--muted))',
+                            color: 'hsl(var(--muted-foreground))',
+                            fontWeight: 600,
+                            fontSize: '0.72rem',
+                            lineHeight: '28px',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.04em',
+                            px: 1.5,
+                          }}
+                        >
+                          {params.group}
+                        </ListSubheader>
+                        <ul style={{ padding: 0 }}>{params.children}</ul>
+                      </li>
+                    );
+                  }}
+                  renderOption={(props, data) => {
+                    const { key, ...restProps } = props;
+                    const fixedname = data ? data.charAt(0).toUpperCase() + data.slice(1).replaceAll('_', ' ') : '';
+                    return (
+                      <MenuItem
+                        key={key || data}
+                        value={data}
                         {...restProps}
                         sx={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'flex-start',
-                          py: 0.6,
+                          py: 0.75,
                           px: 1.5,
-                          cursor: 'pointer',
-                          '&:hover': { bgcolor: 'hsl(var(--muted) / 0.5)' },
-                          bgcolor: selected ? 'hsl(var(--primary) / 0.1) !important' : undefined,
+                          color: 'hsl(var(--foreground))',
+                          fontSize: '0.85rem',
+                          borderRadius: 0.5,
+                          my: 0.25,
+                          '&[aria-selected="true"]': {
+                            bgcolor: 'hsl(var(--primary) / 0.12) !important',
+                            fontWeight: 600,
+                          },
+                          '&.Mui-focused, &:hover': {
+                            bgcolor: 'hsl(var(--muted))',
+                          },
                         }}
                       >
-                        <Typography sx={{ fontWeight: selected ? 600 : 500, fontSize: '0.84rem' }}>
-                          {label}
+                        <Typography sx={{ fontSize: '0.85rem' }}>
+                          {fixedname}
                         </Typography>
-                        {label !== option && (
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              color: 'hsl(var(--muted-foreground))',
-                              fontFamily: 'monospace',
-                              fontSize: '0.7rem',
-                            }}
-                          >
-                            {option}
-                          </Typography>
-                        )}
-                      </Box>
+                      </MenuItem>
                     );
                   }}
                   renderInput={(params) => (
                     <TextField
                       {...params}
-                      placeholder="Category..."
+                      label="Select Category"
+                      variant="outlined"
                       size="small"
                       InputProps={{
                         ...params.InputProps,
@@ -1164,36 +1178,107 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
                           height: 36,
                           fontSize: '0.84rem',
                           bgcolor: 'hsl(var(--card))',
+                          color: 'hsl(var(--foreground))',
+                        },
+                      }}
+                      InputLabelProps={{
+                        ...params.InputLabelProps,
+                        sx: {
+                          fontSize: '0.82rem',
+                          lineHeight: '18px',
+                          color: 'hsl(var(--muted-foreground))',
                         },
                       }}
                     />
                   )}
                 />
-                <Tooltip title="Add New Category">
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    onClick={() => {
-                      setNewCategoryName(categoryInputValue.trim());
-                      setCreateCategoryDialogOpen(true);
-                    }}
-                    sx={{
-                      minWidth: 36,
-                      width: 36,
-                      height: 36,
-                      p: 0,
-                      borderColor: 'hsl(var(--border))',
-                      color: 'hsl(var(--foreground))',
-                      borderRadius: 1,
-                      '&:hover': {
-                        bgcolor: 'hsl(var(--muted))',
-                        borderColor: 'hsl(var(--primary))',
-                      },
-                    }}
-                  >
-                    <Plus size={16} />
-                  </Button>
-                </Tooltip>
+
+                {/* Inline Add Category toggle & textfield (matches CacheView) */}
+                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
+                  {renderTextBox ? (
+                    <Tooltip title="Close">
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => {
+                          setRenderTextBox(false);
+                          setNewCategoryInlineInput('');
+                        }}
+                        sx={{
+                          minWidth: 36,
+                          width: 36,
+                          height: 36,
+                          p: 0,
+                          borderColor: 'hsl(var(--border))',
+                          color: 'hsl(var(--foreground))',
+                          borderRadius: 1,
+                          '&:hover': {
+                            bgcolor: 'hsl(var(--muted))',
+                            borderColor: 'hsl(var(--primary))',
+                          },
+                        }}
+                      >
+                        <X size={16} />
+                      </Button>
+                    </Tooltip>
+                  ) : (
+                    <Tooltip title="Add new category">
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => setRenderTextBox(true)}
+                        sx={{
+                          minWidth: 36,
+                          width: 36,
+                          height: 36,
+                          p: 0,
+                          borderColor: 'hsl(var(--border))',
+                          color: 'hsl(var(--foreground))',
+                          borderRadius: 1,
+                          '&:hover': {
+                            bgcolor: 'hsl(var(--muted))',
+                            borderColor: 'hsl(var(--primary))',
+                          },
+                        }}
+                      >
+                        <Plus size={16} />
+                      </Button>
+                    </Tooltip>
+                  )}
+
+                  {renderTextBox && (
+                    <TextField
+                      size="small"
+                      autoFocus
+                      placeholder="Category name"
+                      value={newCategoryInlineInput}
+                      onChange={(e) => setNewCategoryInlineInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          const val = newCategoryInlineInput.trim().replace(/\s+/g, '_');
+                          if (val) {
+                            handleCategoryChange(val);
+                            toast.success(`Category "${val}" created`);
+                            setRenderTextBox(false);
+                            setNewCategoryInlineInput('');
+                          }
+                        } else if (e.key === 'Escape') {
+                          setRenderTextBox(false);
+                          setNewCategoryInlineInput('');
+                        }
+                      }}
+                      InputProps={{
+                        sx: {
+                          height: 36,
+                          width: 180,
+                          fontSize: '0.84rem',
+                          bgcolor: 'hsl(var(--card))',
+                          color: 'hsl(var(--foreground))',
+                        },
+                      }}
+                    />
+                  )}
+                </Box>
               </Box>
             )}
 

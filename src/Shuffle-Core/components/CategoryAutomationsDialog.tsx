@@ -1,4 +1,4 @@
-import { Rocket as RocketLaunchIcon, RotateCcw as RestoreIcon, X as CloseIcon, Network as AccountTreeIcon, Webhook as WebhookIcon, Lock as EnhancedEncryptionIcon, Trash2 as DeleteSweepIcon, Shield as SecurityIcon, ChevronDown as ExpandMoreIcon, Download as DownloadIcon, Plus as AddIcon } from 'lucide-react';
+import { Rocket as RocketLaunchIcon, RotateCcw as RestoreIcon, X as CloseIcon, Network as AccountTreeIcon, Webhook as WebhookIcon, Lock as EnhancedEncryptionIcon, Trash2 as DeleteSweepIcon, Shield as SecurityIcon, ChevronDown as ExpandMoreIcon, Download as DownloadIcon, Plus as AddIcon, Settings as SettingsIcon } from 'lucide-react';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from '@/lib/router-compat';
 import {
@@ -21,16 +21,10 @@ import {
   FormControl,
   InputLabel,
   InputAdornment,
+  FormControlLabel,
+  Switch,
+  Tooltip,
 } from '@mui/material';
-import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
-import { toast } from 'react-toastify';
-import { API_CONFIG, getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
-import PopupTextEditor from './PopupTextEditor';
-import AppSearchDrawer from '@/Shuffle-MCPs/views/AppSearchDrawer';
-import AiAgentPromptsEditor from '@/Shuffle-MCPs/components/AiAgentPromptsEditor';
-import { AgentPresets, AGENT_PRESETS, AgentPreset } from '@/Shuffle-MCPs/components/AgentPresets';
-import { useAuthenticatedApps } from '../useAuthenticatedApps';
-import { Tooltip } from '@mui/material';
 
 import { CategoryAutomation, DATASTORE_CATEGORIES, getDatastoreByCategory, RBACConfig } from '@/Shuffle-MCPs/datastore';
 import { ShareAccessModal } from '@/components/common/ShareAccessModal';
