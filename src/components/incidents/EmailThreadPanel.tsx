@@ -49,6 +49,8 @@ interface EmailThreadPanelProps {
   rawOCSF?: any;
   onReply?: (to: string, subject: string, body: string) => void;
   onForward?: () => void;
+  /** Removes the outer section chrome for document-style layouts. */
+  borderless?: boolean;
 }
 
 /** Extract email address from "Name <email>" format */
@@ -1301,6 +1303,7 @@ const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, 
       actions={headerActions}
       bodyPadded={false}
       dataTour="incident-email-thread"
+      sx={borderless ? { border: 'none', borderRadius: 0, overflow: 'visible' } : undefined}
     >
       {panelBody}
     </IncidentSection>
