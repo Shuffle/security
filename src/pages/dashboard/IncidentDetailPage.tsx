@@ -5745,7 +5745,7 @@ const IncidentDetailPage = () => {
   // ===========================================================================
   // Filter chip rendered in the IncidentSection `actions` slot. Extracted so
   // both call sites (inline + sidebar) get the exact same control.
-  const renderTimelineActionsChip = () => {
+  const renderTimelineActionsChip = (simple: boolean = false) => {
     if (timelineCollapsed) return null;
     const filterDefs = [
       { key: 'revisions' as const, label: 'Changes', count: visibleRevisionCount },
@@ -5789,7 +5789,7 @@ const IncidentDetailPage = () => {
             fontSize: '0.7rem',
             borderRadius: '6px',
             cursor: 'pointer',
-            border: '1px solid hsl(var(--border))',
+            border: simple ? 'none' : '1px solid hsl(var(--border))',
             bgcolor: 'transparent',
             color: 'text.secondary',
             '& .MuiChip-label': { px: 0.875 },
@@ -5805,97 +5805,12 @@ const IncidentDetailPage = () => {
   const renderTimelineBadge = () =>
     revisionsLoading ? <CircularProgress size={14} sx={{ color: 'hsl(var(--primary))' }} /> : null;
 
-  // Body of the Timeline panel (everything below the header). The header,
-  // chevron and collapse behaviour are owned by the surrounding
-  // <IncidentSection> at each call site so it stays visually identical to
-  // Description / Email Thread / Metadata.
-  const renderTimelinePanel = (variant: 'sidebar' | 'inline' = 'sidebar') => (
-    <>
-      {/* Agent runs loading indicator */}
-      {agentRunsLoading && (
-        <LinearProgress sx={{
-          height: 2,
-          bgcolor: 'transparent',
-          '& .MuiLinearProgress-bar': { bgcolor: 'hsl(var(--primary))' },
-        }} />
-      )}
-
-      {/* Timeline filters dropdown — single menu replacing the chip row. */}
-      <Menu
-        anchorEl={timelineFilterAnchor}
-        open={Boolean(timelineFilterAnchor)}
-        onClose={() => setTimelineFilterAnchor(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        PaperProps={{
-          sx: {
-            bgcolor: 'hsl(var(--card))',
-            border: '1px solid hsl(var(--border))',
-            minWidth: 220,
-          },
-        }}
-      >
-        {([
-          { key: 'revisions' as const, label: 'Changes', count: visibleRevisionCount },
-          { key: 'agent' as const, label: 'Agent', count: agentRuns.length },
-          { key: 'workflows' as const, label: 'Workflow runs', count: workflowOnlyRuns.length },
-          { key: 'manual' as const, label: 'Comments', count: commentActivity.length },
-          { key: 'merges' as const, label: 'Threading', count: mergeActivity.length },
-          { key: 'tasks' as const, label: 'Tasks', count: visibleTasks.length },
-          { key: 'observables' as const, label: 'Observables', count: visibleObservablesCount },
-          { key: 'correlations' as const, label: 'Correlations', count: visibleCorrelations.length },
-        ]).map(({ key, label, count }) => {
-          const active = isFilterActive(key);
-          return (
-            <MenuItem
-              key={key}
-              dense
-              onClick={() => toggleTimelineFilter(key)}
-              sx={{ fontSize: '0.8rem', gap: 1, py: 0.5 }}
-            >
-              <Checkbox
-                checked={active}
-                size="small"
-                sx={{
-                  p: 0.25,
-                  color: 'hsl(var(--border))',
-                  '&.Mui-checked': { color: 'hsl(var(--primary))' },
-                }}
-              />
-              <Box sx={{ flex: 1 }}>{label}</Box>
-              <Box
-                component="span"
-                sx={{
-                  fontSize: '0.7rem',
-                  color: 'text.secondary',
-                  fontVariantNumeric: 'tabular-nums',
-                  ml: 1,
-                }}
-              >
-                {count}
-              </Box>
-            </MenuItem>
-          );
-        })}
-      </Menu>
-
-      {/* Body content. Collapse is handled by the surrounding IncidentSection. */}
-      {/* OCSF drift is auto-repaired silently (see the auto-restore effect) —
-          no warning banner is shown to the user. */}
-
-      {/* Inline enrichment CTA — mirrors the Observables-tab banner so users
-          can enable automatic extraction without leaving the timeline. Shown
-          while the incident is fresh, just after a comment, or while the
-          user is typing a new comment. */}
-      {showEnrichmentInlineCTA && renderEnrichmentInlineCTA()}
-      {/* Comment Input — hidden on merged incidents. Comments and AI
-          interactions belong on the primary; leaving them enabled here
-          would fragment the conversation across incidents that share a
-          single primary. */}
-      {primaryPointer ? (
+  const renderTimelineInputArea = (isSimple: boolean) => {
+    if (primaryPointer) {
+      return (
         <Box sx={{
           p: 2,
-          borderBottom: '1px solid hsl(var(--border-subtle))',
+          borderBottom: isSimple ? 'none' : '1px solid hsl(var(--border-subtle))',
           bgcolor: 'hsl(var(--muted) / 0.25)',
           display: 'flex',
           alignItems: 'center',
@@ -5913,9 +5828,10 @@ const IncidentDetailPage = () => {
             Open primary
           </Button>
         </Box>
-      ) : (
-      <Box sx={{ p: { xs: 1, sm: 2 }, borderBottom: '1px solid hsl(var(--border-subtle))' }}>
-
+      );
+    }
+    return (
+      <Box sx={{ p: { xs: 1, sm: 2 }, borderBottom: isSimple ? 'none' : '1px solid hsl(var(--border-subtle))' }}>
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Avatar
             src={resolveUserAvatar(currentUsername, users).src || undefined}
@@ -5966,10 +5882,6 @@ const IncidentDetailPage = () => {
                 </IconButton>
               </Box>
             )}
-            {/* Inline help: typing @AIAgent without the "Assign & Escalate"
-                background workflow means the agent will never pick up the
-                comment. Mirror the enrichment-banner pattern and let users
-                enable it inline without leaving the incident. */}
             {!agentReadiness.isLoading
               && !agentReadiness.active
               && /@\s*ai[\s_-]*agent\b/i.test(newComment) && (
@@ -6089,85 +6001,186 @@ const IncidentDetailPage = () => {
           </Box>
         </Box>
       </Box>
+    );
+  };
+
+  // Body of the Timeline panel (everything below the header). The header,
+  // chevron and collapse behaviour are owned by the surrounding
+  // <IncidentSection> at each call site so it stays visually identical to
+  // Description / Email Thread / Metadata.
+  const renderTimelinePanel = (variant: 'sidebar' | 'inline' | 'simple' = 'sidebar') => {
+    const isSimple = variant === 'simple';
+    return (
+    <>
+      {/* Agent runs loading indicator */}
+      {agentRunsLoading && (
+        <LinearProgress sx={{
+          height: 2,
+          bgcolor: 'transparent',
+          '& .MuiLinearProgress-bar': { bgcolor: 'hsl(var(--primary))' },
+        }} />
       )}
 
+      {/* Timeline filters dropdown — single menu replacing the chip row. */}
+      <Menu
+        anchorEl={timelineFilterAnchor}
+        open={Boolean(timelineFilterAnchor)}
+        onClose={() => setTimelineFilterAnchor(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        PaperProps={{
+          sx: {
+            bgcolor: 'hsl(var(--card))',
+            border: '1px solid hsl(var(--border))',
+            minWidth: 220,
+          },
+        }}
+      >
+        {([
+          { key: 'revisions' as const, label: 'Changes', count: visibleRevisionCount },
+          { key: 'agent' as const, label: 'Agent', count: agentRuns.length },
+          { key: 'workflows' as const, label: 'Workflow runs', count: workflowOnlyRuns.length },
+          { key: 'manual' as const, label: 'Comments', count: commentActivity.length },
+          { key: 'merges' as const, label: 'Threading', count: mergeActivity.length },
+          { key: 'tasks' as const, label: 'Tasks', count: visibleTasks.length },
+          { key: 'observables' as const, label: 'Observables', count: visibleObservablesCount },
+          { key: 'correlations' as const, label: 'Correlations', count: visibleCorrelations.length },
+        ]).map(({ key, label, count }) => {
+          const active = isFilterActive(key);
+          return (
+            <MenuItem
+              key={key}
+              dense
+              onClick={() => toggleTimelineFilter(key)}
+              sx={{ fontSize: '0.8rem', gap: 1, py: 0.5 }}
+            >
+              <Checkbox
+                checked={active}
+                size="small"
+                sx={{
+                  p: 0.25,
+                  color: 'hsl(var(--border))',
+                  '&.Mui-checked': { color: 'hsl(var(--primary))' },
+                }}
+              />
+              <Box sx={{ flex: 1 }}>{label}</Box>
+              <Box
+                component="span"
+                sx={{
+                  fontSize: '0.7rem',
+                  color: 'text.secondary',
+                  fontVariantNumeric: 'tabular-nums',
+                  ml: 1,
+                }}
+              >
+                {count}
+              </Box>
+            </MenuItem>
+          );
+        })}
+      </Menu>
 
-      {/* Unified Timeline Feed — when inline, render with a vertical rail behind the items */}
-      <Box sx={{
-        p: { xs: 0, sm: 1.5 },
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 1.25,
-        overflow: 'auto',
-        ...(variant === 'inline' && {
-          position: 'relative',
-          pl: { xs: 0, sm: 4.5 },
-          py: 2,
-          // Vertical rail — anchored at the bottom (oldest) and growing
-          // upward toward the newest item, matching the timeline direction
-          // (newest-first / top). A subtle fade at the top reinforces that
-          // the latest events are the "growing edge" of the thread.
-          // Hidden on mobile: the rail and dots eat horizontal space.
-          '&::before': {
-            content: '""',
-            display: { xs: 'none', sm: 'block' },
-            position: 'absolute',
-            left: 19,
-            top: 18,
-            bottom: 18,
-            width: '2px',
-            background: 'linear-gradient(to top, hsl(var(--border)) 0%, hsl(var(--border)) 70%, hsl(var(--border) / 0.15) 100%)',
-            borderRadius: 1,
-          },
-          // Each direct child gets a dot anchored to the rail. Default
-          // alignment matches taller cards (avatar at top: 12, size 24 →
-          // visual centre ~24px). Compact step pills (Observable/Correlation/
-          // Task markers) opt-in to a higher dot via data-timeline-compact.
-          '& > *': {
-            position: 'relative',
-            '&::before': {
-              content: '""',
-              display: { xs: 'none', sm: 'block' },
-              position: 'absolute',
-              left: -22,
-              top: 21,
-              width: 12,
-              height: 12,
-              borderRadius: '50%',
-              bgcolor: 'hsl(var(--card))',
-              border: '2px solid #ff6600',
-              zIndex: 1,
-              boxShadow: '0 0 0 3px hsl(var(--background))',
-            },
-            '&[data-timeline-compact="true"]::before': {
-              // Pill content centre is roughly 12px from its top
-              // (py: 0.5 = 4px + 12px icon / 2). Dot half-height = 6.
-              top: 9,
-            },
-            // Quiet rows (e.g. completed executions) should not scream from
-            // the rail. Muted dot by default; parent hover restores accent.
-            '&[data-timeline-quiet="true"]::before': {
-              border: '2px solid hsl(var(--muted-foreground) / 0.35)',
-            },
-            '&[data-timeline-quiet="true"]:hover::before': {
-              border: '2px solid #ff6600',
-            },
-          },
-        }),
-      }}>
-        {/* Indicator-check loader is now rendered inline under the comment that
-            triggered it — see renderIndicatorCheckPlaceholder() inside renderThread().
-            Standardised to match the "AI Agent processing" pill so loaders attach
-            to the message they relate to instead of floating at the top. */}
-        {renderTimelineFeedItems(variant)}
-      </Box>
-      
+      {/* Body content. Collapse is handled by the surrounding IncidentSection. */}
+      {/* OCSF drift is auto-repaired silently (see the auto-restore effect) —
+          no warning banner is shown to the user. */}
+
+      {/* Inline enrichment CTA — mirrors the Observables-tab banner so users
+          can enable automatic extraction without leaving the timeline. Shown
+          while the incident is fresh, just after a comment, or while the
+          user is typing a new comment. */}
+      {isSimple ? (
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', minHeight: 0 }}>
+          {showEnrichmentInlineCTA && renderEnrichmentInlineCTA()}
+          <Box sx={{ flexShrink: 0, mb: 1 }}>
+            {renderTimelineActionsChip(isSimple)}
+          </Box>
+          <Box sx={{ flex: 1, overflowY: 'auto', pb: '150px' }}>
+            {renderTimelineFeedItems(variant)}
+          </Box>
+          {renderTimelineInputArea(isSimple)}
+        </Box>
+      ) : (
+        <>
+          {showEnrichmentInlineCTA && renderEnrichmentInlineCTA()}
+          {renderTimelineInputArea(isSimple)}
+          {/* Unified Timeline Feed — when inline, render with a vertical rail behind the items */}
+          <Box sx={{
+            p: { xs: 0, sm: 1.5 },
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1.25,
+            overflow: 'auto',
+            ...(variant === 'inline' && {
+              position: 'relative',
+              pl: { xs: 0, sm: 4.5 },
+              py: 2,
+              // Vertical rail — anchored at the bottom (oldest) and growing
+              // upward toward the newest item, matching the timeline direction
+              // (newest-first / top). A subtle fade at the top reinforces that
+              // the latest events are the "growing edge" of the thread.
+              // Hidden on mobile: the rail and dots eat horizontal space.
+              '&::before': {
+                content: '""',
+                display: { xs: 'none', sm: 'block' },
+                position: 'absolute',
+                left: 19,
+                top: 18,
+                bottom: 18,
+                width: '2px',
+                background: 'linear-gradient(to top, hsl(var(--border)) 0%, hsl(var(--border)) 70%, hsl(var(--border) / 0.15) 100%)',
+                borderRadius: 1,
+              },
+              // Each direct child gets a dot anchored to the rail. Default
+              // alignment matches taller cards (avatar at top: 12, size 24 →
+              // visual centre ~24px). Compact step pills (Observable/Correlation/
+              // Task markers) opt-in to a higher dot via data-timeline-compact.
+              '& > *': {
+                position: 'relative',
+                '&::before': {
+                  content: '""',
+                  display: { xs: 'none', sm: 'block' },
+                  position: 'absolute',
+                  left: -22,
+                  top: 21,
+                  width: 12,
+                  height: 12,
+                  borderRadius: '50%',
+                  bgcolor: 'hsl(var(--card))',
+                  border: '2px solid #ff6600',
+                  zIndex: 1,
+                  boxShadow: '0 0 0 3px hsl(var(--background))',
+                },
+                '&[data-timeline-compact="true"]::before': {
+                  // Pill content centre is roughly 12px from its top
+                  // (py: 0.5 = 4px + 12px icon / 2). Dot half-height = 6.
+                  top: 9,
+                },
+                // Quiet rows (e.g. completed executions) should not scream from
+                // the rail. Muted dot by default; parent hover restores accent.
+                '&[data-timeline-quiet="true"]::before': {
+                  border: '2px solid hsl(var(--muted-foreground) / 0.35)',
+                },
+                '&[data-timeline-quiet="true"]:hover::before': {
+                  border: '2px solid #ff6600',
+                },
+              },
+            }),
+          }}>
+            {/* Indicator-check loader is now rendered inline under the comment that
+                triggered it — see renderIndicatorCheckPlaceholder() inside renderThread().
+                Standardised to match the "AI Agent processing" pill so loaders attach
+                to the message they relate to instead of floating at the top. */}
+            {renderTimelineFeedItems(variant)}
+          </Box>
+        </>
+      )}
     </>
   );
+};
 
   // Builder for the unified timeline items (revisions + agent runs + comments).
   // Returns an array of JSX nodes (or a single empty-state node).
-  const renderTimelineFeedItems = (variant: 'sidebar' | 'inline' = 'sidebar') => {
+  const renderTimelineFeedItems = (variant: 'sidebar' | 'inline' | 'simple' = 'sidebar') => {
     type StepKind = 'task-created' | 'task-completed' | 'task-status-changed' | 'observable-added' | 'correlation-found' | 'incident-created' | 'routing-matched';
     type TimelineItem =
       | { type: 'revision'; timestamp: number; data: any; idx: number; parsedCurrent: any; parsedPrevious: any | null }
@@ -6529,6 +6542,10 @@ const IncidentDetailPage = () => {
       return b.timestamp - a.timestamp;     // otherwise newest first
     });
 
+    // Simple-mode timeline reads bottom-to-top (oldest first, input at bottom).
+    if (variant === 'simple') {
+      items.reverse();
+    }
 
     if (items.length === 0) {
       const allHidden = activeTimelineFilters.size === 0;
@@ -6683,7 +6700,9 @@ const IncidentDetailPage = () => {
 
     const renderItem = (item: TimelineItem, opts: { isReply?: boolean } = {}): React.ReactNode => {
       const { isReply = false } = opts;
+      const isSimple = variant === 'simple';
       const itemKey = getItemKey(item);
+
 
       // Reply button — added to every item so users can start a thread off
       // any timeline event (revision, agent run, or comment).
@@ -6761,7 +6780,8 @@ const IncidentDetailPage = () => {
               p: 1.5,
               borderRadius: 1.5,
               bgcolor: 'transparent',
-              border: '1px solid hsl(var(--border-subtle))',
+              border: isSimple ? 'none' : '1px solid hsl(var(--border-subtle))',
+              mb: isSimple ? 1.5 : 0,
               transition: 'background-color 0.15s ease, border-color 0.15s ease',
               '&:hover': {
                 bgcolor: 'hsl(var(--muted) / 0.4)',
@@ -6934,16 +6954,19 @@ const IncidentDetailPage = () => {
               px: 1.25,
               py: 0.75,
               borderRadius: 1.5,
-              border: skip.skipped
-                ? '1px dashed hsl(var(--border))'
-                : isQuiet
-                  ? '1px solid transparent'
-                  : '1px solid hsl(var(--border))',
+              border: isSimple
+                ? 'none'
+                : skip.skipped
+                  ? '1px dashed hsl(var(--border))'
+                  : isQuiet
+                    ? '1px solid transparent'
+                    : '1px solid hsl(var(--border))',
               bgcolor: skip.skipped
                 ? 'hsl(var(--muted) / 0.2)'
                 : isQuiet
                   ? 'transparent'
                   : 'hsl(var(--card))',
+              mb: isSimple ? 1.5 : 0,
               opacity: skip.skipped ? 0.85 : 1,
               cursor: 'pointer',
               transition: 'border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease',
@@ -7069,11 +7092,14 @@ const IncidentDetailPage = () => {
               boxSizing: 'border-box',
               lineHeight: 1,
               borderRadius: 1.5,
-              border: isFailed
-                ? '1px solid hsl(var(--destructive) / 0.5)'
-                : isWarning
-                  ? '1px solid hsl(var(--severity-medium) / 0.6)'
-                  : '1px solid transparent',
+              border: isSimple
+                ? 'none'
+                : isFailed
+                  ? '1px solid hsl(var(--destructive) / 0.5)'
+                  : isWarning
+                    ? '1px solid hsl(var(--severity-medium) / 0.6)'
+                    : '1px solid transparent',
+              mb: isSimple ? 1.5 : 0,
               bgcolor: isWarning ? 'hsl(var(--severity-medium) / 0.08)' : 'transparent',
               cursor: execUrl ? 'pointer' : 'default',
               transition: 'border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease',
@@ -7313,7 +7339,8 @@ const IncidentDetailPage = () => {
               ml: 0.5,
               borderRadius: 999,
               bgcolor: pillBg,
-              border: `1px solid ${pillBorder}`,
+              border: isSimple ? 'none' : `1px solid ${pillBorder}`,
+              mb: isSimple ? 1 : 0,
               maxWidth: '100%',
               minWidth: 0,
               overflow: 'hidden',
@@ -7553,7 +7580,8 @@ const IncidentDetailPage = () => {
               py: 1,
               borderRadius: 1.5,
               bgcolor: 'transparent',
-              border: '1px solid hsl(var(--border-subtle))',
+              border: isSimple ? 'none' : '1px solid hsl(var(--border-subtle))',
+              mb: isSimple ? 1.5 : 0,
               transition: 'background-color 0.15s ease, border-color 0.15s ease',
               '&:hover': {
                 bgcolor: 'hsl(var(--muted) / 0.4)',
@@ -7618,10 +7646,13 @@ const IncidentDetailPage = () => {
             bgcolor: isDeleted
               ? 'hsl(var(--muted) / 0.3)'
               : actItem.type === 'comment' ? 'rgba(255, 102, 0, 0.05)' : 'hsl(var(--muted) / 0.5)',
-            border: '1px solid',
-            borderColor: isDeleted
-              ? 'hsl(var(--border-subtle))'
-              : actItem.type === 'comment' ? 'rgba(255, 102, 0, 0.1)' : 'hsl(var(--border-subtle))',
+            border: isSimple ? 'none' : '1px solid',
+            borderColor: isSimple
+              ? 'transparent'
+              : isDeleted
+                ? 'hsl(var(--border-subtle))'
+                : actItem.type === 'comment' ? 'rgba(255, 102, 0, 0.1)' : 'hsl(var(--border-subtle))',
+            mb: isSimple ? 1.5 : 0,
             position: 'relative',
             opacity: isDeleted ? 0.7 : 1,
             cursor: isMergeItem ? 'pointer' : 'default',
@@ -10098,7 +10129,7 @@ const IncidentDetailPage = () => {
           <SimpleCaseLayout
             narrativeLabel={simpleHasEmail ? 'Email' : 'Description'}
             narrative={simpleNarrative}
-            timeline={renderTimelinePanel('sidebar')}
+            timeline={renderTimelinePanel('simple')}
             tasks={simpleTasks}
             observables={simpleObservables}
             correlations={simpleCorrelations}
@@ -10332,7 +10363,7 @@ const IncidentDetailPage = () => {
               open={!timelineCollapsed}
               onOpenChange={(o) => setTimelineCollapsed(!o)}
               badge={renderTimelineBadge()}
-              actions={renderTimelineActionsChip()}
+              actions={renderTimelineActionsChip(false)}
               bodyPadded={false}
               dataTour="incident-activity-feed"
             >
@@ -12013,7 +12044,7 @@ const IncidentDetailPage = () => {
               open={!timelineCollapsed}
               onOpenChange={(o) => setTimelineCollapsed(!o)}
               badge={renderTimelineBadge()}
-              actions={renderTimelineActionsChip()}
+              actions={renderTimelineActionsChip(false)}
               bodyPadded={false}
               dataTour="incident-activity-feed"
             >
