@@ -694,6 +694,10 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
     setEditDialogOpen(true);
   };
 
+  // The backend requires "value" to be a string. Objects/arrays are serialized.
+  const toStringValue = (val: unknown): string =>
+    typeof val === 'string' ? val : val == null ? '' : JSON.stringify(val);
+
   // Value change validator
   const handleValueChange = (val: string) => {
     setFormValue(val);
@@ -751,7 +755,7 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
       const payload = {
         org_id: orgId,
         key: trimmedKey,
-        value: finalValue,
+        value: toStringValue(finalValue),
         category: formCategory || selectedCategory,
       };
 
@@ -815,7 +819,7 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
       const payload = {
         org_id: orgId,
         key: activeItem.key,
-        value: finalValue,
+        value: toStringValue(finalValue),
         category: formCategory || activeItem.category || selectedCategory,
         suborg_distribution: activeItem.suborg_distribution,
       };
@@ -921,7 +925,7 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
     const payload = {
       org_id: orgId,
       key: sharingItem.key,
-      value: sharingItem.value,
+      value: toStringValue(sharingItem.value),
       category: targetCategory,
       rbac: rbac || undefined,
     };
