@@ -88,16 +88,28 @@ const CUSTOM_MODEL = 'Custom…';
 // security analysis work (strong reasoning, sane cost/latency).
 // Custom value can always be typed in.
 const PROVIDER_MODELS: Record<string, string[]> = {
-  OpenAI: ['gpt-5.6-terra', 'gpt-5.6-sol', 'gpt-5.6-luna', 'gpt-5.5', 'gpt-5.5-pro', 'gpt-5.4', 'gpt-5.4-pro', 'gpt-5.4-mini', 'gpt-5.4-nano', 'gpt-5.2', 'gpt-5', 'gpt-5-mini', 'gpt-5-nano', 'gpt-4.1', 'o4-mini'],
-  Anthropic: ['claude-sonnet-4-5', 'claude-opus-4-5', 'claude-haiku-4-5', 'claude-opus-4', 'claude-sonnet-4', 'claude-3-7-sonnet-latest'],
-  'Google Gemini': ['gemini-3-pro-preview', 'gemini-3-flash-preview', 'gemini-3.1-pro-preview', 'gemini-3.1-flash-lite-preview', 'gemini-3.5-flash', 'gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.5-flash-lite'],
-  Mistral: ['mistral-large-2026', 'mistral-medium-3', 'mistral-small-3.2', 'codestral-2026', 'magistral-medium-2026', 'ministral-8b-latest'],
-  Groq: ['llama-4-maverick-17b-128e', 'llama-4-scout-17b-16e', 'llama-3.3-70b-versatile', 'deepseek-r1-distill-llama-70b', 'qwen-3-32b', 'kimi-k2-instruct'],
-  DeepSeek: ['deepseek-v3.5', 'deepseek-v3', 'deepseek-r1', 'deepseek-coder-v3'],
-  'Together AI': ['meta-llama/Llama-4-Maverick-17B-128E-Instruct', 'meta-llama/Llama-4-Scout-17B-16E-Instruct', 'deepseek-ai/DeepSeek-V3', 'deepseek-ai/DeepSeek-R1', 'Qwen/Qwen3-235B-A22B'],
-  OpenRouter: ['anthropic/claude-sonnet-4.5', 'openai/gpt-5.5', 'openai/gpt-5.4', 'anthropic/claude-opus-4.5', 'google/gemini-3-pro-preview', 'google/gemini-3-flash-preview', 'meta-llama/llama-4-maverick', 'deepseek/deepseek-v3.5', 'x-ai/grok-4'],
-  'Ollama (localhost)': ['llama3.3', 'qwen3', 'llama3.2', 'qwen3:32b', 'deepseek-r1', 'deepseek-r1:70b', 'mistral-small3', 'phi4', 'gemma3'],
-  'LM Studio (localhost)': ['qwen3-32b', 'llama-3.3-70b-instruct', 'deepseek-r1-distill-qwen-32b', 'mistral-small-3', 'phi-4', 'gemma-3-27b'],
+  OpenAI: ['gpt-6', 'gpt-6-astra', 'gpt-6-mini', 'gpt-6-nano', 'gpt-5.6-terra', 'gpt-5.6-sol', 'gpt-5.6-luna', 'gpt-5.5', 'gpt-5.5-pro', 'gpt-5.4', 'gpt-5.4-pro', 'gpt-5.4-mini', 'o4-mini', 'o3', 'o3-mini'],
+  'Azure OpenAI': ['gpt-4o', 'gpt-4o-mini', 'o1', 'o3-mini', 'gpt-4-turbo'],
+  Anthropic: ['claude-sonnet-5', 'claude-opus-5', 'claude-fable-5-1', 'claude-fable-5', 'claude-sonnet-4-5', 'claude-opus-4-5', 'claude-haiku-4-5'],
+  'Amazon Bedrock': [
+    'anthropic.claude-3-5-sonnet-20241022-v2:0',
+    'anthropic.claude-3-7-sonnet-20250219-v1:0',
+    'anthropic.claude-3-5-haiku-20241022-v1:0',
+    'meta.llama3-3-70b-instruct-v1:0',
+    'amazon.nova-pro-v1:0',
+    'amazon.nova-lite-v1:0',
+    'deepseek.r1-v1:0',
+  ],
+  'Google Gemini': ['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.1-pro', 'gemini-3-flash', 'gemini-3-pro', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-2.5-pro', 'gemini-2.5-flash'],
+  xAI: ['grok-4', 'grok-3', 'grok-3-mini', 'grok-2-1212', 'grok-2-vision-1212'],
+  Mistral: ['mistral-large-3', 'mistral-medium-3.5', 'mistral-small-4', 'codestral-2026', 'pixtral-large', 'magistral-medium-2026', 'ministral-3-14b', 'ministral-3-8b'],
+  Groq: ['llama-4-maverick-17b-128e', 'llama-4-scout-17b-16e', 'qwen-3.6-27b', 'qwen-qwq-32b', 'deepseek-v4-flash', 'llama-3.3-70b-versatile', 'deepseek-r1-distill-llama-70b', 'llama-guard-4-12b', 'kimi-k2-instruct'],
+  DeepSeek: ['deepseek-v4-pro', 'deepseek-v4-flash', 'deepseek-r1', 'deepseek-v3', 'deepseek-coder-v3'],
+  'Moonshot AI (Kimi)': ['kimi-k2.5', 'kimi-k2-instruct', 'moonshot-v1-128k', 'moonshot-v1-32k', 'moonshot-v1-8k'],
+  'Together AI': ['meta-llama/Llama-4-Maverick-17B-128E-Instruct', 'meta-llama/Llama-4-Scout-17B-16E-Instruct', 'meta-llama/Llama-4-Behemoth-Instruct', 'deepseek-ai/DeepSeek-V4-Pro', 'deepseek-ai/DeepSeek-V4-Flash', 'Qwen/Qwen3.6-72B-Instruct', 'deepseek-ai/DeepSeek-R1', 'deepseek-ai/DeepSeek-V3', 'Qwen/Qwen3-235B-A22B'],
+  OpenRouter: ['openai/gpt-6-astra', 'openai/gpt-6', 'anthropic/claude-sonnet-5', 'anthropic/claude-opus-5', 'anthropic/claude-fable-5-1', 'google/gemini-3.8-flash', 'google/gemini-3.7-flash', 'deepseek/deepseek-v4', 'meta-llama/llama-4-maverick', 'anthropic/claude-sonnet-4.5', 'openai/gpt-5.5', 'x-ai/grok-4'],
+  'Ollama (localhost)': ['llama4', 'llama4:16x17b', 'qwen3.6:27b', 'qwen3.6', 'qwen3-coder', 'deepseek-v4-flash', 'llama3.3', 'qwen3', 'deepseek-r1', 'mistral-small4', 'phi4', 'gemma3'],
+  'LM Studio (localhost)': ['qwen-3.6-27b', 'llama-4-16x17b-instruct', 'deepseek-v4-flash', 'qwen3-32b', 'llama-3.3-70b-instruct', 'deepseek-r1-distill-qwen-32b', 'mistral-small-4', 'phi-4', 'gemma-3-27b'],
 };
 
 
@@ -629,6 +641,7 @@ const LocalLLMConfig = ({ compact, globalUrl, userdata, isLoaded, isLoggedIn, se
    *  LM Studio, Custom) must remain editable inside the configure form. */
   const urlIsEditable = (() => {
     if (isShuffleAI) return false;
+    if (effectivePreset === 'Azure OpenAI' || effectivePreset === 'Amazon Bedrock') return true;
     const preset = ENDPOINT_PRESETS.find((p) => p.label === effectivePreset);
     const presetUrl = (preset?.url || '').trim();
     if (!presetUrl) return true;

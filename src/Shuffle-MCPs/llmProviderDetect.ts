@@ -23,11 +23,15 @@ export const CUSTOM_PRESET = 'Custom / self-hosted';
 export const ENDPOINT_PRESETS: LLMProviderPreset[] = [
   { label: SHUFFLE_AI_PRESET, url: '' },
   { label: 'OpenAI', url: 'https://api.openai.com/v1', apiKeyUrl: 'https://platform.openai.com/api-keys', apiKeyHint: 'Create a key under API keys in the OpenAI platform dashboard.' },
+  { label: 'Azure OpenAI', url: 'https://<your-resource>.openai.azure.com/openai/v1', apiKeyUrl: 'https://portal.azure.com', apiKeyHint: 'Enter your Azure OpenAI resource URL (e.g. https://my-resource.openai.azure.com/openai/v1) and Azure API key. Under Model, select or type your deployment name.' },
   { label: 'Anthropic', url: 'https://api.anthropic.com/v1/', apiKeyUrl: 'https://console.anthropic.com/settings/keys', apiKeyHint: 'Generate a key under Settings → API Keys in the Anthropic Console.' },
+  { label: 'Amazon Bedrock', url: 'https://bedrock-runtime.us-east-1.amazonaws.com/openai/v1', apiKeyUrl: 'https://console.aws.amazon.com/bedrock', apiKeyHint: 'Enter your regional Bedrock runtime URL and an Amazon Bedrock API key. Under Model, select or type the model ID or ARN.' },
   { label: 'Google Gemini', url: 'https://generativelanguage.googleapis.com/v1beta/openai/', apiKeyUrl: 'https://aistudio.google.com/app/apikey', apiKeyHint: 'Create a key in Google AI Studio under Get API key.' },
+  { label: 'xAI', url: 'https://api.x.ai/v1', apiKeyUrl: 'https://console.x.ai', apiKeyHint: 'Create an API key in the xAI Console.' },
   { label: 'Mistral', url: 'https://api.mistral.ai/v1', apiKeyUrl: 'https://console.mistral.ai/api-keys/', apiKeyHint: 'Create a key under API Keys in the Mistral Console.' },
   { label: 'Groq', url: 'https://api.groq.com/openai/v1', apiKeyUrl: 'https://console.groq.com/keys', apiKeyHint: 'Create a key under API Keys in the Groq Console.' },
   { label: 'DeepSeek', url: 'https://api.deepseek.com/v1', apiKeyUrl: 'https://platform.deepseek.com/api_keys', apiKeyHint: 'Create a key under API Keys in the DeepSeek platform.' },
+  { label: 'Moonshot AI (Kimi)', url: 'https://api.moonshot.ai/v1', apiKeyUrl: 'https://platform.moonshot.cn/console/api-keys', apiKeyHint: 'Generate an API key in the Moonshot AI platform dashboard.' },
   { label: 'Together AI', url: 'https://api.together.xyz/v1', apiKeyUrl: 'https://api.together.ai/settings/api-keys', apiKeyHint: 'Create a key under Settings → API Keys in Together AI.' },
   { label: 'OpenRouter', url: 'https://openrouter.ai/api/v1', apiKeyUrl: 'https://openrouter.ai/keys', apiKeyHint: 'Create a key under Keys in your OpenRouter dashboard.' },
   { label: 'Ollama (localhost)', url: 'http://localhost:11434/v1', apiKeyHint: 'Local Ollama does not require an API key — any non-empty value works.' },
@@ -38,11 +42,15 @@ export const ENDPOINT_PRESETS: LLMProviderPreset[] = [
 export const PROVIDER_DOMAINS: Record<string, string> = {
   'Shuffle AI': 'shuffler.io',
   OpenAI: 'openai.com',
+  'Azure OpenAI': 'azure.microsoft.com',
   Anthropic: 'anthropic.com',
+  'Amazon Bedrock': 'aws.amazon.com',
   'Google Gemini': 'gemini.google.com',
+  xAI: 'x.ai',
   Mistral: 'mistral.ai',
   Groq: 'groq.com',
   DeepSeek: 'deepseek.com',
+  'Moonshot AI (Kimi)': 'moonshot.ai',
   'Together AI': 'together.ai',
   OpenRouter: 'openrouter.ai',
   'Ollama (localhost)': 'ollama.com',
@@ -72,6 +80,23 @@ export const detectLLMProvider = (url: string | undefined | null): LLMProviderPr
   //    `/v1` vs `/openai/v1`, custom ports on localhost, etc.
   const host = hostnameOf(trimmed);
   if (host) {
+    if (host.includes('.openai.azure.com') || host.includes('.services.ai.azure.com') || host.endsWith('azure.com')) {
+      const azurePreset = ENDPOINT_PRESETS.find((p) => p.label === 'Azure OpenAI');
+      if (azurePreset) return azurePreset;
+    }
+    if (host.includes('bedrock-runtime') || (host.includes('bedrock') && host.endsWith('amazonaws.com'))) {
+      const bedrockPreset = ENDPOINT_PRESETS.find((p) => p.label === 'Amazon Bedrock');
+      if (bedrockPreset) return bedrockPreset;
+    }
+    if (host === 'api.moonshot.cn' || host.includes('moonshot.cn') || host.includes('moonshot.ai')) {
+      const moonshotPreset = ENDPOINT_PRESETS.find((p) => p.label === 'Moonshot AI (Kimi)');
+      if (moonshotPreset) return moonshotPreset;
+    }
+    if (host.includes('x.ai')) {
+      const xaiPreset = ENDPOINT_PRESETS.find((p) => p.label === 'xAI');
+      if (xaiPreset) return xaiPreset;
+    }
+
     const byHost = ENDPOINT_PRESETS.find((p) => {
       const presetHost = hostnameOf(p.url);
       return presetHost && presetHost === host;
