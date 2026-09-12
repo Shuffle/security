@@ -5763,7 +5763,6 @@ const IncidentDetailPage = () => {
       <Tooltip title="Filter timeline" arrow>
         <Chip
           icon={<FilterListIcon size={14} style={{ color: 'inherit !important' }} />}
-          clickable={false}
           label={
             <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
               <span>Filters</span>
