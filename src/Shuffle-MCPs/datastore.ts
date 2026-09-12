@@ -23,8 +23,24 @@ export interface DatastoreItem {
   publicAuthorization?: string;
   PublicAuthorization?: string;
   enrichments?: Array<{ type: string; value?: string; data?: string }>;
+  rbac?: RBACConfig;
 }
 
+export interface PermissionRule {
+  roles?: string[];
+  users?: string[];
+  groups?: string[];
+  scopes?: string[];
+}
+
+export interface RBACConfig {
+  inherit?: boolean;
+  public?: boolean;
+  read?: PermissionRule;
+  write?: PermissionRule;
+  execute?: PermissionRule;
+  admin?: PermissionRule;
+}
 
 export interface CategoryAutomation {
   id?: string;
@@ -46,6 +62,7 @@ export interface CategoryConfig {
   settings: {
     timeout: number;
     public: boolean;
+    rbac?: RBACConfig;
   };
 }
 

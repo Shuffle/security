@@ -43,6 +43,7 @@ import {
   Check,
   X,
   ExternalLink,
+  UserPlus,
 } from 'lucide-react';
 import JsonView from 'react18-json-view';
 import 'react18-json-view/src/style.css';
@@ -53,8 +54,9 @@ import { useAuth } from '@/context/AuthContext';
 import { useTheme as useAppTheme } from '@/context/ThemeContext';
 import { toast } from '@/lib/toast';
 import { useLocation, useNavigate } from '@/lib/router-compat';
-import { DATASTORE_CATEGORIES } from '@/Shuffle-MCPs/datastore';
+import { DATASTORE_CATEGORIES, RBACConfig } from '@/Shuffle-MCPs/datastore';
 import { CategoryAutomationsDialog } from '@/Shuffle-Core/components/CategoryAutomationsDialog';
+import { ShareAccessModal } from '@/components/common/ShareAccessModal';
 import { useSubOrgs } from '@/hooks/useSubOrgs';
 
 export interface DatastoreItemRecord {
@@ -65,6 +67,7 @@ export interface DatastoreItemRecord {
   edited_at?: number;
   suborg_distribution?: string[];
   public_authorization?: string;
+  rbac?: RBACConfig;
 }
 
 export interface DatastoreCategoriesProps {
@@ -391,6 +394,9 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
   // Category Automations Dialog & Config
   const [automationsDialogOpen, setAutomationsDialogOpen] = useState<boolean>(false);
   const [categoryConfig, setCategoryConfig] = useState<any>(null);
+
+  // Share & Permissions modal
+  const [sharingItem, setSharingItem] = useState<DatastoreItemRecord | null>(null);
 
   // Add Category Dialog
   const [createCategoryDialogOpen, setCreateCategoryDialogOpen] = useState<boolean>(false);
@@ -906,6 +912,38 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
     } finally {
       setDeleting(false);
     }
+  };
+
+  // Save Item RBAC
+  const handleSaveItemRBAC = async (rbac: RBACConfig | null) => {
+    if (!sharingItem) return;
+    const targetCategory = sharingItem.category || (selectedCategory === 'default' ? '' : selectedCategory);
+    const payload = {
+      org_id: orgId,
+      key: sharingItem.key,
+      value: sharingItem.value,
+      category: targetCategory,
+      rbac: rbac || undefined,
+    };
+
+    const response = await fetch(getApiUrl(`/api/v1/orgs/${orgId}/set_cache`), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        ...getAuthHeader(orgId),
+      },
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.reason || `Failed to update access: ${response.status}`);
+    }
+
+    toast.success(`Access updated for "${sharingItem.key}"`);
+    fetchCache(selectedCategory, page, pageSize, activeSearchTerm, cursors);
   };
 
   // Row selection handlers
@@ -1477,6 +1515,28 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
                             </IconButton>
                           </Tooltip>
                         )}
+
+                        <Tooltip title="Share & Permissions">
+                          <IconButton
+                            size="small"
+                            onClick={() => setSharingItem(item)}
+                            sx={{
+                              width: 28,
+                              height: 28,
+                              p: 0.5,
+                              color: item.rbac ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                              border: '1px solid hsl(var(--border))',
+                              borderRadius: 1,
+                              '&:hover': {
+                                color: 'hsl(var(--foreground))',
+                                borderColor: 'hsl(var(--primary))',
+                                bgcolor: 'hsl(var(--muted) / 0.1)',
+                              },
+                            }}
+                          >
+                            <UserPlus size={13} />
+                          </IconButton>
+                        </Tooltip>
                       </Box>
                     </TableCell>
                   </TableRow>
@@ -2073,6 +2133,18 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
         }}
         orgId={orgId || ''}
       />
+
+      {sharingItem && (
+        <ShareAccessModal
+          open={Boolean(sharingItem)}
+          onClose={() => setSharingItem(null)}
+          resourceType="key"
+          resourceName={sharingItem.key}
+          parentName={sharingItem.category || selectedCategory}
+          initialRBAC={sharingItem.rbac}
+          onSave={handleSaveItemRBAC}
+        />
+      )}
     </Box>
   );
 };

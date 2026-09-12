@@ -32,7 +32,8 @@ import { AgentPresets, AGENT_PRESETS, AgentPreset } from '@/Shuffle-MCPs/compone
 import { useAuthenticatedApps } from '../useAuthenticatedApps';
 import { Tooltip } from '@mui/material';
 
-import { CategoryAutomation, DATASTORE_CATEGORIES, getDatastoreByCategory } from '@/Shuffle-MCPs/datastore';
+import { CategoryAutomation, DATASTORE_CATEGORIES, getDatastoreByCategory, RBACConfig } from '@/Shuffle-MCPs/datastore';
+import { ShareAccessModal } from '@/components/common/ShareAccessModal';
 import { extractValidatedIngestionApps, ValidatedIngestionApp, findIngestTicketsWorkflow, extractWorkflowAppNames } from '@/Shuffle-MCPs/ingestionDetection';
 import { fetchAppsCached, fetchWorkflowsCached } from '../views/appsFetchCache';
 
@@ -343,6 +344,8 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
   };
 
   const [appPickerForIdx, setAppPickerForIdx] = useState<number | null>(null);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [categoryRBAC, setCategoryRBAC] = useState<RBACConfig | null>(null);
   const { data: authenticatedApps = [] } = useAuthenticatedApps();
   /** Lookup table for app metadata (image, display name) keyed by both
    *  app ID and app name, so that legacy stored values still resolve. */
@@ -628,6 +631,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
       setAutomations(allAutomations);
       setHasChanges(false);
       setCleanupTimeout(normalizeCleanupTimeout(sourceSettings?.timeout));
+      setCategoryRBAC(sourceSettings?.rbac ?? null);
 
       // Extract existing workflow IDs and webhook URL
       const workflowAutomation = existingByName.get('Run workflow');
@@ -803,7 +807,11 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
       // (e.g. `public`) — the backend overwrites the whole settings object,
       // so dropping them here would silently reset them.
       const baseSettings = (activeCategory === category ? initialSettings : activeEntry?.settings) || {};
-      payload.settings = { ...baseSettings, timeout: cleanupTimeout > 0 ? cleanupTimeout : 0 };
+      payload.settings = {
+        ...baseSettings,
+        timeout: cleanupTimeout > 0 ? cleanupTimeout : 0,
+        rbac: categoryRBAC || undefined,
+      };
 
       const response = await fetch(getApiUrl('/api/v2/datastore/automate'), {
         method: 'POST',
@@ -840,6 +848,110 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleSaveCategoryRBAC = async (newRBAC: RBACConfig | null) => {
+    setCategoryRBAC(newRBAC);
+    setHasChanges(true);
+
+    const baseSettings = (activeCategory === category ? initialSettings : activeEntry?.settings) || {};
+    const updatedSettings = {
+      ...baseSettings,
+      timeout: cleanupTimeout > 0 ? cleanupTimeout : 0,
+      rbac: newRBAC || undefined,
+    };
+
+    const apiAutomations: AutomationApiFormat[] = automationConfigs.map(config => {
+      const automation = automations.find(a => a.type === config.type);
+      const isEnabled = automation?.enabled || false;
+
+      let options: { key: string; value: string; apps?: string[] | null; template?: string; skill?: string }[] = [];
+      if (config.type === 'workflow') {
+        options = [{ key: config.optionKey || '', value: selectedWorkflows.map(w => w.id).join(',') }];
+      } else if (config.type === 'webhook') {
+        options = [{ key: config.optionKey || '', value: webhookUrl }];
+      } else if (config.type === 'security_rules') {
+        options = [{ key: config.optionKey || '', value: securityRulesText }];
+      } else if (config.type === 'ai_agent') {
+        const effectiveSkill = aiAgentSkill || (activeCategory.includes('vuln') ? 'vulnerability' : 'incident-response');
+        const pairs = aiAgentPrompts
+          .map((prompt, idx) => ({ prompt, apps: aiAgentApps[idx] || [] }))
+          .filter(p => p.prompt.trim());
+        options = pairs.map((p, idx) => ({
+          key: idx === 0 ? 'action' : `action-${idx + 1}`,
+          value: p.prompt,
+          apps: p.apps.length > 0 ? p.apps : null,
+          template: effectiveSkill,
+          skill: effectiveSkill,
+        }));
+        if (options.length === 0) {
+          options = [{
+            key: 'action',
+            value: '',
+            apps: null,
+            template: effectiveSkill,
+            skill: effectiveSkill,
+          }];
+        }
+      } else {
+        options = [{ key: config.optionKey || '', value: '' }];
+      }
+
+      const baseAutomation: AutomationApiFormat = {
+        name: config.name,
+        description: config.description,
+        options,
+        icon: config.apiIcon || '',
+        enabled: isEnabled,
+      };
+
+      if (config.apiType) {
+        baseAutomation.type = config.apiType;
+      }
+
+      return baseAutomation;
+    });
+
+    apiAutomations.push({
+      name: 'Send message',
+      description: '',
+      type: 'singul',
+      options: [{ key: 'app', value: '' }],
+      icon: '',
+      disabled: true,
+      enabled: false,
+    });
+
+    const payload: any = {
+      category: activeCategory,
+      automations: apiAutomations,
+      settings: updatedSettings,
+    };
+
+    const response = await fetch(getApiUrl('/api/v2/datastore/automate'), {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to save category access rules');
+    }
+
+    setCategoryEntries(prev => ({
+      ...prev,
+      [activeCategory]: {
+        automations: apiAutomations as unknown as CategoryAutomation[],
+        settings: updatedSettings,
+      },
+    }));
+
+    toast.success(`Access updated for category "${activeCategory}"`);
+    onSaved?.();
   };
 
   const enabledCount = automations.filter(a => a.enabled).length;
@@ -1277,6 +1389,67 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
 
         <Divider sx={{ my: 3, borderColor: 'hsl(var(--border))' }} />
 
+        {/* Access & Sharing Section */}
+        <Box>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{
+              mb: 1.5,
+              fontWeight: 500,
+              textTransform: 'uppercase',
+              letterSpacing: 0.5,
+              fontSize: '0.75rem',
+            }}
+          >
+            Access & Sharing
+          </Typography>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 2,
+              py: 1.5,
+              px: 2,
+              bgcolor: 'hsl(var(--muted) / 0.35)',
+              borderRadius: 1.5,
+              border: '1px solid hsl(var(--border))',
+            }}
+          >
+            <Box sx={{ flex: 1 }}>
+              <Typography sx={{ fontSize: '0.95rem', color: 'text.primary', fontWeight: 500 }}>
+                Permissions (RBAC)
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+                {categoryRBAC
+                  ? 'Custom access rules are configured for this category'
+                  : 'Standard workspace permissions apply (RBAC inactive)'}
+              </Typography>
+            </Box>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => setShareModalOpen(true)}
+              sx={{
+                textTransform: 'none',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                borderColor: 'hsl(var(--border))',
+                color: 'hsl(var(--foreground))',
+                '&:hover': {
+                  borderColor: 'hsl(var(--primary))',
+                  bgcolor: 'hsl(var(--primary) / 0.05)',
+                },
+              }}
+            >
+              Manage Access
+            </Button>
+          </Box>
+        </Box>
+
+        <Divider sx={{ my: 3, borderColor: 'hsl(var(--border))' }} />
+
         {/* Cleanup Section */}
         <Box>
           <Typography
@@ -1424,6 +1597,14 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
         }}
       />
 
+      <ShareAccessModal
+        open={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+        resourceType="category"
+        resourceName={activeCategory}
+        initialRBAC={categoryRBAC}
+        onSave={handleSaveCategoryRBAC}
+      />
     </Dialog>
   );
 };
