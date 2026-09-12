@@ -19,6 +19,7 @@ import { useDemo, TOUR_STEPS } from '@/context/DemoContext';
 import { useEntityPreference } from '@/hooks/useEntityLabel';
 import { applyEntityTerminology } from '@/lib/entityTerminology';
 import { motion, AnimatePresence, useMotionValue, type PanInfo } from 'framer-motion';
+import { X } from 'lucide-react';
 
 // Persisted drag offset for the floating demo UI (anchor pill, minimized
 // pill, and expanded drawer all share one position so the user's preferred

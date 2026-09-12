@@ -716,7 +716,7 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
       setFormValue(JSON.stringify(parsed, null, 2));
       setIsJsonValid(true);
     } catch {
-      toast.warn('Value is not valid JSON; formatting skipped.');
+      toast.warning('Value is not valid JSON; formatting skipped.');
     }
   };
 

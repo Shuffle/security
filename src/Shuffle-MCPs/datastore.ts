@@ -96,7 +96,7 @@ export interface DatastoreDiagnostics {
   status?: number;
   statusText?: string;
   contentType?: string | null;
-  responseShape?: 'array' | 'keys' | 'data' | 'unknown';
+  responseShape?: 'array' | 'keys' | 'data' | 'object' | 'unknown';
   itemCount?: number;
   totalAmount?: number | null;
   bodyPreview?: string;
