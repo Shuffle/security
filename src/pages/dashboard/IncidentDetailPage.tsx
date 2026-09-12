@@ -7082,11 +7082,14 @@ const IncidentDetailPage = () => {
               boxSizing: 'border-box',
               lineHeight: 1,
               borderRadius: 1.5,
-              border: isFailed
-                ? '1px solid hsl(var(--destructive) / 0.5)'
-                : isWarning
-                  ? '1px solid hsl(var(--severity-medium) / 0.6)'
-                  : '1px solid transparent',
+              border: isSimple
+                ? 'none'
+                : isFailed
+                  ? '1px solid hsl(var(--destructive) / 0.5)'
+                  : isWarning
+                    ? '1px solid hsl(var(--severity-medium) / 0.6)'
+                    : '1px solid transparent',
+              mb: isSimple ? 1.5 : 0,
               bgcolor: isWarning ? 'hsl(var(--severity-medium) / 0.08)' : 'transparent',
               cursor: execUrl ? 'pointer' : 'default',
               transition: 'border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease',
