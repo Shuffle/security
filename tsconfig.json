@@ -3,7 +3,8 @@
   "exclude": [
     "src/Shuffle-Core/tsup.config.ts",
     "src/Shuffle-MCPs/tsup.config.ts",
-    "src/Shuffle-MCPs/lib-shims.d.ts"
+    "src/Shuffle-MCPs/lib-shims.d.ts",
+    "src/Shuffle-Core/lib-app-shims.d.ts"
   ],
   "compilerOptions": {
     "target": "ES2022",
