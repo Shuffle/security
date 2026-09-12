@@ -694,6 +694,10 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
     setEditDialogOpen(true);
   };
 
+  // The backend requires "value" to be a string. Objects/arrays are serialized.
+  const toStringValue = (val: unknown): string =>
+    typeof val === 'string' ? val : val == null ? '' : JSON.stringify(val);
+
   // Value change validator
   const handleValueChange = (val: string) => {
     setFormValue(val);
