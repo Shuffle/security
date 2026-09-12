@@ -755,7 +755,7 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
       const payload = {
         org_id: orgId,
         key: trimmedKey,
-        value: finalValue,
+        value: toStringValue(finalValue),
         category: formCategory || selectedCategory,
       };
 
