@@ -9912,7 +9912,8 @@ const IncidentDetailPage = () => {
               value={String(activeTab)}
               onChange={(v) => setActiveTab(Number(v))}
               options={[
-                { value: '0', label: 'Details', dataTour: 'incident-tab-details' },
+                { value: '7', label: 'Simple', dataTour: 'incident-tab-simple' },
+                { value: '0', label: 'Detailed', dataTour: 'incident-tab-details' },
                 { value: '1', label: 'Tasks', dataTour: 'incident-tab-tasks', count: visibleTasks.length > 0 ? visibleTasks.length : undefined, title: visibleTasks.length > 0 ? `${visibleTasks.filter(t => t.completed).length}/${visibleTasks.length} completed` : undefined },
                 { value: '2', label: 'Observables', dataTour: 'incident-tab-observables', count: visibleObservablesCount > 0 ? visibleObservablesCount : undefined },
                 { value: '3', label: 'Correlations', dataTour: 'incident-tab-correlations', count: visibleCorrelations.length > 0 ? visibleCorrelations.length : undefined },
@@ -9980,6 +9981,115 @@ const IncidentDetailPage = () => {
 
           {/* Tab Content */}
       <Box sx={isPublicView ? { pointerEvents: 'none', '& input, & textarea, & select, & button:not([data-public-ok])': { opacity: 0.7 } } : {}}>
+      {activeTab === 7 && (() => {
+        const simpleHasEmail = !!incident && isEmailContent(editedMessage || '', rawDescriptionHtml || '', incident.rawOCSF);
+        const simpleNarrative = simpleHasEmail ? (
+          <EmailThreadPanel
+            descriptionHtml={rawDescriptionHtml || ''}
+            descriptionText={editedMessage || ''}
+            rawOCSF={incident?.rawOCSF}
+            borderless
+          />
+        ) : (
+          <Box
+            onClick={() => !isPublicView && setIsEditingDescription(true)}
+            sx={{ minHeight: 120, cursor: isPublicView ? 'default' : 'text', color: 'hsl(var(--foreground))' }}
+          >
+            {isEditingDescription ? (
+              <MentionInput
+                value={editedMessage}
+                onChange={setEditedMessage}
+                fullWidth
+                multiline
+                minRows={5}
+                placeholder="Add a description..."
+                variant="standard"
+                autoFocus
+                sx={{ '& .MuiInput-root:before, & .MuiInput-root:after': { display: 'none' }, '& textarea': { fontSize: '0.95rem', lineHeight: 1.8 } }}
+              />
+            ) : (
+              <Typography sx={{ whiteSpace: 'pre-wrap', fontSize: '0.95rem', lineHeight: 1.8, color: editedMessage ? 'inherit' : 'hsl(var(--muted-foreground))' }}>
+                {editedMessage || 'Click to add a description.'}
+              </Typography>
+            )}
+          </Box>
+        );
+
+        const simpleTasks = (
+          <Box>
+            {visibleTasks.length === 0 && (
+              <Typography sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.85rem', mb: 2 }}>No tasks yet.</Typography>
+            )}
+            {visibleTasks.map((task) => (
+              <Box key={task.id} data-simple-task-id={task.id} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, py: 0.7, scrollMarginTop: 100 }}>
+                <Checkbox checked={task.completed} onChange={() => handleToggleTask(task.id)} size="small" sx={{ p: 0.25, mt: 0.1 }} />
+                <TextField
+                  value={task.title}
+                  onChange={(event) => handleUpdateTaskTitle(task.id, event.target.value)}
+                  variant="standard"
+                  fullWidth
+                  multiline
+                  slotProps={{ input: { disableUnderline: true } }}
+                  sx={{ '& textarea, & input': { fontSize: '0.88rem', lineHeight: 1.55, textDecoration: task.completed ? 'line-through' : 'none', color: task.completed ? 'hsl(var(--muted-foreground))' : 'hsl(var(--foreground))' } }}
+                />
+              </Box>
+            ))}
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 1 }}>
+              <AddIcon size={16} style={{ color: 'hsl(var(--muted-foreground))' }} />
+              <TextField
+                value={newTaskTitle}
+                onChange={(event) => setNewTaskTitle(event.target.value)}
+                onKeyDown={(event) => { if (event.key === 'Enter') handleAddTask(); }}
+                placeholder="Add a task"
+                variant="standard"
+                fullWidth
+                slotProps={{ input: { disableUnderline: true } }}
+                sx={{ '& input': { fontSize: '0.85rem' } }}
+              />
+            </Box>
+          </Box>
+        );
+
+        const simpleObservables = (
+          <Box>
+            {editedObservables.filter((observable) => !observable.archived && !isObservableIgnored(observable.type, observable.value)).map((observable, index) => (
+              <Box key={`${observable.type}-${observable.value}-${index}`} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 0.8 }}>
+                <Typography sx={{ width: 110, flexShrink: 0, color: 'hsl(var(--muted-foreground))', fontSize: '0.72rem', textTransform: 'uppercase' }}>{observable.type}</Typography>
+                <Typography sx={{ minWidth: 0, flex: 1, fontFamily: 'monospace', fontSize: '0.82rem', overflowWrap: 'anywhere' }}>{observable.value}</Typography>
+                <ObservableLookupMenu type={observable.type} value={observable.value} />
+              </Box>
+            ))}
+            {visibleObservablesCount === 0 && <Typography sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.85rem' }}>No observables found.</Typography>}
+            <Button size="small" onClick={() => setActiveTab(2)} sx={{ mt: 1, px: 0, textTransform: 'none', fontSize: '0.78rem' }}>Manage observables</Button>
+          </Box>
+        );
+
+        const simpleCorrelations = correlationsLoading ? (
+          <CircularProgress size={20} />
+        ) : correlationRows.length === 0 ? (
+          <Typography sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.85rem' }}>No correlations found.</Typography>
+        ) : (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            {correlationRows.map((correlation, index) => (
+              <CorrelationRow key={correlation.key || index} correlation={correlation} currentIncidentId={id} ignoredObservables={ignoredObs} compact />
+            ))}
+          </Box>
+        );
+
+        return (
+          <SimpleCaseLayout
+            narrativeLabel={simpleHasEmail ? 'Email' : 'Description'}
+            narrative={simpleNarrative}
+            timeline={renderTimelinePanel('sidebar')}
+            tasks={simpleTasks}
+            observables={simpleObservables}
+            correlations={simpleCorrelations}
+            taskItems={visibleTasks}
+            observableCount={visibleObservablesCount}
+            correlationCount={visibleCorrelations.length}
+          />
+        );
+      })()}
       {activeTab === 1 && (
         /* Tasks Tab — uses the exact same kanban as the simplified view (/incidents-simple) */
         <TaskKanbanBoard
@@ -11876,7 +11986,7 @@ const IncidentDetailPage = () => {
         </Box>
 
         {/* Right Timeline Sidebar — hidden on Details (inlined there) and on Original / Translation / OCSF tabs */}
-        {activeTab !== 0 && activeTab !== 4 && activeTab !== 5 && activeTab !== 6 && (
+        {activeTab !== 0 && activeTab !== 4 && activeTab !== 5 && activeTab !== 6 && activeTab !== 7 && (
         <Box sx={{ width: { xs: '100%', lg: 380 }, flexShrink: 0, order: { xs: 2, lg: 0 } }}>
           <Box sx={{ width: '100%', ...(isPublicView ? { pointerEvents: 'none' } : {}) }}>
             <IncidentSection
