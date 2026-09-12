@@ -162,7 +162,23 @@ const withStoredAuth = (input: RequestInfo | URL, init?: RequestInit): RequestIn
     if (init?.headers) {
       new Headers(init.headers).forEach((value, name) => headers.set(name, value));
     }
-    if (token && (authMode === 'bearer' || isCapacitor) && !headers.has('Authorization')) {
+    // Cross-domain backends (self-hosted instance, tunnel, preview -> onprem)
+    // can never receive the session cookie, so the session token MUST travel
+    // as a bearer header there — otherwise these requests 401 while
+    // shuffleFetch-based ones succeed, and the app looks randomly logged out.
+    const rootDomain = (host: string): string => {
+      const parts = host.split('.');
+      return parts.length <= 2 ? host : parts.slice(-2).join('.');
+    };
+    const backendHost = url.hostname.toLowerCase();
+    const frontendHost = window.location.hostname.toLowerCase();
+    const isLocalPair = ['localhost', '127.0.0.1'].includes(backendHost)
+      && ['localhost', '127.0.0.1'].includes(frontendHost);
+    const isCrossDomain = backendHost !== frontendHost
+      && !isLocalPair
+      && rootDomain(backendHost) !== rootDomain(frontendHost);
+
+    if (token && (authMode === 'bearer' || isCapacitor || isCrossDomain) && !headers.has('Authorization')) {
       headers.set('Authorization', `Bearer ${token}`);
     }
 
