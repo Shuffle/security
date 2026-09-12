@@ -10,5 +10,12 @@ import { useAuth } from '@/context/AuthContext';
 
 export const useIsAdmin = (): boolean => {
   const { userInfo } = useAuth();
-  return userInfo?.active_org?.role === 'admin';
+  const activeRole = userInfo?.active_org?.role?.toLowerCase();
+  const userRole = (userInfo as any)?.role?.toString().toLowerCase();
+  return (
+    activeRole === 'admin' ||
+    userRole === 'admin' ||
+    Boolean((userInfo as any)?.admin) ||
+    Boolean(userInfo?.support)
+  );
 };

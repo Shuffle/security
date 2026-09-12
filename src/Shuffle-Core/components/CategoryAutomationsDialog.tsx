@@ -25,6 +25,14 @@ import {
   Switch,
   Tooltip,
 } from '@mui/material';
+import AgentIcon from '@/Shuffle-MCPs/components/AgentIcon';
+import { toast } from 'react-toastify';
+import { API_CONFIG, getApiUrl, getAuthHeader } from '@/Shuffle-MCPs/api';
+import PopupTextEditor from './PopupTextEditor';
+import AppSearchDrawer from '@/Shuffle-MCPs/views/AppSearchDrawer';
+import AiAgentPromptsEditor from '@/Shuffle-MCPs/components/AiAgentPromptsEditor';
+import { AgentPresets, AGENT_PRESETS, AgentPreset } from '@/Shuffle-MCPs/components/AgentPresets';
+import { useAuthenticatedApps } from '../useAuthenticatedApps';
 
 import { CategoryAutomation, DATASTORE_CATEGORIES, getDatastoreByCategory, RBACConfig } from '@/Shuffle-MCPs/datastore';
 import { ShareAccessModal } from '@/components/common/ShareAccessModal';
@@ -61,6 +69,10 @@ export interface CategoryAutomationsDialogProps {
    *  storage) when omitted — pass this explicitly on hosts that don't use
    *  that storage key (e.g. shaffuru). */
   orgId?: string | null;
+  /** Which view to start on: 'automations' or 'settings'. Defaults to 'automations'. */
+  initialView?: 'automations' | 'settings';
+  /** Whether to show the top-right swap icon button to toggle between views. Defaults to true. */
+  showViewToggle?: boolean;
 }
 
 /** Datastore categories Shuffle Security supports automation for. All of these
@@ -247,7 +259,19 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
   onSaved,
   entityLabel,
   orgId: orgIdProp,
+  initialView = 'automations',
+  showViewToggle = true,
 }) => {
+  // Which view is active: 'automations' or 'settings'
+  const [currentView, setCurrentView] = useState<'automations' | 'settings'>(initialView);
+
+  // Sync view when dialog opens or initialView changes
+  useEffect(() => {
+    if (open) {
+      setCurrentView(initialView);
+    }
+  }, [open, initialView]);
+
   // Which category the dialog is currently editing. Starts at the category the
   // host opened it with, but can be swapped through the "When" dropdown.
   const [activeCategory, setActiveCategory] = useState<string>(category);
@@ -278,6 +302,8 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [cleanupTimeout, setCleanupTimeout] = useState<number>(0);
+  const [categoryTimeout, setCategoryTimeout] = useState<number>(0);
+  const [isCategoryPublic, setIsCategoryPublic] = useState<boolean>(false);
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [loadingWorkflows, setLoadingWorkflows] = useState(false);
   const [selectedWorkflows, setSelectedWorkflows] = useState<Workflow[]>([]);
@@ -625,6 +651,8 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
       setAutomations(allAutomations);
       setHasChanges(false);
       setCleanupTimeout(normalizeCleanupTimeout(sourceSettings?.timeout));
+      setCategoryTimeout(sourceSettings?.timeout || 0);
+      setIsCategoryPublic(Boolean(sourceSettings?.public));
       setCategoryRBAC(sourceSettings?.rbac ?? null);
 
       // Extract existing workflow IDs and webhook URL
@@ -801,9 +829,11 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
       // (e.g. `public`) — the backend overwrites the whole settings object,
       // so dropping them here would silently reset them.
       const baseSettings = (activeCategory === category ? initialSettings : activeEntry?.settings) || {};
+      const effectiveTimeout = categoryTimeout > 0 ? categoryTimeout : (cleanupTimeout > 0 ? cleanupTimeout : 0);
       payload.settings = {
         ...baseSettings,
-        timeout: cleanupTimeout > 0 ? cleanupTimeout : 0,
+        timeout: effectiveTimeout,
+        public: isCategoryPublic,
         rbac: categoryRBAC || undefined,
       };
 
@@ -818,7 +848,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save automations');
+        throw new Error(currentView === 'automations' ? 'Failed to save automations' : 'Failed to save settings');
       }
 
       const enabledAutomations = automations.filter(a => a.enabled);
@@ -834,11 +864,15 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
       if (activeCategory === category) {
         onAutomationsChange(enabledAutomations);
       }
-      toast.success('Automations saved');
+      toast.success(
+        currentView === 'automations'
+          ? `Automations saved for ${entityPlural}`
+          : `Settings saved for ${entityPlural}`
+      );
       onSaved?.();
       onClose();
     } catch (error) {
-      toast.error('Failed to save automations');
+      toast.error(currentView === 'automations' ? 'Failed to save automations' : 'Failed to save settings');
     } finally {
       setIsSaving(false);
     }
@@ -849,9 +883,11 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
     setHasChanges(true);
 
     const baseSettings = (activeCategory === category ? initialSettings : activeEntry?.settings) || {};
+    const effectiveTimeout = categoryTimeout > 0 ? categoryTimeout : (cleanupTimeout > 0 ? cleanupTimeout : 0);
     const updatedSettings = {
       ...baseSettings,
-      timeout: cleanupTimeout > 0 ? cleanupTimeout : 0,
+      timeout: effectiveTimeout,
+      public: isCategoryPublic,
       rbac: newRBAC || undefined,
     };
 
@@ -970,24 +1006,62 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
         },
       }}
     >
-      <DialogTitle sx={{ pb: 2, pr: 6, pt: 3 }}>
+      <DialogTitle sx={{ pb: 2, px: 4, pt: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <RocketLaunchIcon size={28} style={{ color: enabledCount > 0 ? 'hsl(var(--severity-low))' : 'hsl(var(--muted-foreground))' }} />
+          {currentView === 'automations' ? (
+            <RocketLaunchIcon size={26} style={{ color: enabledCount > 0 ? 'hsl(var(--severity-low))' : 'hsl(var(--muted-foreground))' }} />
+          ) : (
+            <SettingsIcon size={26} style={{ color: 'hsl(var(--foreground))' }} />
+          )}
           <Typography variant="h6" sx={{ fontSize: '1.1rem', fontWeight: 600 }}>
-            Automation for {entityPluralCap}
+            {currentView === 'automations'
+              ? `Automation for ${entityPluralCap}`
+              : `Settings for ${entityPluralCap}`}
           </Typography>
         </Box>
-        <IconButton
-          onClick={onClose}
-          sx={{
-            position: 'absolute',
-            right: 16,
-            top: 16,
-            color: 'text.secondary',
-          }}
-        >
-          <CloseIcon />
-        </IconButton>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {showViewToggle && (
+            <Tooltip
+              title={
+                currentView === 'automations'
+                  ? `Switch to Settings for ${entityPluralCap}`
+                  : `Switch to Automation for ${entityPluralCap}`
+              }
+            >
+              <IconButton
+                size="small"
+                onClick={() => setCurrentView(currentView === 'automations' ? 'settings' : 'automations')}
+                sx={{
+                  color: 'text.secondary',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: 1.5,
+                  p: 0.75,
+                  '&:hover': {
+                    color: 'text.primary',
+                    bgcolor: 'hsl(var(--muted) / 0.5)',
+                    borderColor: 'hsl(var(--primary))',
+                  },
+                }}
+              >
+                {currentView === 'automations' ? (
+                  <SettingsIcon size={18} />
+                ) : (
+                  <RocketLaunchIcon size={18} />
+                )}
+              </IconButton>
+            </Tooltip>
+          )}
+          <IconButton
+            size="small"
+            onClick={onClose}
+            sx={{
+              color: 'text.secondary',
+              p: 0.75,
+            }}
+          >
+            <CloseIcon size={18} />
+          </IconButton>
+        </Box>
       </DialogTitle>
 
       <DialogContent sx={{ px: 4, pb: 3 }}>
@@ -1004,7 +1078,7 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
               fontSize: '0.75rem',
             }}
           >
-            When
+            {currentView === 'automations' ? 'When' : 'Category'}
           </Typography>
           <FormControl fullWidth size="small">
             <Select
@@ -1042,7 +1116,9 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
                         }}
                       />
                       <Typography sx={{ fontSize: '0.95rem', flex: 1 }}>
-                        {`A${/^[aeiou]/i.test(opt.singular) ? 'n' : ''} ${opt.singular} is edited`}
+                        {currentView === 'automations'
+                          ? `A${/^[aeiou]/i.test(opt.singular) ? 'n' : ''} ${opt.singular} is edited`
+                          : `${opt.plural.charAt(0).toUpperCase() + opt.plural.slice(1)} (${opt.category})`}
                       </Typography>
                       <Typography variant="caption" sx={{ color: 'text.disabled' }}>
                         {loadingCategories && !categoryEntries[opt.category]
@@ -1061,8 +1137,8 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
 
         <Divider sx={{ mb: 3, borderColor: 'hsl(var(--border))' }} />
 
-        {/* Actions Section */}
-        <Box>
+        {currentView === 'automations' ? (
+          <Box>
           <Typography
             variant="body2"
             color="text.secondary"
@@ -1380,143 +1456,217 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
             })}
           </Box>
         </Box>
-
-        <Divider sx={{ my: 3, borderColor: 'hsl(var(--border))' }} />
-
-        {/* Access & Sharing Section */}
-        <Box>
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{
-              mb: 1.5,
-              fontWeight: 500,
-              textTransform: 'uppercase',
-              letterSpacing: 0.5,
-              fontSize: '0.75rem',
-            }}
-          >
-            Access & Sharing
-          </Typography>
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 2,
-              py: 1.5,
-              px: 2,
-              bgcolor: 'hsl(var(--muted) / 0.35)',
-              borderRadius: 1.5,
-              border: '1px solid hsl(var(--border))',
-            }}
-          >
-            <Box sx={{ flex: 1 }}>
-              <Typography sx={{ fontSize: '0.95rem', color: 'text.primary', fontWeight: 500 }}>
-                Permissions (RBAC)
-              </Typography>
-              <Typography variant="caption" sx={{ color: 'text.disabled' }}>
-                {categoryRBAC
-                  ? 'Custom access rules are configured for this category'
-                  : 'Standard workspace permissions apply (RBAC inactive)'}
-              </Typography>
-            </Box>
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={() => setShareModalOpen(true)}
-              sx={{
-                textTransform: 'none',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                borderColor: 'hsl(var(--border))',
-                color: 'hsl(var(--foreground))',
-                '&:hover': {
-                  borderColor: 'hsl(var(--primary))',
-                  bgcolor: 'hsl(var(--primary) / 0.05)',
-                },
-              }}
-            >
-              Manage Access
-            </Button>
-          </Box>
-        </Box>
-
-        <Divider sx={{ my: 3, borderColor: 'hsl(var(--border))' }} />
-
-        {/* Cleanup Section */}
-        <Box>
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{
-              mb: 1.5,
-              fontWeight: 500,
-              textTransform: 'uppercase',
-              letterSpacing: 0.5,
-              fontSize: '0.75rem',
-            }}
-          >
-            Cleanup
-          </Typography>
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 2,
-              py: 1.5,
-              px: 2,
-              bgcolor: 'hsl(var(--muted) / 0.35)',
-              borderRadius: 1.5,
-              border: '1px solid hsl(var(--border))',
-            }}
-          >
-            <DeleteSweepIcon size={22} style={{ color: cleanupTimeout > 0 ? 'hsl(var(--severity-medium))' : 'hsl(var(--muted-foreground))' }} />
-            <Box sx={{ flex: 1 }}>
-              <Typography sx={{ fontSize: '0.95rem', color: cleanupTimeout > 0 ? 'text.primary' : 'hsl(var(--muted-foreground))' }}>
-                Auto-delete {entityPlural} after
-              </Typography>
-              <Typography variant="caption" sx={{ color: 'text.disabled' }}>
-                Automatically removes resolved {entityPlural} after the selected period
-              </Typography>
-            </Box>
-            <FormControl size="small" sx={{ minWidth: 130 }}>
-              <Select
-                value={String(normalizeCleanupTimeout(cleanupTimeout))}
-                onChange={(e) => {
-                  setCleanupTimeout(Number(e.target.value));
-                  setHasChanges(true);
-                }}
-                displayEmpty
+      ) : (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {/* Entry Expiration & Retention */}
+            <Box>
+              <Typography
+                variant="body2"
+                color="text.secondary"
                 sx={{
-                  bgcolor: 'hsl(var(--background))',
-                  fontSize: '0.85rem',
-                  '& .MuiSelect-select': { py: 0.75 },
-                }}
-                MenuProps={{
-                  PaperProps: {
-                    sx: { bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' },
-                  },
+                  mb: 1.5,
+                  fontWeight: 500,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5,
+                  fontSize: '0.75rem',
                 }}
               >
-                {WEEKS_OPTIONS.map((opt) => (
-                  <MenuItem key={opt.seconds} value={String(opt.seconds)}>
-                    {opt.label}
-                  </MenuItem>
-                ))}
-                {normalizeCleanupTimeout(cleanupTimeout) > 0 &&
-                  !WEEKS_OPTIONS.some((o) => o.seconds === normalizeCleanupTimeout(cleanupTimeout)) && (
-                    <MenuItem
-                      key="custom"
+                Entry Expiration & Retention
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <TextField
+                  label="Default Entry Timeout (seconds)"
+                  type="number"
+                  size="small"
+                  fullWidth
+                  value={categoryTimeout}
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    setCategoryTimeout(val);
+                    setCleanupTimeout(val);
+                    setHasChanges(true);
+                  }}
+                  helperText="Set to 0 for no expiration (permanent entries). Example: 86400 for 1 day."
+                  sx={{ mt: 1 }}
+                />
+
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 2,
+                    py: 1.5,
+                    px: 2,
+                    bgcolor: 'hsl(var(--muted) / 0.35)',
+                    borderRadius: 1.5,
+                    border: '1px solid hsl(var(--border))',
+                  }}
+                >
+                  <DeleteSweepIcon size={22} style={{ color: cleanupTimeout > 0 ? 'hsl(var(--severity-medium))' : 'hsl(var(--muted-foreground))' }} />
+                  <Box sx={{ flex: 1 }}>
+                    <Typography sx={{ fontSize: '0.95rem', color: cleanupTimeout > 0 ? 'text.primary' : 'hsl(var(--muted-foreground))' }}>
+                      Auto-delete {entityPlural} after
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+                      Automatically removes resolved {entityPlural} after the selected period
+                    </Typography>
+                  </Box>
+                  <FormControl size="small" sx={{ minWidth: 130 }}>
+                    <Select
                       value={String(normalizeCleanupTimeout(cleanupTimeout))}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        setCleanupTimeout(val);
+                        if (val > 0) {
+                          setCategoryTimeout(val);
+                        }
+                        setHasChanges(true);
+                      }}
+                      displayEmpty
+                      sx={{
+                        bgcolor: 'hsl(var(--background))',
+                        fontSize: '0.85rem',
+                        '& .MuiSelect-select': { py: 0.75 },
+                      }}
+                      MenuProps={{
+                        PaperProps: {
+                          sx: { bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' },
+                        },
+                      }}
                     >
-                      {formatCustomTimeout(normalizeCleanupTimeout(cleanupTimeout))} (current)
-                    </MenuItem>
-                  )}
-              </Select>
-            </FormControl>
+                      {WEEKS_OPTIONS.map((opt) => (
+                        <MenuItem key={opt.seconds} value={String(opt.seconds)}>
+                          {opt.label}
+                        </MenuItem>
+                      ))}
+                      {normalizeCleanupTimeout(cleanupTimeout) > 0 &&
+                        !WEEKS_OPTIONS.some((o) => o.seconds === normalizeCleanupTimeout(cleanupTimeout)) && (
+                          <MenuItem
+                            key="custom"
+                            value={String(normalizeCleanupTimeout(cleanupTimeout))}
+                          >
+                            {formatCustomTimeout(normalizeCleanupTimeout(cleanupTimeout))} (current)
+                          </MenuItem>
+                        )}
+                    </Select>
+                  </FormControl>
+                </Box>
+              </Box>
+            </Box>
+
+            <Divider sx={{ borderColor: 'hsl(var(--border))' }} />
+
+            {/* Access & Sharing Section */}
+            <Box>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{
+                  mb: 1.5,
+                  fontWeight: 500,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5,
+                  fontSize: '0.75rem',
+                }}
+              >
+                Access & Sharing (RBAC)
+              </Typography>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 2,
+                  py: 1.5,
+                  px: 2,
+                  bgcolor: 'hsl(var(--muted) / 0.35)',
+                  borderRadius: 1.5,
+                  border: '1px solid hsl(var(--border))',
+                }}
+              >
+                <Box sx={{ flex: 1 }}>
+                  <Typography sx={{ fontSize: '0.95rem', color: 'text.primary', fontWeight: 500 }}>
+                    Category Permissions (RBAC)
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+                    {categoryRBAC
+                      ? 'Custom access rules are configured for this category'
+                      : 'Standard workspace permissions apply (RBAC inactive)'}
+                  </Typography>
+                </Box>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setShareModalOpen(true)}
+                  sx={{
+                    textTransform: 'none',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    borderColor: 'hsl(var(--border))',
+                    color: 'hsl(var(--foreground))',
+                    '&:hover': {
+                      borderColor: 'hsl(var(--primary))',
+                      bgcolor: 'hsl(var(--primary) / 0.05)',
+                    },
+                  }}
+                >
+                  Manage Access
+                </Button>
+              </Box>
+            </Box>
+
+            <Divider sx={{ borderColor: 'hsl(var(--border))' }} />
+
+            {/* Public Authorization */}
+            <Box>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{
+                  mb: 1.5,
+                  fontWeight: 500,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5,
+                  fontSize: '0.75rem',
+                }}
+              >
+                Public API Querying
+              </Typography>
+              <Box
+                sx={{
+                  py: 1.5,
+                  px: 2,
+                  bgcolor: 'hsl(var(--muted) / 0.35)',
+                  borderRadius: 1.5,
+                  border: '1px solid hsl(var(--border))',
+                }}
+              >
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={isCategoryPublic}
+                      onChange={(e) => {
+                        setIsCategoryPublic(e.target.checked);
+                        setHasChanges(true);
+                      }}
+                    />
+                  }
+                  label={
+                    <Box>
+                      <Typography sx={{ fontSize: '0.92rem', color: 'text.primary', fontWeight: 500 }}>
+                        Make category publicly queryable
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+                        Allow querying keys in this category via authorization tokens without cookie sessions
+                      </Typography>
+                    </Box>
+                  }
+                  sx={{ m: 0, width: '100%', justifyContent: 'space-between' }}
+                />
+              </Box>
+            </Box>
           </Box>
-        </Box>
+        )}
       </DialogContent>
 
       <Divider sx={{ borderColor: 'hsl(var(--border))' }} />
@@ -1526,24 +1676,31 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
           size="small"
           startIcon={<RestoreIcon />}
           onClick={() => {
-            const isVulnerabilities = activeCategory === 'vulnerabilities' || activeCategory.includes('vulnerabilit') || activeCategory.includes('vuln');
-            setAutomations(automations.map(a => {
-              if (a.type === 'enrich') return { ...a, enabled: true, trigger: 'on_edit' as const };
-              if (a.type === 'security_rules') return { ...a, enabled: true, trigger: 'on_edit' as const };
-              if (a.type === 'ai_agent') return { ...a, enabled: true, trigger: 'on_edit' as const };
-              return a;
-            }));
-            setSecurityRulesText('merge if always; deny if has_deleted_field');
-            if (isVulnerabilities) {
-              setAiAgentSkill('vulnerability');
-              setAiAgentPrompts([...DEFAULT_VULNERABILITY_AI_PROMPTS]);
-              setAiAgentApps(DEFAULT_VULNERABILITY_AI_APPS.map(a => [...a]));
+            if (currentView === 'automations') {
+              const isVulnerabilities = activeCategory === 'vulnerabilities' || activeCategory.includes('vulnerabilit') || activeCategory.includes('vuln');
+              setAutomations(automations.map(a => {
+                if (a.type === 'enrich') return { ...a, enabled: true, trigger: 'on_edit' as const };
+                if (a.type === 'security_rules') return { ...a, enabled: true, trigger: 'on_edit' as const };
+                if (a.type === 'ai_agent') return { ...a, enabled: true, trigger: 'on_edit' as const };
+                return a;
+              }));
+              setSecurityRulesText('merge if always; deny if has_deleted_field');
+              if (isVulnerabilities) {
+                setAiAgentSkill('vulnerability');
+                setAiAgentPrompts([...DEFAULT_VULNERABILITY_AI_PROMPTS]);
+                setAiAgentApps(DEFAULT_VULNERABILITY_AI_APPS.map(a => [...a]));
+              } else {
+                setAiAgentSkill('incident-response');
+                setAiAgentPrompts([...DEFAULT_INCIDENT_AI_PROMPTS]);
+                setAiAgentApps(DEFAULT_INCIDENT_AI_APPS.map(a => [...a]));
+              }
+              setHasChanges(true);
             } else {
-              setAiAgentSkill('incident-response');
-              setAiAgentPrompts([...DEFAULT_INCIDENT_AI_PROMPTS]);
-              setAiAgentApps(DEFAULT_INCIDENT_AI_APPS.map(a => [...a]));
+              setCategoryTimeout(0);
+              setCleanupTimeout(0);
+              setIsCategoryPublic(false);
+              setHasChanges(true);
             }
-            setHasChanges(true);
           }}
           sx={{ textTransform: 'none', color: 'text.secondary', fontSize: '0.8rem' }}
         >

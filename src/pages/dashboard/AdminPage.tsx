@@ -18,6 +18,7 @@ import {
 import { toast } from '@/lib/toast';
 import { getApiUrl, getAuthHeader, mapCloudRegionUrl } from '@/Shuffle-MCPs/api';
 import { useAuth } from '@/context/AuthContext';
+import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { getRegionFlag } from '@/lib/regionFlag';
 import UsersPage from './UsersPage';
 import OrgPreferencesPage from './OrgPreferencesPage';
@@ -57,7 +58,8 @@ const AdminPage = () => {
   });
   const location = useLocation();
   const navigate = useNavigate();
-  const { userInfo, refreshUserInfo, setActiveOrg } = useAuth();
+  const { userInfo, isLoading: authLoading, refreshUserInfo, setActiveOrg } = useAuth();
+  const isAdmin = useIsAdmin();
   const { resolvedTheme } = useAppTheme();
   const shuffleTheme = (resolvedTheme === 'light' ? 'light' : 'dark') as 'light' | 'dark';
   const orgId = userInfo?.active_org?.id;
@@ -107,6 +109,14 @@ const AdminPage = () => {
     const params = new URLSearchParams(location.search);
     const tabParam = params.get('tab') || params.get('admin_tab');
     if (tabParam && (location.pathname === '/admin' || location.pathname === '/admin/')) {
+      const lower = tabParam.toLowerCase();
+      if (!isAdmin && lower !== 'overview' && lower !== 'tenants') {
+        params.delete('tab');
+        params.delete('admin_tab');
+        const remaining = params.toString();
+        navigate(`/admin${remaining ? `?${remaining}` : ''}`, { replace: true });
+        return;
+      }
       const tabRoutes: Record<string, string> = {
         datastore: '/admin/datastore',
         users: '/admin/users',
@@ -115,7 +125,7 @@ const AdminPage = () => {
         locations: '/admin/runtime-locations',
         preferences: '/admin/preferences',
       };
-      const target = tabRoutes[tabParam.toLowerCase()];
+      const target = tabRoutes[lower];
       if (target) {
         params.delete('tab');
         params.delete('admin_tab');
@@ -124,7 +134,7 @@ const AdminPage = () => {
         return;
       }
     }
-  }, [location.pathname, location.search, navigate]);
+  }, [location.pathname, location.search, navigate, isAdmin]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -171,7 +181,19 @@ const AdminPage = () => {
 
 
 
+  // Guard admin-only tabs: non-admins only have access to Overview (0) and Tenants (2)
+  useEffect(() => {
+    if (!authLoading && userInfo && !isAdmin) {
+      if (activeTab !== 0 && activeTab !== 2) {
+        navigate('/admin', { replace: true });
+      }
+    }
+  }, [authLoading, userInfo, isAdmin, activeTab, navigate]);
+
   const handleTabChange = (_: unknown, newValue: number) => {
+    if (!isAdmin && newValue !== 0 && newValue !== 2) {
+      return;
+    }
     setActiveTab(newValue);
     if (newValue === 0) navigate('/admin');
     else if (newValue === 1) navigate('/admin/users');
@@ -352,11 +374,31 @@ const AdminPage = () => {
         const currentValue: TabValue = valueByIndex[activeTab] ?? 'overview';
         const options: SegmentedItem<TabValue>[] = [
           { value: 'overview', label: 'Overview' },
-          { value: 'users', label: 'Users' },
+          {
+            value: 'users',
+            label: 'Users',
+            disabled: !isAdmin,
+            title: !isAdmin ? 'Requires admin privileges' : undefined,
+          },
           { value: 'tenants', label: 'Tenants' },
-          { value: 'runtime-locations', label: 'Runtime Locations' },
-          { value: 'preferences', label: 'Preferences' },
-          { value: 'datastore', label: 'Datastore' },
+          {
+            value: 'runtime-locations',
+            label: 'Runtime Locations',
+            disabled: !isAdmin,
+            title: !isAdmin ? 'Requires admin privileges' : undefined,
+          },
+          {
+            value: 'preferences',
+            label: 'Preferences',
+            disabled: !isAdmin,
+            title: !isAdmin ? 'Requires admin privileges' : undefined,
+          },
+          {
+            value: 'datastore',
+            label: 'Datastore',
+            disabled: !isAdmin,
+            title: !isAdmin ? 'Requires admin privileges' : undefined,
+          },
         ];
         return (
           <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 2.5, sm: 4 }, maxWidth: '100%', overflowX: 'auto', pb: 0.5 }}>
@@ -413,40 +455,42 @@ const AdminPage = () => {
                     {orgName?.charAt(0)?.toUpperCase() || '?'}
                   </Avatar>
 
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pt: 1 }}>
-                    <Button
-                      variant="outlined"
-                      component="label"
-                      size="small"
-                      sx={{
-                        borderColor: 'hsl(var(--primary))',
-                        color: 'hsl(var(--primary))',
-                        '&:hover': { bgcolor: 'hsla(var(--primary) / 0.1)' },
-                      }}
-                    >
-                      Update
-                      <input
-                        type="file"
-                        hidden
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                      />
-                    </Button>
-                    {orgImage && (
+                  {isAdmin && (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pt: 1 }}>
                       <Button
                         variant="outlined"
+                        component="label"
                         size="small"
-                        onClick={handleRemoveImage}
                         sx={{
-                          borderColor: 'hsl(var(--border))',
-                          color: 'hsl(var(--muted-foreground))',
-                          '&:hover': { bgcolor: 'hsl(var(--muted))' },
+                          borderColor: 'hsl(var(--primary))',
+                          color: 'hsl(var(--primary))',
+                          '&:hover': { bgcolor: 'hsla(var(--primary) / 0.1)' },
                         }}
                       >
-                        Remove
+                        Update
+                        <input
+                          type="file"
+                          hidden
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                        />
                       </Button>
-                    )}
-                  </Box>
+                      {orgImage && (
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={handleRemoveImage}
+                          sx={{
+                            borderColor: 'hsl(var(--border))',
+                            color: 'hsl(var(--muted-foreground))',
+                            '&:hover': { bgcolor: 'hsl(var(--muted))' },
+                          }}
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </Box>
+                  )}
                 </Box>
               </Paper>
 
@@ -455,6 +499,7 @@ const AdminPage = () => {
                 <TextField
                   label="Name"
                   value={orgName}
+                  disabled={!isAdmin}
                   onChange={(e) => setOrgName(e.target.value)}
                   fullWidth
                   sx={{
@@ -467,11 +512,12 @@ const AdminPage = () => {
                   }}
                 />
 
-                <FormControl sx={{ minWidth: { xs: '100%', sm: 160 } }}>
+                <FormControl disabled={!isAdmin} sx={{ minWidth: { xs: '100%', sm: 160 } }}>
                   <InputLabel sx={{ color: 'hsl(var(--muted-foreground))' }}>Region</InputLabel>
                   <Select
                     value={orgRegionUrl}
                     label="Region"
+                    disabled={!isAdmin}
                     onChange={(e) => setOrgRegionUrl(e.target.value)}
                     sx={{
                       color: 'hsl(var(--foreground))',
@@ -499,6 +545,7 @@ const AdminPage = () => {
               <TextField
                 label="Description"
                 value={orgDescription}
+                disabled={!isAdmin}
                 onChange={(e) => setOrgDescription(e.target.value)}
                 multiline
                 rows={4}
@@ -516,26 +563,28 @@ const AdminPage = () => {
               />
 
               {/* Save button */}
-              <Button
-                variant="contained"
-                onClick={handleSave}
-                disabled={saving}
-                startIcon={saving ? <CircularProgress size={16} /> : <SaveIcon />}
-                sx={{
-                  bgcolor: 'hsl(var(--primary))',
-                  color: 'hsl(var(--primary-foreground))',
-                  height: 40,
-                  width: { xs: '100%', sm: 'auto' },
-                  '&:hover': { bgcolor: 'hsl(var(--primary) / 0.9)' },
-                }}
-              >
-                {saving ? 'Saving...' : 'Save Changes'}
-              </Button>
+              {isAdmin && (
+                <Button
+                  variant="contained"
+                  onClick={handleSave}
+                  disabled={saving}
+                  startIcon={saving ? <CircularProgress size={16} /> : <SaveIcon />}
+                  sx={{
+                    bgcolor: 'hsl(var(--primary))',
+                    color: 'hsl(var(--primary-foreground))',
+                    height: 40,
+                    width: { xs: '100%', sm: 'auto' },
+                    '&:hover': { bgcolor: 'hsl(var(--primary) / 0.9)' },
+                  }}
+                >
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </Button>
+              )}
             </Box>
           )}
 
           {/* OAuth Tokens Section (rendered if oauth_tokens returned in org response) */}
-          {!loading && hasOAuthTokens && (
+          {!loading && hasOAuthTokens && isAdmin && (
             <TenantOAuthTokens
               tokens={oauthTokens}
               orgId={orgId}
@@ -546,9 +595,9 @@ const AdminPage = () => {
         </>
       )}
 
-      {activeTab === 3 && <RuntimeLocationsTab />}
-      {activeTab === 4 && <OrgPreferencesPage embedded />}
-      {activeTab === 1 && <UsersPage embedded />}
+      {activeTab === 3 && isAdmin && <RuntimeLocationsTab />}
+      {activeTab === 4 && isAdmin && <OrgPreferencesPage embedded />}
+      {activeTab === 1 && isAdmin && <UsersPage embedded />}
       {activeTab === 2 && (
         <TenantManagement
           theme={shuffleTheme}
@@ -564,7 +613,12 @@ const AdminPage = () => {
           } as any)}
         />
       )}
-      {activeTab === 5 && <DatastoreCategories embedded />}
+      {activeTab === 5 && isAdmin && <DatastoreCategories embedded />}
+      {!isAdmin && activeTab !== 0 && activeTab !== 2 && (
+        <Alert severity="warning" sx={{ mt: 2 }}>
+          You need administrator privileges to access this section.
+        </Alert>
+      )}
       
     </Box>
     </>

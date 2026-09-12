@@ -362,14 +362,9 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
   const [deleteTargets, setDeleteTargets] = useState<string[]>([]);
   const [deleting, setDeleting] = useState<boolean>(false);
 
-  // Category Settings Dialog
-  const [settingsDialogOpen, setSettingsDialogOpen] = useState<boolean>(false);
-  const [categoryTimeout, setCategoryTimeout] = useState<number>(0);
-  const [isCategoryPublic, setIsCategoryPublic] = useState<boolean>(false);
-  const [savingSettings, setSavingSettings] = useState<boolean>(false);
-
-  // Category Automations Dialog & Config
+  // Unified Category Automations & Settings Dialog
   const [automationsDialogOpen, setAutomationsDialogOpen] = useState<boolean>(false);
+  const [automationsDialogView, setAutomationsDialogView] = useState<'automations' | 'settings'>('automations');
   const [categoryConfig, setCategoryConfig] = useState<any>(null);
 
   // Share & Permissions modal
@@ -1328,7 +1323,10 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
                     <Button
                       startIcon={<Rocket size={15} />}
                       disabled={!selectedCategory || selectedCategory === 'default' || selectedCategory === 'all'}
-                      onClick={() => setAutomationsDialogOpen(true)}
+                      onClick={() => {
+                        setAutomationsDialogView('automations');
+                        setAutomationsDialogOpen(true);
+                      }}
                       sx={{
                         textTransform: 'none',
                         fontSize: '0.8rem',
@@ -1388,9 +1386,8 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
                     <Button
                       disabled={!selectedCategory || selectedCategory === 'default' || selectedCategory === 'all'}
                       onClick={() => {
-                        setCategoryTimeout(categoryConfig?.settings?.timeout || 0);
-                        setIsCategoryPublic(categoryConfig?.settings?.public || false);
-                        setSettingsDialogOpen(true);
+                        setAutomationsDialogView('settings');
+                        setAutomationsDialogOpen(true);
                       }}
                       sx={{
                         px: 1,
@@ -2109,149 +2106,6 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
         </DialogActions>
       </Dialog>
 
-      {/* Category Settings Dialog */}
-      <Dialog
-        open={settingsDialogOpen}
-        onClose={() => setSettingsDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{
-          sx: {
-            bgcolor: 'hsl(var(--card))',
-            border: '1px solid hsl(var(--border))',
-            borderRadius: 2,
-          },
-        }}
-      >
-        <DialogTitle sx={{ fontWeight: 600, fontSize: '1rem', borderBottom: '1px solid hsl(var(--border))' }}>
-          Category Settings: {selectedCategory}
-        </DialogTitle>
-        <DialogContent sx={{ py: 2.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <TextField
-            label="Default Entry Timeout (seconds)"
-            type="number"
-            size="small"
-            fullWidth
-            value={categoryTimeout}
-            onChange={(e) => setCategoryTimeout(Number(e.target.value))}
-            helperText="Set to 0 for no expiration (permanent entries)."
-            sx={{ mt: 1 }}
-          />
-
-          <FormControlLabel
-            control={
-              <Switch
-                checked={isCategoryPublic}
-                onChange={(e) => setIsCategoryPublic(e.target.checked)}
-              />
-            }
-            label="Make category publicly queryable with authorization tokens"
-          />
-
-          <Divider sx={{ my: 1, borderColor: 'hsl(var(--border))' }} />
-
-          {/* Access & Permissions (RBAC) */}
-          <Box
-            sx={{
-              p: 2,
-              borderRadius: 1.5,
-              border: '1px solid hsl(var(--border))',
-              bgcolor: 'hsl(var(--muted) / 0.25)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 2,
-            }}
-          >
-            <Box>
-              <Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: 'hsl(var(--foreground))' }}>
-                Category Permissions (RBAC)
-              </Typography>
-              <Typography sx={{ fontSize: '0.78rem', color: 'hsl(var(--muted-foreground))' }}>
-                {categoryConfig?.settings?.rbac
-                  ? 'Custom access rules are configured for this category'
-                  : 'Standard workspace permissions apply (RBAC inactive)'}
-              </Typography>
-            </Box>
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={() => {
-                setSettingsDialogOpen(false);
-                setSharingCategory(selectedCategory);
-              }}
-              sx={{
-                textTransform: 'none',
-                fontSize: '0.82rem',
-                fontWeight: 600,
-                borderColor: 'hsl(var(--border))',
-                color: 'hsl(var(--foreground))',
-                whiteSpace: 'nowrap',
-                '&:hover': {
-                  borderColor: 'hsl(var(--primary))',
-                  bgcolor: 'hsl(var(--primary) / 0.08)',
-                },
-              }}
-            >
-              Manage Access
-            </Button>
-          </Box>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, py: 1.5, borderTop: '1px solid hsl(var(--border))' }}>
-          <Button
-            size="small"
-            onClick={() => setSettingsDialogOpen(false)}
-            sx={{ textTransform: 'none' }}
-          >
-            Cancel
-          </Button>
-          <Button
-            size="small"
-            variant="contained"
-            onClick={async () => {
-              setSavingSettings(true);
-              try {
-                const baseSettings = categoryConfig?.settings || {};
-                const updatedSettings = {
-                  ...baseSettings,
-                  timeout: categoryTimeout,
-                  public: isCategoryPublic,
-                };
-                const payload = {
-                  category: selectedCategory,
-                  automations: categoryConfig?.automations || [],
-                  settings: updatedSettings,
-                };
-                await fetch(getApiUrl('/api/v2/datastore/automate'), {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                    ...getAuthHeader(orgId),
-                  },
-                  credentials: 'include',
-                  body: JSON.stringify(payload),
-                });
-                toast.success('Category settings saved');
-                setCategoryConfig((prev: any) => ({
-                  ...prev,
-                  settings: updatedSettings,
-                }));
-                setSettingsDialogOpen(false);
-              } catch {
-                toast.error('Failed to save settings');
-              } finally {
-                setSavingSettings(false);
-              }
-            }}
-            disabled={savingSettings}
-            sx={{ textTransform: 'none' }}
-          >
-            Save Settings
-          </Button>
-        </DialogActions>
-      </Dialog>
-
       {/* Add Category Dialog */}
       <Dialog
         open={createCategoryDialogOpen}
@@ -2332,13 +2186,15 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
         </DialogActions>
       </Dialog>
 
-      {/* Category Automations Dialog */}
+      {/* Category Automations & Settings Dialog */}
       <CategoryAutomationsDialog
         open={automationsDialogOpen}
         onClose={() => setAutomationsDialogOpen(false)}
         category={selectedCategory}
         automations={categoryConfig?.automations || null}
         initialSettings={categoryConfig?.settings}
+        initialView={automationsDialogView}
+        showViewToggle={true}
         onAutomationsChange={(newAutomations) => {
           setCategoryConfig((prev: any) => ({
             ...prev,
