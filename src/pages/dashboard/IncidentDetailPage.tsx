@@ -6690,7 +6690,9 @@ const IncidentDetailPage = () => {
 
     const renderItem = (item: TimelineItem, opts: { isReply?: boolean } = {}): React.ReactNode => {
       const { isReply = false } = opts;
+      const isSimple = variant === 'simple';
       const itemKey = getItemKey(item);
+
 
       // Reply button — added to every item so users can start a thread off
       // any timeline event (revision, agent run, or comment).
