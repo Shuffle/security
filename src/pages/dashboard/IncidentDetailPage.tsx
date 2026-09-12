@@ -6166,6 +6166,7 @@ const IncidentDetailPage = () => {
       
     </>
   );
+};
 
   // Builder for the unified timeline items (revisions + agent runs + comments).
   // Returns an array of JSX nodes (or a single empty-state node).
