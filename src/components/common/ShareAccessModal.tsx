@@ -82,7 +82,6 @@ export const ShareAccessModal: React.FC<ShareAccessModalProps> = ({
   useEffect(() => {
     if (!open) return;
     setSaveError(null);
-    setTenantWarning(null);
     setSelectedCandidate(null);
     setCandidateSearchText('');
 
@@ -234,7 +233,7 @@ export const ShareAccessModal: React.FC<ShareAccessModalProps> = ({
         };
       } else {
         const matchedRole = DEFAULT_ROLES.find(
-          (r) => r.id.toLowerCase() === lower || r.label.toLowerCase() === lower
+          (r) => r.id.toLowerCase() === lower || r.name.toLowerCase() === lower
         );
         if (matchedRole) {
           candidate = matchedRole;
@@ -255,7 +254,6 @@ export const ShareAccessModal: React.FC<ShareAccessModalProps> = ({
     if (!candidate) return;
 
     setRbacEnabled(true);
-    setTenantWarning(null);
 
     const canonicalId = candidate.id || candidate.username;
     if (entries.some((e) => e.id.toLowerCase() === canonicalId.toLowerCase())) {

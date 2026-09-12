@@ -1093,6 +1093,7 @@ const IncidentDetailPage = () => {
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [publicAuthorization, setPublicAuthorization] = useState<string>('');
   const TAB_NAMES = ['details', 'tasks', 'observables', 'correlations', 'raw', 'file', 'original', 'simple'] as const;
+  const isSupportUser = useIsSupport();
   // Timeline filter — multi-select. Each key can be toggled independently.
   // Defaults: everything EXCEPT "Changes" (revisions). Revisions are noisy
   // diffs that most users don't want to see by default — the synthetic
@@ -1213,11 +1214,30 @@ const IncidentDetailPage = () => {
   const [revisionDialogData, setRevisionDialogData] = useState<{ json: string; changedKeys: Set<string> } | null>(null);
   const initialTab = (() => {
     const t = searchParams.get('tab');
-    if (t) { const idx = TAB_NAMES.indexOf(t as any); return idx >= 0 ? idx : 7; }
-    return 7;
+    if (t) {
+      const idx = TAB_NAMES.indexOf(t as any);
+      if (idx === 7 && !isSupportUser) return 0;
+      return idx >= 0 ? idx : 0;
+    }
+    return isSupportUser ? 7 : 0;
   })();
    const [activeTab, setActiveTabState] = useState(initialTab);
+   useEffect(() => {
+     const requestedTab = searchParams.get('tab');
+     if (activeTab === 7 && !isSupportUser) {
+       setActiveTabState(0);
+       const newParams = new URLSearchParams(searchParams);
+       newParams.set('tab', 'details');
+       const paramStr = newParams.toString();
+       window.history.replaceState(null, '', `${window.location.pathname}${paramStr ? '?' + paramStr : ''}`);
+       return;
+     }
+     if (!requestedTab && isSupportUser && activeTab === 0) {
+       setActiveTabState(7);
+     }
+   }, [activeTab, isSupportUser, searchParams]);
    const setActiveTab = (tab: number) => {
+     if (tab === 7 && !isSupportUser) return;
      // Leaving the Raw OCSF tab (index 4) while previewing an older revision:
      // revert the editor back to the live incident OCSF so unsaved revision
      // previews do not persist across tab switches.
@@ -1622,8 +1642,6 @@ const IncidentDetailPage = () => {
   }, [crossOrgId, userInfo?.active_org?.id, sharedOrgs]);
   const enrichmentStatus = useEnrichmentStatus(undefined, { orgIds: incidentOrgIds });
   const assignEscalateStatus = useAssignEscalateStatus({ orgIds: incidentOrgIds });
-  const isSupportUser = useIsSupport();
-
   // ── Inline enrichment CTA visibility ───────────────────────────────────
   // Surface the same "Automatic observable extraction is not yet fully
   // enabled" CTA used on the Observables tab inside the Timeline / chat
@@ -9912,7 +9930,7 @@ const IncidentDetailPage = () => {
               value={String(activeTab)}
               onChange={(v) => setActiveTab(Number(v))}
               options={[
-                { value: '7', label: 'Simple', dataTour: 'incident-tab-simple' },
+                ...(isSupportUser ? [{ value: '7', label: 'Simple', dataTour: 'incident-tab-simple' }] : []),
                 { value: '0', label: 'Detailed', dataTour: 'incident-tab-details' },
                 { value: '1', label: 'Tasks', dataTour: 'incident-tab-tasks', count: visibleTasks.length > 0 ? visibleTasks.length : undefined, title: visibleTasks.length > 0 ? `${visibleTasks.filter(t => t.completed).length}/${visibleTasks.length} completed` : undefined },
                 { value: '2', label: 'Observables', dataTour: 'incident-tab-observables', count: visibleObservablesCount > 0 ? visibleObservablesCount : undefined },
@@ -9981,7 +9999,7 @@ const IncidentDetailPage = () => {
 
           {/* Tab Content */}
       <Box sx={isPublicView ? { pointerEvents: 'none', '& input, & textarea, & select, & button:not([data-public-ok])': { opacity: 0.7 } } : {}}>
-      {activeTab === 7 && (() => {
+      {isSupportUser && activeTab === 7 && (() => {
         const simpleHasEmail = !!incident && isEmailContent(editedMessage || '', rawDescriptionHtml || '', incident.rawOCSF);
         const simpleNarrative = simpleHasEmail ? (
           <EmailThreadPanel
