@@ -10353,7 +10353,7 @@ const IncidentDetailPage = () => {
               open={!timelineCollapsed}
               onOpenChange={(o) => setTimelineCollapsed(!o)}
               badge={renderTimelineBadge()}
-              actions={renderTimelineActionsChip()}
+              actions={renderTimelineActionsChip(false)}
               bodyPadded={false}
               dataTour="incident-activity-feed"
             >
