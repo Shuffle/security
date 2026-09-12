@@ -5889,80 +5889,92 @@ const IncidentDetailPage = () => {
           can enable automatic extraction without leaving the timeline. Shown
           while the incident is fresh, just after a comment, or while the
           user is typing a new comment. */}
-      {showEnrichmentInlineCTA && renderEnrichmentInlineCTA()}
-      {renderTimelineInputArea(isSimple)}
-
-
-      {/* Unified Timeline Feed — when inline, render with a vertical rail behind the items */}
-      <Box sx={{
-        p: { xs: 0, sm: 1.5 },
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 1.25,
-        overflow: 'auto',
-        ...(variant === 'inline' && {
-          position: 'relative',
-          pl: { xs: 0, sm: 4.5 },
-          py: 2,
-          // Vertical rail — anchored at the bottom (oldest) and growing
-          // upward toward the newest item, matching the timeline direction
-          // (newest-first / top). A subtle fade at the top reinforces that
-          // the latest events are the "growing edge" of the thread.
-          // Hidden on mobile: the rail and dots eat horizontal space.
-          '&::before': {
-            content: '""',
-            display: { xs: 'none', sm: 'block' },
-            position: 'absolute',
-            left: 19,
-            top: 18,
-            bottom: 18,
-            width: '2px',
-            background: 'linear-gradient(to top, hsl(var(--border)) 0%, hsl(var(--border)) 70%, hsl(var(--border) / 0.15) 100%)',
-            borderRadius: 1,
-          },
-          // Each direct child gets a dot anchored to the rail. Default
-          // alignment matches taller cards (avatar at top: 12, size 24 →
-          // visual centre ~24px). Compact step pills (Observable/Correlation/
-          // Task markers) opt-in to a higher dot via data-timeline-compact.
-          '& > *': {
-            position: 'relative',
-            '&::before': {
-              content: '""',
-              display: { xs: 'none', sm: 'block' },
-              position: 'absolute',
-              left: -22,
-              top: 21,
-              width: 12,
-              height: 12,
-              borderRadius: '50%',
-              bgcolor: 'hsl(var(--card))',
-              border: '2px solid #ff6600',
-              zIndex: 1,
-              boxShadow: '0 0 0 3px hsl(var(--background))',
-            },
-            '&[data-timeline-compact="true"]::before': {
-              // Pill content centre is roughly 12px from its top
-              // (py: 0.5 = 4px + 12px icon / 2). Dot half-height = 6.
-              top: 9,
-            },
-            // Quiet rows (e.g. completed executions) should not scream from
-            // the rail. Muted dot by default; parent hover restores accent.
-            '&[data-timeline-quiet="true"]::before': {
-              border: '2px solid hsl(var(--muted-foreground) / 0.35)',
-            },
-            '&[data-timeline-quiet="true"]:hover::before': {
-              border: '2px solid #ff6600',
-            },
-          },
-        }),
-      }}>
-        {/* Indicator-check loader is now rendered inline under the comment that
-            triggered it — see renderIndicatorCheckPlaceholder() inside renderThread().
-            Standardised to match the "AI Agent processing" pill so loaders attach
-            to the message they relate to instead of floating at the top. */}
-        {renderTimelineFeedItems(variant)}
-      </Box>
-      
+      {isSimple ? (
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', minHeight: 0 }}>
+          {showEnrichmentInlineCTA && renderEnrichmentInlineCTA()}
+          <Box sx={{ flexShrink: 0, mb: 1 }}>
+            {renderTimelineActionsChip(isSimple)}
+          </Box>
+          <Box sx={{ flex: 1, overflowY: 'auto', pb: '150px' }}>
+            {renderTimelineFeedItems(variant)}
+          </Box>
+          {renderTimelineInputArea(isSimple)}
+        </Box>
+      ) : (
+        <>
+          {showEnrichmentInlineCTA && renderEnrichmentInlineCTA()}
+          {renderTimelineInputArea(isSimple)}
+          {/* Unified Timeline Feed — when inline, render with a vertical rail behind the items */}
+          <Box sx={{
+            p: { xs: 0, sm: 1.5 },
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1.25,
+            overflow: 'auto',
+            ...(variant === 'inline' && {
+              position: 'relative',
+              pl: { xs: 0, sm: 4.5 },
+              py: 2,
+              // Vertical rail — anchored at the bottom (oldest) and growing
+              // upward toward the newest item, matching the timeline direction
+              // (newest-first / top). A subtle fade at the top reinforces that
+              // the latest events are the "growing edge" of the thread.
+              // Hidden on mobile: the rail and dots eat horizontal space.
+              '&::before': {
+                content: '""',
+                display: { xs: 'none', sm: 'block' },
+                position: 'absolute',
+                left: 19,
+                top: 18,
+                bottom: 18,
+                width: '2px',
+                background: 'linear-gradient(to top, hsl(var(--border)) 0%, hsl(var(--border)) 70%, hsl(var(--border) / 0.15) 100%)',
+                borderRadius: 1,
+              },
+              // Each direct child gets a dot anchored to the rail. Default
+              // alignment matches taller cards (avatar at top: 12, size 24 →
+              // visual centre ~24px). Compact step pills (Observable/Correlation/
+              // Task markers) opt-in to a higher dot via data-timeline-compact.
+              '& > *': {
+                position: 'relative',
+                '&::before': {
+                  content: '""',
+                  display: { xs: 'none', sm: 'block' },
+                  position: 'absolute',
+                  left: -22,
+                  top: 21,
+                  width: 12,
+                  height: 12,
+                  borderRadius: '50%',
+                  bgcolor: 'hsl(var(--card))',
+                  border: '2px solid #ff6600',
+                  zIndex: 1,
+                  boxShadow: '0 0 0 3px hsl(var(--background))',
+                },
+                '&[data-timeline-compact="true"]::before': {
+                  // Pill content centre is roughly 12px from its top
+                  // (py: 0.5 = 4px + 12px icon / 2). Dot half-height = 6.
+                  top: 9,
+                },
+                // Quiet rows (e.g. completed executions) should not scream from
+                // the rail. Muted dot by default; parent hover restores accent.
+                '&[data-timeline-quiet="true"]::before': {
+                  border: '2px solid hsl(var(--muted-foreground) / 0.35)',
+                },
+                '&[data-timeline-quiet="true"]:hover::before': {
+                  border: '2px solid #ff6600',
+                },
+              },
+            }),
+          }}>
+            {/* Indicator-check loader is now rendered inline under the comment that
+                triggered it — see renderIndicatorCheckPlaceholder() inside renderThread().
+                Standardised to match the "AI Agent processing" pill so loaders attach
+                to the message they relate to instead of floating at the top. */}
+            {renderTimelineFeedItems(variant)}
+          </Box>
+        </>
+      )}
     </>
   );
 };
