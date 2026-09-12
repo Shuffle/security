@@ -5745,7 +5745,7 @@ const IncidentDetailPage = () => {
   // ===========================================================================
   // Filter chip rendered in the IncidentSection `actions` slot. Extracted so
   // both call sites (inline + sidebar) get the exact same control.
-  const renderTimelineActionsChip = () => {
+  const renderTimelineActionsChip = (simple: boolean = false) => {
     if (timelineCollapsed) return null;
     const filterDefs = [
       { key: 'revisions' as const, label: 'Changes', count: visibleRevisionCount },
