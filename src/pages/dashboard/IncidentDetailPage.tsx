@@ -7636,10 +7636,13 @@ const IncidentDetailPage = () => {
             bgcolor: isDeleted
               ? 'hsl(var(--muted) / 0.3)'
               : actItem.type === 'comment' ? 'rgba(255, 102, 0, 0.05)' : 'hsl(var(--muted) / 0.5)',
-            border: '1px solid',
-            borderColor: isDeleted
-              ? 'hsl(var(--border-subtle))'
-              : actItem.type === 'comment' ? 'rgba(255, 102, 0, 0.1)' : 'hsl(var(--border-subtle))',
+            border: isSimple ? 'none' : '1px solid',
+            borderColor: isSimple
+              ? 'transparent'
+              : isDeleted
+                ? 'hsl(var(--border-subtle))'
+                : actItem.type === 'comment' ? 'rgba(255, 102, 0, 0.1)' : 'hsl(var(--border-subtle))',
+            mb: isSimple ? 1.5 : 0,
             position: 'relative',
             opacity: isDeleted ? 0.7 : 1,
             cursor: isMergeItem ? 'pointer' : 'default',
