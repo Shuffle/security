@@ -101,24 +101,26 @@ export const AskAiWidget: React.FC<AskAiWidgetProps> = ({
   }, [isAgentDisabled, isDrawerOpen, setDrawerOpen]);
 
   // Synchronously compute resolved context for immediate label & hints
+  const currentSearch = search ?? (typeof window !== 'undefined' ? window.location.search : '');
+
   const resolvedContext = useMemo(() => {
-    return resolveAgentContext(currentPath, search, rules);
-  }, [currentPath, search, rules]);
+    return resolveAgentContext(currentPath, currentSearch, rules);
+  }, [currentPath, currentSearch, rules]);
 
   // Track resolved context reported from side panel / drawer with its associated route
   const [reportedContext, setReportedContext] = useState<{ path: string; search: string; ctx: AgentResolvedContext } | null>(null);
 
   const activeContext =
-    reportedContext && reportedContext.path === currentPath && reportedContext.search === search
+    reportedContext && reportedContext.path === currentPath && reportedContext.search === currentSearch
       ? reportedContext.ctx
       : resolvedContext;
 
   const handleContextResolved = useCallback(
     (ctx: AgentResolvedContext) => {
-      setReportedContext({ path: currentPath, search, ctx });
+      setReportedContext({ path: currentPath, search: currentSearch, ctx });
       onContextResolved?.(ctx);
     },
-    [currentPath, search, onContextResolved],
+    [currentPath, currentSearch, onContextResolved],
   );
 
   // Listen to global openAgentDrawer events so existing UI triggers continue to work seamlessly
