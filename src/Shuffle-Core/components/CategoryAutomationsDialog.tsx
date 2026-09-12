@@ -969,7 +969,8 @@ export const CategoryAutomationsDialog: React.FC<CategoryAutomationsDialogProps>
     });
 
     if (!response.ok) {
-      throw new Error('Failed to save category access rules');
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.reason || 'Failed to save category access rules');
     }
 
     setCategoryEntries(prev => ({

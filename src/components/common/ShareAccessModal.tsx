@@ -23,7 +23,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useUsers } from '@/hooks/useUsers';
 import { RBACConfig } from '@/Shuffle-MCPs/datastore';
 
-export type AccessRole = 'viewer' | 'editor' | 'admin';
+export type AccessRole = 'viewer' | 'editor';
 
 export interface ShareAccessModalProps {
   open: boolean;
@@ -77,7 +77,6 @@ export const ShareAccessModal: React.FC<ShareAccessModalProps> = ({
   const [selectedCandidate, setSelectedCandidate] = useState<any | null>(null);
   const [candidateSearchText, setCandidateSearchText] = useState('');
   const [selectedRole, setSelectedRole] = useState<AccessRole>('editor');
-  const [tenantWarning, setTenantWarning] = useState<string | null>(null);
 
   // Parse initial RBAC into state
   useEffect(() => {
@@ -122,26 +121,29 @@ export const ShareAccessModal: React.FC<ShareAccessModalProps> = ({
       const writeRoles = initialRBAC.write?.roles || [];
       const adminRoles = initialRBAC.admin?.roles || [];
 
-      // Collect all unique user IDs
+      // Collect all unique user IDs and deduplicate against tenantUsers
+      const userEntryMap = new Map<string, { role: AccessRole; userObj?: any }>();
       const allUserIds = Array.from(new Set([...readUsers, ...writeUsers, ...adminUsers]));
       for (const uId of allUserIds) {
         if (uId === currentUserId || uId === currentUsername) continue;
         const matchedTenantUser = tenantUsers.find(
           (u) => u.id === uId || u.username === uId
         );
-        let userRole: AccessRole = 'viewer';
-        if (adminUsers.includes(uId)) {
-          userRole = 'admin';
-        } else if (writeUsers.includes(uId)) {
-          userRole = 'editor';
-        }
+        const canonicalId = matchedTenantUser?.id || uId;
+        const userRole: AccessRole = (adminUsers.includes(uId) || writeUsers.includes(uId)) ? 'editor' : 'viewer';
 
+        if (!userEntryMap.has(canonicalId) || userRole === 'editor') {
+          userEntryMap.set(canonicalId, { role: userRole, userObj: matchedTenantUser });
+        }
+      }
+
+      for (const [canonicalId, info] of userEntryMap.entries()) {
         parsedEntries.push({
-          id: uId,
+          id: canonicalId,
           type: 'user',
-          name: matchedTenantUser?.username || uId,
-          email: (matchedTenantUser as unknown as Record<string, string>)?.email || '',
-          role: userRole,
+          name: info.userObj?.username || canonicalId,
+          email: (info.userObj as unknown as Record<string, string>)?.email || '',
+          role: info.role,
           isOwner: false,
         });
       }
@@ -150,9 +152,7 @@ export const ShareAccessModal: React.FC<ShareAccessModalProps> = ({
       const allRoles = Array.from(new Set([...readRoles, ...writeRoles, ...adminRoles]));
       for (const rId of allRoles) {
         let roleRole: AccessRole = 'viewer';
-        if (adminRoles.includes(rId)) {
-          roleRole = 'admin';
-        } else if (writeRoles.includes(rId)) {
+        if (adminRoles.includes(rId) || writeRoles.includes(rId)) {
           roleRole = 'editor';
         }
 
@@ -207,41 +207,68 @@ export const ShareAccessModal: React.FC<ShareAccessModalProps> = ({
     return options;
   }, [tenantUsers, entries]);
 
-  // Validate typed candidate against tenant boundary
+  // Track typed candidate
   const handleInputChange = (_: any, newInputValue: string) => {
     setCandidateSearchText(newInputValue);
-    if (!newInputValue.trim()) {
-      setTenantWarning(null);
-      return;
-    }
-
-    const trimmed = newInputValue.trim().toLowerCase();
-    const matchesUser = tenantUsers.some(
-      (u) =>
-        u.username.toLowerCase() === trimmed ||
-        u.id.toLowerCase() === trimmed ||
-        ((u as unknown as Record<string, string>)?.email || '').toLowerCase() === trimmed
-    );
-    const matchesRole = DEFAULT_ROLES.some((r) => r.id.toLowerCase() === trimmed);
-
-    if (!matchesUser && !matchesRole && trimmed.includes('@')) {
-      setTenantWarning('User must exist in the current organization (for now)');
-    } else {
-      setTenantWarning(null);
-    }
   };
 
   const handleAddCandidate = () => {
-    if (!selectedCandidate) return;
+    let candidate = selectedCandidate;
+    const text = candidateSearchText.trim();
+
+    if (!candidate && text) {
+      const lower = text.toLowerCase();
+      const matched = tenantUsers.find(
+        (u) =>
+          u.username.toLowerCase() === lower ||
+          u.id.toLowerCase() === lower ||
+          ((u as unknown as Record<string, string>)?.email || '').toLowerCase() === lower
+      );
+      if (matched) {
+        candidate = {
+          id: matched.id,
+          label: matched.username || matched.id,
+          type: 'user',
+          category: 'People',
+          username: matched.username,
+        };
+      } else {
+        const matchedRole = DEFAULT_ROLES.find(
+          (r) => r.id.toLowerCase() === lower || r.label.toLowerCase() === lower
+        );
+        if (matchedRole) {
+          candidate = matchedRole;
+        } else {
+          // Freeform email or username - will be validated and normalized server-side
+          candidate = {
+            id: text,
+            label: text,
+            type: 'user',
+            category: 'People',
+            username: text,
+            email: text.includes('@') ? text : undefined,
+          };
+        }
+      }
+    }
+
+    if (!candidate) return;
 
     setRbacEnabled(true);
     setTenantWarning(null);
 
+    const canonicalId = candidate.id || candidate.username;
+    if (entries.some((e) => e.id.toLowerCase() === canonicalId.toLowerCase())) {
+      setSelectedCandidate(null);
+      setCandidateSearchText('');
+      return;
+    }
+
     const newEntry: AccessEntry = {
-      id: selectedCandidate.id,
-      type: selectedCandidate.type,
-      name: selectedCandidate.username || selectedCandidate.label || selectedCandidate.id,
-      email: selectedCandidate.email || '',
+      id: canonicalId,
+      type: candidate.type,
+      name: candidate.username || candidate.label || canonicalId,
+      email: candidate.email || (canonicalId.includes('@') ? canonicalId : ''),
       role: selectedRole,
       isOwner: false,
     };
@@ -288,16 +315,12 @@ export const ShareAccessModal: React.FC<ShareAccessModalProps> = ({
       const writeRoles: string[] = [];
       const adminRoles: string[] = [];
 
-      // Current user is always added to owner/admin
-      if (currentUserId) {
-        readUsers.push(currentUserId);
-        writeUsers.push(currentUserId);
-        adminUsers.push(currentUserId);
-      }
-      if (currentUsername && currentUsername !== currentUserId) {
-        readUsers.push(currentUsername);
-        writeUsers.push(currentUsername);
-        adminUsers.push(currentUsername);
+      // Owner is always added using their canonical user ID
+      const ownerId = currentUserId || currentUsername;
+      if (ownerId) {
+        readUsers.push(ownerId);
+        writeUsers.push(ownerId);
+        adminUsers.push(ownerId);
       }
 
       for (const entry of entries) {
@@ -309,10 +332,6 @@ export const ShareAccessModal: React.FC<ShareAccessModalProps> = ({
           } else if (entry.role === 'editor') {
             readUsers.push(entry.id);
             writeUsers.push(entry.id);
-          } else if (entry.role === 'admin') {
-            readUsers.push(entry.id);
-            writeUsers.push(entry.id);
-            adminUsers.push(entry.id);
           }
         } else if (entry.type === 'role') {
           if (entry.role === 'viewer') {
@@ -320,10 +339,6 @@ export const ShareAccessModal: React.FC<ShareAccessModalProps> = ({
           } else if (entry.role === 'editor') {
             readRoles.push(entry.id);
             writeRoles.push(entry.id);
-          } else if (entry.role === 'admin') {
-            readRoles.push(entry.id);
-            writeRoles.push(entry.id);
-            adminRoles.push(entry.id);
           }
         }
       }
@@ -412,29 +427,34 @@ export const ShareAccessModal: React.FC<ShareAccessModalProps> = ({
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
             <Autocomplete
               fullWidth
+              freeSolo
               size="small"
               options={autocompleteOptions}
-              groupBy={(option) => option.category}
-              getOptionLabel={(option) => option.label || option.id}
+              groupBy={(option) => typeof option === 'string' ? 'People' : option.category}
+              getOptionLabel={(option) => (typeof option === 'string' ? option : option.label || option.id)}
               value={selectedCandidate}
               onChange={(_, newValue) => {
-                setSelectedCandidate(newValue);
-                setTenantWarning(null);
+                if (typeof newValue === 'string') {
+                  setCandidateSearchText(newValue);
+                  setSelectedCandidate(null);
+                } else {
+                  setSelectedCandidate(newValue);
+                  setCandidateSearchText('');
+                }
               }}
               inputValue={candidateSearchText}
               onInputChange={handleInputChange}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleAddCandidate();
+                }
+              }}
               loading={loadingUsers}
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  placeholder="Add people or roles in current organization"
-                  helperText={
-                    tenantWarning ? (
-                      <Typography component="span" sx={{ color: 'hsl(var(--destructive))', fontSize: '0.75rem' }}>
-                        {tenantWarning}
-                      </Typography>
-                    ) : undefined
-                  }
+                  placeholder="Add people (email or username) or roles"
                   sx={{
                     '& .MuiOutlinedInput-root': {
                       bgcolor: 'hsl(var(--background))',
@@ -459,7 +479,6 @@ export const ShareAccessModal: React.FC<ShareAccessModalProps> = ({
               >
                 <MenuItem value="viewer">Viewer</MenuItem>
                 <MenuItem value="editor">Editor</MenuItem>
-                <MenuItem value="admin">Admin</MenuItem>
               </Select>
             </FormControl>
 
@@ -467,7 +486,7 @@ export const ShareAccessModal: React.FC<ShareAccessModalProps> = ({
               variant="contained"
               size="small"
               onClick={handleAddCandidate}
-              disabled={!selectedCandidate || Boolean(tenantWarning)}
+              disabled={!selectedCandidate && !candidateSearchText.trim()}
               sx={{
                 height: 40,
                 px: 2,
@@ -612,7 +631,6 @@ export const ShareAccessModal: React.FC<ShareAccessModalProps> = ({
                       >
                         <MenuItem value="viewer">Viewer</MenuItem>
                         <MenuItem value="editor">Editor</MenuItem>
-                        <MenuItem value="admin">Admin</MenuItem>
                         <Divider sx={{ my: 0.5 }} />
                         <MenuItem value="remove" sx={{ color: 'hsl(var(--destructive))' }}>
                           Remove access

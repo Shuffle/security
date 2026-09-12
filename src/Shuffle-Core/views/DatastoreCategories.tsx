@@ -29,14 +29,15 @@ import {
   Select,
   FormControl,
   ListSubheader,
+  Pagination,
+  PaginationItem,
+  Divider,
 } from '@mui/material';
 import {
   Plus,
-  Search,
   Rocket,
   RefreshCw,
   Settings,
-  Eye,
   Pencil,
   Trash2,
   Copy,
@@ -276,15 +277,24 @@ export const getCategoryDisplayLabel = (data: string): string => {
 };
 
 
+const STATIC_CATEGORIES: string[] = ['default', 'protected'];
+
 const DEFAULT_CATEGORIES: string[] = [
   'default',
   'protected',
-  DATASTORE_CATEGORIES.ASSETS,
   DATASTORE_CATEGORIES.INCIDENTS,
   DATASTORE_CATEGORIES.VULNERABILITIES,
-  DATASTORE_CATEGORIES.INFRASTRUCTURE,
+  DATASTORE_CATEGORIES.ASSETS,
   DATASTORE_CATEGORIES.PACKAGES,
   DATASTORE_CATEGORIES.SOFTWARE,
+  DATASTORE_CATEGORIES.INFRASTRUCTURE,
+  DATASTORE_CATEGORIES.CONFIGURATION,
+  DATASTORE_CATEGORIES.TEMPLATES,
+  DATASTORE_CATEGORIES.IOCS,
+  DATASTORE_CATEGORIES.CUSTOM_FIELDS,
+  DATASTORE_CATEGORIES.THREAT_FEEDS,
+  DATASTORE_CATEGORIES.USERS,
+  DATASTORE_CATEGORIES.REPORTS,
 ];
 
 const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
@@ -329,14 +339,8 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
   const [totalAmount, setTotalAmount] = useState<number>(0);
   const [pageSize, setPageSize] = useState<number>(50);
   const [page, setPage] = useState<number>(0);
+  const cursorsRef = useRef<{ [page: number]: string }>({ 0: '' });
   const [cursors, setCursors] = useState<{ [page: number]: string }>({ 0: '' });
-
-  // Key search filter
-  const [keySearch, setKeySearch] = useState<string>(() => {
-    const searchParams = new URLSearchParams(location.search);
-    return searchParams.get('key') || searchParams.get('search') || '';
-  });
-  const [activeSearchTerm, setActiveSearchTerm] = useState<string>(keySearch);
 
   // Selected keys for bulk deletion
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
@@ -412,14 +416,23 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
     [datastoreCategoryGroups]
   );
 
-  // Grouped & sorted categories for dropdown (matches CacheView grouping)
+  // Grouped & sorted categories for dropdown (matches CacheView: static categories at top, then ungrouped, then grouped)
   const sortedCategories = useMemo(() => {
     return [...categories].sort((a, b) => {
+      // 1. Static categories from CacheView.jsx ('default', 'protected') always at the very top
+      const aStaticIdx = STATIC_CATEGORIES.indexOf(a);
+      const bStaticIdx = STATIC_CATEGORIES.indexOf(b);
+      if (aStaticIdx !== -1 && bStaticIdx !== -1) return aStaticIdx - bStaticIdx;
+      if (aStaticIdx !== -1) return -1;
+      if (bStaticIdx !== -1) return 1;
+
+      // 2. Ungrouped categories come next
       const groupA = getCategoryGroup(a);
       const groupB = getCategoryGroup(b);
-      // Ungrouped items (like "default", "protected") first
       if (!groupA && groupB) return -1;
       if (groupA && !groupB) return 1;
+
+      // 3. Grouped categories sorted by group name, then category name
       if (groupA !== groupB) return groupA.localeCompare(groupB);
       return a.localeCompare(b);
     });
@@ -440,14 +453,13 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
 
   // Sync with URL query parameters
   const updateUrlParams = useCallback(
-    (newCategory: string, newSearch: string) => {
+    (newCategory: string) => {
       if (categoryLocked) return;
       const searchParams = new URLSearchParams(location.search);
       if (newCategory) searchParams.set('category', newCategory);
       else searchParams.delete('category');
-
-      if (newSearch) searchParams.set('key', newSearch);
-      else searchParams.delete('key');
+      searchParams.delete('key');
+      searchParams.delete('search');
 
       const queryString = searchParams.toString();
       const targetPath = location.pathname.startsWith('/admin') ? location.pathname : '/admin/datastore';
@@ -467,7 +479,7 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
       if (response.ok) {
         const data = await response.json();
         const list: string[] = Array.isArray(data) ? data : data.categories || [];
-        setCategories((prev) => Array.from(new Set([...DEFAULT_CATEGORIES, ...list])));
+        setCategories((prev) => Array.from(new Set([...STATIC_CATEGORIES, ...DEFAULT_CATEGORIES, ...list, ...prev])));
       }
     } catch {
       // Fallback to defaults
@@ -482,24 +494,14 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
   const fetchCache = useCallback(
     async (
       cat: string,
-      pageIndex: number,
-      amount: number,
-      searchTerm: string,
-      cursorMap: { [page: number]: string }
+      pageIndex: number = 0,
+      amount: number = pageSize
     ) => {
       setLoading(true);
 
       // Unauthenticated or sample-mode fallback
       if (!orgId) {
-        let sampleList = sampleItems || getDefaultSampleItems(cat);
-        if (searchTerm) {
-          const lower = searchTerm.toLowerCase();
-          sampleList = sampleList.filter(
-            (i) =>
-              i.key.toLowerCase().includes(lower) ||
-              (typeof i.value === 'string' && i.value.toLowerCase().includes(lower))
-          );
-        }
+        const sampleList = sampleItems || getDefaultSampleItems(cat);
         setItems(sampleList);
         setTotalAmount(sampleList.length);
         setLoading(false);
@@ -511,8 +513,7 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
           const queryParams = new URLSearchParams();
           if (categoryParam) queryParams.set('category', categoryParam);
           queryParams.set('top', String(amount));
-          if (searchTerm) queryParams.set('search', searchTerm);
-          const cursor = cursorMap[pageIndex];
+          const cursor = cursorsRef.current[pageIndex];
           if (cursor) queryParams.set('cursor', cursor);
 
           return fetch(getApiUrl(`/api/v1/orgs/${orgId}/list_cache?${queryParams.toString()}`), {
@@ -528,7 +529,6 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
           const queryParams = new URLSearchParams();
           queryParams.set('page', String(pageIndex));
           queryParams.set('amount', String(amount));
-          if (searchTerm) queryParams.set('search', searchTerm);
           response = await fetch(getApiUrl(`/api/v1/orgs/${orgId}/cache/${effectiveCat}?${queryParams.toString()}`), {
             headers: { Accept: 'application/json', ...getAuthHeader(orgId) },
             credentials: 'include',
@@ -560,7 +560,7 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
         nextCursor = (data && (data.cursor ?? data.next_cursor)) || '';
 
         // "For the "default" category: if there are no keys, show all keys."
-        if (cat === 'default' && loadedItems.length === 0 && !searchTerm && pageIndex === 0) {
+        if (cat === 'default' && loadedItems.length === 0 && pageIndex === 0) {
           try {
             const allResponse = await fetchKeys('');
             if (allResponse.ok) {
@@ -582,13 +582,14 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
           setCategoryConfig(data.category_config);
         }
         if (Array.isArray(data?.categories)) {
-          setCategories((prev) => Array.from(new Set([...prev, ...data.categories])));
+          setCategories((prev) => Array.from(new Set([...STATIC_CATEGORIES, ...DEFAULT_CATEGORIES, ...prev, ...data.categories])));
         }
 
         setItems(loadedItems);
         setTotalAmount(totalCount);
 
         if (nextCursor) {
+          cursorsRef.current[pageIndex + 1] = nextCursor;
           setCursors((prev) => ({ ...prev, [pageIndex + 1]: nextCursor }));
         }
       } catch (err) {
@@ -600,12 +601,12 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
         setLoading(false);
       }
     },
-    [orgId, sampleItems]
+    [orgId, sampleItems, pageSize]
   );
 
   useEffect(() => {
-    fetchCache(selectedCategory, page, pageSize, activeSearchTerm, cursors);
-  }, [selectedCategory, page, pageSize, activeSearchTerm, fetchCache]);
+    fetchCache(selectedCategory, page, pageSize);
+  }, [selectedCategory, page, pageSize, fetchCache]);
 
   // Handle category change & creation
   const handleCategoryChange = (newCat: string) => {
@@ -617,29 +618,17 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
     setSelectedCategory(trimmed);
     setCategoryInputValue(trimmed);
     setPage(0);
+    cursorsRef.current = { 0: '' };
     setCursors({ 0: '' });
     setSelectedKeys([]);
-    updateUrlParams(trimmed, activeSearchTerm);
+    updateUrlParams(trimmed);
   };
 
-  // Search submission
-  const handleSearchSubmit = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    setActiveSearchTerm(keySearch);
-    setPage(0);
-    setCursors({ 0: '' });
+  // Handle page selection from pagination
+  const handlePageSelect = (newPage: number) => {
+    if (newPage === page) return;
+    setPage(newPage);
     setSelectedKeys([]);
-    updateUrlParams(selectedCategory, keySearch);
-  };
-
-  // Clear search
-  const handleClearSearch = () => {
-    setKeySearch('');
-    setActiveSearchTerm('');
-    setPage(0);
-    setCursors({ 0: '' });
-    setSelectedKeys([]);
-    updateUrlParams(selectedCategory, '');
   };
 
   // Copy helper
@@ -780,7 +769,7 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
 
       toast.success(`Entry "${trimmedKey}" saved successfully`);
       setAddDialogOpen(false);
-      fetchCache(selectedCategory, page, pageSize, activeSearchTerm, cursors);
+      fetchCache(selectedCategory, page, pageSize);
     } catch (err) {
       console.error('[Datastore] save entry error:', err);
       toast.error(err instanceof Error ? err.message : 'Failed to save entry');
@@ -797,35 +786,25 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
     try {
       finalValue = JSON.parse(formValue);
     } catch {
-      // Keep as string
-    }
-
-    if (!orgId) {
-      setItems((prev) =>
-        prev.map((i) =>
-          i.key === activeItem.key
-            ? {
-                ...i,
-                value: finalValue,
-                category: formCategory || activeItem.category || selectedCategory,
-                edited_at: Math.floor(Date.now() / 1000),
-              }
-            : i
-        )
-      );
-      toast.success(`Entry "${activeItem.key}" updated`);
-      setEditDialogOpen(false);
-      return;
+      finalValue = formValue;
     }
 
     setSavingItem(true);
     try {
+      if (!orgId) {
+        setItems((prev) =>
+          prev.map((i) => (i.key === activeItem.key ? { ...i, value: finalValue } : i))
+        );
+        toast.success(`Entry "${activeItem.key}" updated`);
+        setEditDialogOpen(false);
+        return;
+      }
+
       const payload = {
         org_id: orgId,
         key: activeItem.key,
         value: toStringValue(finalValue),
-        category: formCategory || activeItem.category || selectedCategory,
-        suborg_distribution: activeItem.suborg_distribution,
+        category: activeItem.category || (selectedCategory === 'default' ? '' : selectedCategory),
       };
 
       const response = await fetch(getApiUrl(`/api/v1/orgs/${orgId}/set_cache`), {
@@ -845,7 +824,7 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
 
       toast.success(`Entry "${activeItem.key}" updated successfully`);
       setEditDialogOpen(false);
-      fetchCache(selectedCategory, page, pageSize, activeSearchTerm, cursors);
+      fetchCache(selectedCategory, page, pageSize);
     } catch (err) {
       console.error('[Datastore] update entry error:', err);
       toast.error(err instanceof Error ? err.message : 'Failed to update entry');
@@ -860,60 +839,61 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
     setDeleteConfirmOpen(true);
   };
 
-  // Delete confirm execution
+  // Confirm delete single or bulk
   const handleConfirmDelete = async () => {
     if (deleteTargets.length === 0) return;
 
-    if (!orgId) {
-      setItems((prev) => prev.filter((i) => !deleteTargets.includes(i.key)));
-      setTotalAmount((prev) => Math.max(0, prev - deleteTargets.length));
-      toast.success(`Deleted ${deleteTargets.length} key${deleteTargets.length > 1 ? 's' : ''}`);
-      setDeleteConfirmOpen(false);
-      setSelectedKeys([]);
-      setDeleteTargets([]);
-      return;
-    }
-
     setDeleting(true);
     try {
-      for (const targetKey of deleteTargets) {
-        const targetItem = items.find((i) => i.key === targetKey);
-        const itemCategory = targetItem?.category || (selectedCategory === 'default' ? '' : selectedCategory);
+      if (!orgId) {
+        setItems((prev) => prev.filter((i) => !deleteTargets.includes(i.key)));
+        setTotalAmount((prev) => Math.max(0, prev - deleteTargets.length));
+        setSelectedKeys([]);
+        toast.success(`Deleted ${deleteTargets.length} key${deleteTargets.length > 1 ? 's' : ''}`);
+        setDeleteConfirmOpen(false);
+        return;
+      }
 
-        const payload = {
-          org_id: orgId,
-          key: targetKey,
-          category: itemCategory,
-        };
+      const results = await Promise.allSettled(
+        deleteTargets.map((targetKey) => {
+          const item = items.find((i) => i.key === targetKey);
+          const cat = item?.category || (selectedCategory === 'default' ? '' : selectedCategory);
+          const payload = {
+            org_id: orgId,
+            key: targetKey,
+            category: cat,
+          };
+          return fetch(getApiUrl(`/api/v1/orgs/${orgId}/delete_cache`), {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Accept: 'application/json',
+              ...getAuthHeader(orgId),
+            },
+            credentials: 'include',
+            body: JSON.stringify(payload),
+          }).then(async (res) => {
+            if (!res.ok) {
+              const body = await res.text().catch(() => '');
+              throw new Error(`HTTP ${res.status}: ${body || res.statusText}`);
+            }
+            return res;
+          });
+        })
+      );
 
-        const response = await fetch(getApiUrl(`/api/v1/orgs/${orgId}/delete_cache`), {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-            ...getAuthHeader(orgId),
-          },
-          credentials: 'include',
-          body: JSON.stringify(payload),
-        });
-
-        if (!response.ok) {
-          let reason = `Status ${response.status}`;
-          try {
-            const errData = await response.json();
-            if (errData?.reason) reason = errData.reason;
-          } catch {
-            // ignore
-          }
-          throw new Error(reason);
-        }
+      const failures = results.filter((r) => r.status === 'rejected');
+      if (failures.length > 0) {
+        const firstError = (failures[0] as PromiseRejectedResult).reason;
+        const errMsg = firstError instanceof Error ? firstError.message : String(firstError);
+        throw new Error(`Failed to delete ${failures.length} key(s): ${errMsg}`);
       }
 
       toast.success(`Deleted ${deleteTargets.length} key${deleteTargets.length > 1 ? 's' : ''}`);
       setDeleteConfirmOpen(false);
       setSelectedKeys([]);
       setDeleteTargets([]);
-      fetchCache(selectedCategory, page, pageSize, activeSearchTerm, cursors);
+      fetchCache(selectedCategory, page, pageSize);
     } catch (err: any) {
       console.error('[Datastore] delete error:', err);
       toast.error(err?.message || 'Failed to delete entries');
@@ -951,7 +931,7 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
     }
 
     toast.success(`Access updated for "${sharingItem.key}"`);
-    fetchCache(selectedCategory, page, pageSize, activeSearchTerm, cursors);
+    fetchCache(selectedCategory, page, pageSize);
   };
 
   // Save Category RBAC
@@ -980,7 +960,8 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to update category access: ${response.status}`);
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.reason || `Failed to update category access: ${response.status}`);
     }
 
     toast.success(`Access updated for category "${sharingCategory}"`);
@@ -988,7 +969,7 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
       ...prev,
       settings: updatedSettings,
     }));
-    fetchCache(selectedCategory, page, pageSize, activeSearchTerm, cursors);
+    fetchCache(selectedCategory, page, pageSize);
   };
 
   // Row selection handlers
@@ -1009,8 +990,9 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
   };
 
   // Pagination navigation
-  const totalPages = Math.max(1, Math.ceil(totalAmount / pageSize));
-  const hasNextPage = page + 1 < totalPages && !!cursors[page];
+  const calculatedTotalPages = Math.max(1, Math.ceil(totalAmount / pageSize));
+  const totalPages = cursors[page + 1] ? Math.max(calculatedTotalPages, page + 2) : calculatedTotalPages;
+  const hasNextPage = page + 1 < totalPages && !!cursors[page + 1];
   const hasPrevPage = page > 0;
 
   const handleNextPage = () => {
@@ -1037,8 +1019,12 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
     }
   };
 
+  // Category column only shown when looking at default category (query is empty, "default", or "all")
+  const isDefaultCategory = !selectedCategory || selectedCategory === 'default' || selectedCategory === '' || selectedCategory === 'all';
+  const totalColumns = (readOnly ? 2 : 4) + (isDefaultCategory ? 1 : 0);
+
   return (
-    <Box sx={{ width: '100%', p: embedded ? 0 : { xs: 1.5, md: 2.5 } }}>
+    <Box sx={{ width: '100%', p: embedded ? 0 : { xs: 1.5, md: 2.5 }, pb: '200px' }}>
       {/* Header controls bar */}
       {!hideHeaderControls && (
         <Box
@@ -1051,33 +1037,70 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
             flexWrap: 'wrap',
           }}
         >
-          {/* Top-Left Order: <Add Key> <Category Autocomplete + Plus + textfield> <Simple search> */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
-            {/* 1. Add Key button */}
-            {!readOnly && (
-              <Button
-                variant="contained"
-                size="small"
-                startIcon={<Plus size={16} />}
-                onClick={handleOpenAddDialog}
+          {/* Top-Left: <Add Key + Refresh group> <Grouped Category Autocomplete + Add Category> */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+            {/* 1. Add Key + Refresh button group */}
+            <ButtonGroup variant="outlined" size="small" sx={{ height: 36 }}>
+              {!readOnly && (
+                <Button
+                  variant="contained"
+                  startIcon={<Plus size={16} />}
+                  onClick={handleOpenAddDialog}
+                  sx={{
+                    textTransform: 'none',
+                    height: 36,
+                    px: 2,
+                    fontWeight: 600,
+                    fontSize: '0.84rem',
+                    whiteSpace: 'nowrap',
+                    boxShadow: 'none',
+                    bgcolor: 'hsl(var(--primary))',
+                    color: 'hsl(var(--primary-foreground))',
+                    '&:hover': {
+                      boxShadow: 'none',
+                      bgcolor: 'hsl(var(--primary) / 0.9)',
+                    },
+                  }}
+                >
+                  Add Key
+                </Button>
+              )}
+              <Tooltip title="Refresh Datastore">
+                <Button
+                  onClick={() => fetchCache(selectedCategory, page, pageSize)}
+                  disabled={loading}
+                  sx={{
+                    minWidth: 36,
+                    px: 1,
+                    height: 36,
+                    borderColor: 'hsl(var(--border))',
+                    color: 'hsl(var(--foreground))',
+                    bgcolor: 'hsl(var(--card))',
+                    '&:hover': {
+                      bgcolor: 'hsl(var(--muted))',
+                      borderColor: 'hsl(var(--primary))',
+                    },
+                  }}
+                >
+                  <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+                </Button>
+              </Tooltip>
+            </ButtonGroup>
+
+            {/* 2. Grouped Category Autocomplete + Add Category toggle & textfield */}
+            {!categoryLocked && !hideCategorySelector && (
+              <Box
                 sx={{
-                  textTransform: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: 1.5,
+                  bgcolor: 'hsl(var(--card))',
+                  px: 0.5,
                   height: 36,
-                  px: 2,
-                  fontWeight: 600,
-                  fontSize: '0.84rem',
-                  whiteSpace: 'nowrap',
-                  boxShadow: 'none',
-                  '&:hover': { boxShadow: 'none' },
+                  gap: 0.5,
                 }}
               >
-                Add Key
-              </Button>
-            )}
-
-            {/* 2. Category Autocomplete + Inline Plus / Textfield (matching CacheView) */}
-            {!categoryLocked && !hideCategorySelector && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Autocomplete
                   id="category-choice"
                   size="small"
@@ -1095,8 +1118,10 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
                     return data.charAt(0).toUpperCase() + data.slice(1).replaceAll('_', ' ');
                   }}
                   sx={{
-                    minWidth: 260,
+                    minWidth: 220,
                     maxWidth: 320,
+                    '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
+                    '& .MuiOutlinedInput-root': { py: 0, height: 32 },
                   }}
                   ListboxProps={{
                     sx: {
@@ -1164,84 +1189,24 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
                   renderInput={(params) => (
                     <TextField
                       {...params}
-                      label="Select Category"
+                      placeholder="Select Category"
                       variant="outlined"
                       size="small"
                       InputProps={{
                         ...params.InputProps,
                         sx: {
-                          height: 36,
                           fontSize: '0.84rem',
-                          bgcolor: 'hsl(var(--card))',
                           color: 'hsl(var(--foreground))',
-                        },
-                      }}
-                      InputLabelProps={{
-                        ...params.InputLabelProps,
-                        sx: {
-                          fontSize: '0.82rem',
-                          lineHeight: '18px',
-                          color: 'hsl(var(--muted-foreground))',
                         },
                       }}
                     />
                   )}
                 />
 
-                {/* Inline Add Category toggle & textfield (matches CacheView) */}
-                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
-                  {renderTextBox ? (
-                    <Tooltip title="Close">
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={() => {
-                          setRenderTextBox(false);
-                          setNewCategoryInlineInput('');
-                        }}
-                        sx={{
-                          minWidth: 36,
-                          width: 36,
-                          height: 36,
-                          p: 0,
-                          borderColor: 'hsl(var(--border))',
-                          color: 'hsl(var(--foreground))',
-                          borderRadius: 1,
-                          '&:hover': {
-                            bgcolor: 'hsl(var(--muted))',
-                            borderColor: 'hsl(var(--primary))',
-                          },
-                        }}
-                      >
-                        <X size={16} />
-                      </Button>
-                    </Tooltip>
-                  ) : (
-                    <Tooltip title="Add new category">
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={() => setRenderTextBox(true)}
-                        sx={{
-                          minWidth: 36,
-                          width: 36,
-                          height: 36,
-                          p: 0,
-                          borderColor: 'hsl(var(--border))',
-                          color: 'hsl(var(--foreground))',
-                          borderRadius: 1,
-                          '&:hover': {
-                            bgcolor: 'hsl(var(--muted))',
-                            borderColor: 'hsl(var(--primary))',
-                          },
-                        }}
-                      >
-                        <Plus size={16} />
-                      </Button>
-                    </Tooltip>
-                  )}
+                <Divider orientation="vertical" flexItem sx={{ my: 0.5, borderColor: 'hsl(var(--border))' }} />
 
-                  {renderTextBox && (
+                {renderTextBox ? (
+                  <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
                     <TextField
                       size="small"
                       autoFocus
@@ -1262,173 +1227,155 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
                           setNewCategoryInlineInput('');
                         }
                       }}
+                      sx={{
+                        width: 150,
+                        '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
+                      }}
                       InputProps={{
                         sx: {
-                          height: 36,
-                          width: 180,
-                          fontSize: '0.84rem',
-                          bgcolor: 'hsl(var(--card))',
+                          height: 30,
+                          fontSize: '0.82rem',
                           color: 'hsl(var(--foreground))',
                         },
                       }}
                     />
-                  )}
-                </Box>
-              </Box>
-            )}
-
-            {/* 3. Simple search */}
-            <Box
-              component="form"
-              onSubmit={handleSearchSubmit}
-              sx={{ display: 'flex', alignItems: 'center', minWidth: 180, maxWidth: 300, flex: { xs: 1, sm: '0 1 240px' } }}
-            >
-              <TextField
-                size="small"
-                fullWidth
-                placeholder="Search keys..."
-                value={keySearch}
-                onChange={(e) => setKeySearch(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start" sx={{ color: 'hsl(var(--muted-foreground))', pl: 0.5 }}>
-                      <Search size={15} />
-                    </InputAdornment>
-                  ),
-                  endAdornment: keySearch ? (
-                    <InputAdornment position="end">
-                      <IconButton size="small" onClick={handleClearSearch} sx={{ p: 0.25 }}>
+                    <Tooltip title="Cancel">
+                      <IconButton
+                        size="small"
+                        onClick={() => {
+                          setRenderTextBox(false);
+                          setNewCategoryInlineInput('');
+                        }}
+                        sx={{ width: 28, height: 28, color: 'hsl(var(--muted-foreground))' }}
+                      >
                         <X size={14} />
                       </IconButton>
-                    </InputAdornment>
-                  ) : null,
-                  sx: { height: 36, fontSize: '0.84rem', bgcolor: 'hsl(var(--card))' },
-                }}
-              />
-            </Box>
-          </Box>
-
-          {/* Top-Right: Rocket button for "Automate", Settings, & Refresh icon */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {!categoryLocked && !compact && (
-              <ButtonGroup variant="outlined" size="small" sx={{ height: 36 }}>
-                <Tooltip
-                  title={
-                    !selectedCategory || selectedCategory === 'default' || selectedCategory === 'all'
-                      ? 'Automations are disabled for Default category'
-                      : `Configure automations for ${selectedCategory}`
-                  }
-                >
-                  <span>
-                    <Button
-                      startIcon={<Rocket size={15} />}
-                      disabled={!selectedCategory || selectedCategory === 'default' || selectedCategory === 'all'}
-                      onClick={() => {
-                        setAutomationsDialogView('automations');
-                        setAutomationsDialogOpen(true);
-                      }}
+                    </Tooltip>
+                  </Box>
+                ) : (
+                  <Tooltip title="Add new category">
+                    <IconButton
+                      size="small"
+                      onClick={() => setRenderTextBox(true)}
                       sx={{
-                        textTransform: 'none',
-                        fontSize: '0.8rem',
-                        fontWeight: 500,
-                        borderColor: 'hsl(var(--border))',
+                        width: 28,
+                        height: 28,
                         color: 'hsl(var(--foreground))',
-                        whiteSpace: 'nowrap',
-                        px: 1.5,
-                        '&:hover': {
-                          borderColor: 'hsl(var(--primary))',
-                          bgcolor: 'hsl(var(--primary) / 0.08)',
-                        },
+                        borderRadius: 1,
+                        '&:hover': { bgcolor: 'hsl(var(--muted))' },
                       }}
                     >
-                      Automate
-                    </Button>
-                  </span>
-                </Tooltip>
-                <Tooltip
-                  title={
-                    !selectedCategory || selectedCategory === 'default' || selectedCategory === 'all'
-                      ? 'Sharing is disabled for Default category'
-                      : `Share permissions for category "${selectedCategory}"`
-                  }
-                >
-                  <span>
-                    <Button
-                      startIcon={<UserPlus size={15} />}
-                      disabled={!selectedCategory || selectedCategory === 'default' || selectedCategory === 'all'}
-                      onClick={() => setSharingCategory(selectedCategory)}
-                      sx={{
-                        textTransform: 'none',
-                        fontSize: '0.8rem',
-                        fontWeight: 500,
-                        borderColor: 'hsl(var(--border))',
-                        color: 'hsl(var(--foreground))',
-                        whiteSpace: 'nowrap',
-                        px: 1.5,
-                        '&:hover': {
-                          borderColor: 'hsl(var(--primary))',
-                          bgcolor: 'hsl(var(--primary) / 0.08)',
-                        },
-                      }}
-                    >
-                      Share
-                    </Button>
-                  </span>
-                </Tooltip>
-                <Tooltip
-                  title={
-                    !selectedCategory || selectedCategory === 'default' || selectedCategory === 'all'
-                      ? 'Settings are disabled for Default category'
-                      : `Settings for "${selectedCategory}"`
-                  }
-                >
-                  <span>
-                    <Button
-                      disabled={!selectedCategory || selectedCategory === 'default' || selectedCategory === 'all'}
-                      onClick={() => {
-                        setAutomationsDialogView('settings');
-                        setAutomationsDialogOpen(true);
-                      }}
-                      sx={{
-                        px: 1,
-                        minWidth: 'auto',
-                        borderColor: 'hsl(var(--border))',
-                        color: 'hsl(var(--muted-foreground))',
-                        '&:hover': {
-                          borderColor: 'hsl(var(--primary))',
-                          color: 'hsl(var(--foreground))',
-                          bgcolor: 'hsl(var(--primary) / 0.08)',
-                        },
-                      }}
-                    >
-                      <Settings size={15} />
-                    </Button>
-                  </span>
-                </Tooltip>
-              </ButtonGroup>
+                      <Plus size={16} />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </Box>
             )}
-
-            <Tooltip title="Refresh Datastore">
-              <IconButton
-                size="small"
-                onClick={() => fetchCache(selectedCategory, page, pageSize, activeSearchTerm, cursors)}
-                disabled={loading}
-                sx={{
-                  height: 36,
-                  width: 36,
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: 1.5,
-                  color: 'hsl(var(--foreground))',
-                  bgcolor: 'hsl(var(--card))',
-                  '&:hover': {
-                    bgcolor: 'hsl(var(--muted))',
-                  },
-                }}
-              >
-                <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
-              </IconButton>
-            </Tooltip>
           </Box>
+
+          {/* Top-Right: "Share | Automate | Settings" */}
+          {!categoryLocked && !compact && (
+            <ButtonGroup variant="outlined" size="small" sx={{ height: 36 }}>
+              {/* 1. Share */}
+              <Tooltip
+                title={
+                  !selectedCategory || selectedCategory === 'default' || selectedCategory === 'all'
+                    ? 'Sharing is disabled for Default category'
+                    : `Share permissions for category "${selectedCategory}"`
+                }
+              >
+                <span>
+                  <Button
+                    startIcon={<UserPlus size={15} />}
+                    disabled={!selectedCategory || selectedCategory === 'default' || selectedCategory === 'all'}
+                    onClick={() => setSharingCategory(selectedCategory)}
+                    sx={{
+                      textTransform: 'none',
+                      fontSize: '0.8rem',
+                      fontWeight: 500,
+                      borderColor: 'hsl(var(--border))',
+                      color: 'hsl(var(--foreground))',
+                      whiteSpace: 'nowrap',
+                      px: 1.5,
+                      '&:hover': {
+                        borderColor: 'hsl(var(--primary))',
+                        bgcolor: 'hsl(var(--primary) / 0.08)',
+                      },
+                    }}
+                  >
+                    Share
+                  </Button>
+                </span>
+              </Tooltip>
+
+              {/* 2. Automate */}
+              <Tooltip
+                title={
+                  !selectedCategory || selectedCategory === 'default' || selectedCategory === 'all'
+                    ? 'Automations are disabled for Default category'
+                    : `Configure automations for ${selectedCategory}`
+                }
+              >
+                <span>
+                  <Button
+                    startIcon={<Rocket size={15} />}
+                    disabled={!selectedCategory || selectedCategory === 'default' || selectedCategory === 'all'}
+                    onClick={() => {
+                      setAutomationsDialogView('automations');
+                      setAutomationsDialogOpen(true);
+                    }}
+                    sx={{
+                      textTransform: 'none',
+                      fontSize: '0.8rem',
+                      fontWeight: 500,
+                      borderColor: 'hsl(var(--border))',
+                      color: 'hsl(var(--foreground))',
+                      whiteSpace: 'nowrap',
+                      px: 1.5,
+                      '&:hover': {
+                        borderColor: 'hsl(var(--primary))',
+                        bgcolor: 'hsl(var(--primary) / 0.08)',
+                      },
+                    }}
+                  >
+                    Automate
+                  </Button>
+                </span>
+              </Tooltip>
+
+              {/* 3. Settings */}
+              <Tooltip
+                title={
+                  !selectedCategory || selectedCategory === 'default' || selectedCategory === 'all'
+                    ? 'Settings are disabled for Default category'
+                    : `Settings for "${selectedCategory}"`
+                }
+              >
+                <span>
+                  <Button
+                    disabled={!selectedCategory || selectedCategory === 'default' || selectedCategory === 'all'}
+                    onClick={() => {
+                      setAutomationsDialogView('settings');
+                      setAutomationsDialogOpen(true);
+                    }}
+                    sx={{
+                      px: 1,
+                      minWidth: 36,
+                      borderColor: 'hsl(var(--border))',
+                      color: 'hsl(var(--muted-foreground))',
+                      '&:hover': {
+                        borderColor: 'hsl(var(--primary))',
+                        color: 'hsl(var(--foreground))',
+                        bgcolor: 'hsl(var(--primary) / 0.08)',
+                      },
+                    }}
+                  >
+                    <Settings size={15} />
+                  </Button>
+                </span>
+              </Tooltip>
+            </ButtonGroup>
+          )}
         </Box>
       )}
 
@@ -1474,6 +1421,24 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
         </Box>
       )}
 
+      {/* Protected category notice */}
+      {selectedCategory === 'protected' && (
+        <Box
+          sx={{
+            mb: 1.5,
+            px: 2,
+            py: 1.25,
+            borderRadius: 1.5,
+            bgcolor: 'hsl(var(--destructive) / 0.1)',
+            border: '1px solid hsl(var(--destructive) / 0.3)',
+            color: 'hsl(var(--destructive))',
+            fontSize: '0.82rem',
+          }}
+        >
+          Protected keys are encrypted, only available to administrators, and will be masked when used in workflows.
+        </Box>
+      )}
+
       {/* Datastore table */}
       <TableContainer
         component={Paper}
@@ -1499,19 +1464,22 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
                   />
                 </TableCell>
               )}
-              <TableCell sx={{ fontWeight: 600, width: 240, py: 1, fontSize: '0.8rem' }}>Key</TableCell>
+              <TableCell sx={{ fontWeight: 600, width: 220, py: 1, fontSize: '0.8rem' }}>Key</TableCell>
               <TableCell sx={{ fontWeight: 600, py: 1, fontSize: '0.8rem' }}>Value Preview</TableCell>
-              <TableCell sx={{ fontWeight: 600, width: 140, py: 1, fontSize: '0.8rem' }}>Category</TableCell>
-              <TableCell sx={{ fontWeight: 600, width: 130, py: 1, fontSize: '0.8rem' }}>Updated</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 600, width: 150, py: 1, fontSize: '0.8rem' }}>
-                Actions
-              </TableCell>
+              {isDefaultCategory && (
+                <TableCell sx={{ fontWeight: 600, width: 140, py: 1, fontSize: '0.8rem' }}>Category</TableCell>
+              )}
+              {!readOnly && (
+                <TableCell align="right" sx={{ fontWeight: 600, width: 120, py: 1, fontSize: '0.8rem' }}>
+                  Actions
+                </TableCell>
+              )}
             </TableRow>
           </TableHead>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={readOnly ? 5 : 6} sx={{ textAlign: 'center', py: 5 }}>
+                <TableCell colSpan={totalColumns} sx={{ textAlign: 'center', py: 5 }}>
                   <CircularProgress size={24} sx={{ mb: 1 }} />
                   <Typography variant="body2" sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.82rem' }}>
                     Loading datastore items...
@@ -1520,14 +1488,12 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
               </TableRow>
             ) : items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={readOnly ? 5 : 6} sx={{ textAlign: 'center', py: 5 }}>
+                <TableCell colSpan={totalColumns} sx={{ textAlign: 'center', py: 5 }}>
                   <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5, fontSize: '0.85rem' }}>
                     No entries found
                   </Typography>
                   <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))' }}>
-                    {activeSearchTerm
-                      ? `No keys matched "${activeSearchTerm}".`
-                      : `Category "${selectedCategory}" has no items yet.`}
+                    Category &quot;{selectedCategory || 'default'}&quot; has no items yet.
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -1554,7 +1520,7 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
                         />
                       </TableCell>
                     )}
-                    <TableCell sx={{ py: 0.5, maxWidth: 240 }}>
+                    <TableCell sx={{ py: 0.5, maxWidth: 220 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                         <Typography
                           variant="body2"
@@ -1593,65 +1559,45 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
                         onInspect={() => handleOpenInspect(item)}
                       />
                     </TableCell>
-                    <TableCell sx={{ py: 0.5, whiteSpace: 'nowrap' }}>
-                      <Chip
-                        label={item.category || selectedCategory}
-                        size="small"
-                        variant="outlined"
-                        sx={{
-                          height: 22,
-                          fontSize: '0.72rem',
-                          fontFamily: 'monospace',
-                          borderColor: 'hsl(var(--border))',
-                          color: 'hsl(var(--muted-foreground))',
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell sx={{ py: 0.5, whiteSpace: 'nowrap' }}>
-                      <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.78rem' }}>
-                        {formatTs(item.edited_at || item.created_at)}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="right" sx={{ py: 0.5, whiteSpace: 'nowrap' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.75 }}>
-                        <ButtonGroup size="small" variant="outlined" sx={{ height: 28 }}>
-                          <Tooltip title="View JSON">
+                    {isDefaultCategory && (
+                      <TableCell sx={{ py: 0.5, whiteSpace: 'nowrap' }}>
+                        <Chip
+                          label={item.category || selectedCategory}
+                          size="small"
+                          variant="outlined"
+                          sx={{
+                            height: 22,
+                            fontSize: '0.72rem',
+                            fontFamily: 'monospace',
+                            borderColor: 'hsl(var(--border))',
+                            color: 'hsl(var(--muted-foreground))',
+                          }}
+                        />
+                      </TableCell>
+                    )}
+                    {!readOnly && (
+                      <TableCell align="right" sx={{ py: 0.5, whiteSpace: 'nowrap' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.75 }}>
+                          <Tooltip title="Edit Entry">
                             <Button
-                              onClick={() => handleOpenInspect(item)}
+                              variant="outlined"
+                              size="small"
+                              onClick={() => handleOpenEditDialog(item)}
                               sx={{
+                                height: 28,
                                 px: 1,
                                 minWidth: 'auto',
                                 textTransform: 'none',
                                 fontSize: '0.75rem',
                                 borderColor: 'hsl(var(--border))',
-                                color: 'hsl(var(--foreground))',
-                                '&:hover': { borderColor: 'hsl(var(--primary))' },
+                                color: 'hsl(var(--muted-foreground))',
+                                '&:hover': { color: 'hsl(var(--foreground))', borderColor: 'hsl(var(--primary))' },
                               }}
                             >
-                              <Eye size={13} style={{ marginRight: 4 }} /> View
+                              <Pencil size={13} style={{ marginRight: 4 }} /> Edit
                             </Button>
                           </Tooltip>
-                          {!readOnly && (
-                            <Tooltip title="Edit Entry">
-                              <Button
-                                onClick={() => handleOpenEditDialog(item)}
-                                sx={{
-                                  px: 1,
-                                  minWidth: 'auto',
-                                  textTransform: 'none',
-                                  fontSize: '0.75rem',
-                                  borderColor: 'hsl(var(--border))',
-                                  color: 'hsl(var(--muted-foreground))',
-                                  '&:hover': { color: 'hsl(var(--foreground))', borderColor: 'hsl(var(--primary))' },
-                                }}
-                              >
-                                <Pencil size={13} style={{ marginRight: 4 }} /> Edit
-                              </Button>
-                            </Tooltip>
-                          )}
-                        </ButtonGroup>
 
-                        {!readOnly && (
                           <Tooltip title="Delete Entry">
                             <IconButton
                               size="small"
@@ -1672,31 +1618,31 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
                               <Trash2 size={13} />
                             </IconButton>
                           </Tooltip>
-                        )}
 
-                        <Tooltip title="Share & Permissions">
-                          <IconButton
-                            size="small"
-                            onClick={() => setSharingItem(item)}
-                            sx={{
-                              width: 28,
-                              height: 28,
-                              p: 0.5,
-                              color: item.rbac ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
-                              border: '1px solid hsl(var(--border))',
-                              borderRadius: 1,
-                              '&:hover': {
-                                color: 'hsl(var(--foreground))',
-                                borderColor: 'hsl(var(--primary))',
-                                bgcolor: 'hsl(var(--muted) / 0.1)',
-                              },
-                            }}
-                          >
-                            <UserPlus size={13} />
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
-                    </TableCell>
+                          <Tooltip title="Share & Permissions">
+                            <IconButton
+                              size="small"
+                              onClick={() => setSharingItem(item)}
+                              sx={{
+                                width: 28,
+                                height: 28,
+                                p: 0.5,
+                                color: item.rbac ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                                border: '1px solid hsl(var(--border))',
+                                borderRadius: 1,
+                                '&:hover': {
+                                  color: 'hsl(var(--foreground))',
+                                  borderColor: 'hsl(var(--primary))',
+                                  bgcolor: 'hsl(var(--muted) / 0.1)',
+                                },
+                              }}
+                            >
+                              <UserPlus size={13} />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </TableCell>
+                    )}
                   </TableRow>
                 );
               })
@@ -1705,60 +1651,136 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
         </Table>
       </TableContainer>
 
-      {/* Pagination footer */}
+      {/* Floating pagination bar (matching CacheView.jsx) */}
       <Box
         sx={{
+          position: 'fixed',
+          bottom: 16,
+          left: { xs: 0, md: '240px' },
+          right: 0,
+          zIndex: 800,
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 1.5,
-          px: 1,
-          py: 0.5,
+          justifyContent: 'center',
+          pointerEvents: 'none',
+          px: 2,
         }}
       >
-        <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.8rem' }}>
-          Showing {items.length > 0 ? page * pageSize + 1 : 0} - {Math.min((page + 1) * pageSize, totalAmount)} of {totalAmount} keys
-        </Typography>
-
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <FormControl size="small">
-            <Select
-              value={pageSize}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value));
-                setPage(0);
-                setCursors({ 0: '' });
-              }}
-              sx={{ height: 32, fontSize: '0.78rem' }}
-            >
-              <MenuItem value={25}>25 / page</MenuItem>
-              <MenuItem value={50}>50 / page</MenuItem>
-              <MenuItem value={100}>100 / page</MenuItem>
-            </Select>
-          </FormControl>
-
-          <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.8rem' }}>
-            Page {page + 1} of {totalPages}
+        <Paper
+          elevation={4}
+          sx={{
+            pointerEvents: 'auto',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 2,
+            py: 0.75,
+            px: 2,
+            borderRadius: 2,
+            bgcolor: 'hsl(var(--card))',
+            border: '1px solid hsl(var(--border))',
+            boxShadow: '0 8px 30px rgba(0,0,0,0.25)',
+            maxWidth: 780,
+            width: '100%',
+          }}
+        >
+          <Typography
+            variant="caption"
+            sx={{
+              color: 'hsl(var(--muted-foreground))',
+              fontSize: '0.8rem',
+              whiteSpace: 'nowrap',
+              minWidth: 140,
+            }}
+          >
+            {items.length > 0 ? page * pageSize + 1 : 0} - {Math.min((page + 1) * pageSize, totalAmount)} of {totalAmount} keys
           </Typography>
 
-          <ButtonGroup size="small" variant="outlined" sx={{ height: 30 }}>
-            <Button
-              onClick={handlePrevPage}
-              disabled={!hasPrevPage}
-              sx={{ textTransform: 'none', fontSize: '0.75rem', px: 1.5 }}
-            >
-              Previous
-            </Button>
-            <Button
-              onClick={handleNextPage}
-              disabled={!hasNextPage}
-              sx={{ textTransform: 'none', fontSize: '0.75rem', px: 1.5 }}
-            >
-              Next
-            </Button>
-          </ButtonGroup>
-        </Box>
+          <Pagination
+            count={totalPages}
+            page={page + 1}
+            size="small"
+            renderItem={(item) => {
+              let disabled = false;
+              if (item?.type === 'page') {
+                const targetIdx = (item.page ?? 1) - 1;
+                if (targetIdx > 0 && cursors[targetIdx] === undefined) {
+                  disabled = true;
+                }
+              }
+              if (item?.type === 'previous') {
+                disabled = page === 0;
+              }
+              if (item?.type === 'next') {
+                disabled = !cursors[page + 1] && page + 1 >= totalPages;
+              }
+              if (loading) {
+                disabled = true;
+              }
+
+              return (
+                <PaginationItem
+                  {...item}
+                  disabled={disabled}
+                  sx={{
+                    color: 'hsl(var(--foreground))',
+                    '&.Mui-selected': {
+                      bgcolor: 'hsl(var(--primary)) !important',
+                      color: 'hsl(var(--primary-foreground)) !important',
+                      fontWeight: 600,
+                    },
+                  }}
+                />
+              );
+            }}
+            onChange={(_, value) => {
+              if (value < 1) return;
+              handlePageSelect(value - 1);
+            }}
+          />
+
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <FormControl size="small">
+              <Select
+                value={pageSize}
+                onChange={(e) => {
+                  const newSize = Number(e.target.value);
+                  setPageSize(newSize);
+                  setPage(0);
+                  cursorsRef.current = { 0: '' };
+                  setCursors({ 0: '' });
+                }}
+                sx={{
+                  height: 30,
+                  fontSize: '0.78rem',
+                  bgcolor: 'hsl(var(--background))',
+                  color: 'hsl(var(--foreground))',
+                }}
+              >
+                <MenuItem value={25}>25 / page</MenuItem>
+                <MenuItem value={50}>50 / page</MenuItem>
+                <MenuItem value={100}>100 / page</MenuItem>
+              </Select>
+            </FormControl>
+
+            {selectedKeys.length > 0 && !readOnly && (
+              <Button
+                variant="outlined"
+                color="error"
+                size="small"
+                startIcon={<Trash2 size={14} />}
+                onClick={() => handleInitiateDelete(selectedKeys)}
+                sx={{
+                  textTransform: 'none',
+                  fontSize: '0.78rem',
+                  height: 30,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Delete {selectedKeys.length}
+              </Button>
+            )}
+          </Box>
+        </Paper>
       </Box>
 
       {/* Inspect Detail Dialog */}
@@ -2202,7 +2224,7 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
           }));
         }}
         onSaved={() => {
-          fetchCache(selectedCategory, page, pageSize, activeSearchTerm, cursors);
+          fetchCache(selectedCategory, page, pageSize);
         }}
         orgId={orgId || ''}
       />

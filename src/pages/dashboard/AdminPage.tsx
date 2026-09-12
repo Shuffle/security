@@ -343,7 +343,7 @@ const AdminPage = () => {
           </Typography>
         </Box>
       )}
-    <Box sx={{ p: { xs: 0, sm: 0 }, maxWidth: 1200, width: '100%', mx: 'auto' }}>
+    <Box sx={{ p: { xs: 0, sm: 0 }, pb: '200px', maxWidth: 1200, width: '100%', mx: 'auto' }}>
       <Box sx={{ display: { xs: 'none', sm: 'block' }, pt: { xs: 2, sm: 4 }, px: { xs: 2, sm: 4 } }}>
         <Typography
           variant="h5"
