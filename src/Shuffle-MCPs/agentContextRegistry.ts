@@ -36,7 +36,7 @@ export interface AgentContextRule {
   /** Title shown on drawer header */
   title?: string | ((params: Record<string, string>, pathname: string, entityOverride?: string) => string);
   /** Subtitle or context description shown under the drawer header */
-  subtitle?: string | ((params: Record<string, string>, pathname: string) => string);
+  subtitle?: string | ((params: Record<string, string>, pathname: string, entityOverride?: string) => string);
   /** Contextual prompt seed */
   defaultPrompt?: string | ((params: Record<string, string>, pathname: string, entityOverride?: string) => string);
   /** Custom placeholder for the prompt input */

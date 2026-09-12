@@ -59,7 +59,7 @@ export interface CategoryAutomationsDialogProps {
   category: string;
   automations: CategoryAutomation[] | null;
   onAutomationsChange: (automations: CategoryAutomation[]) => void;
-  initialSettings?: { timeout?: number; public?: boolean };
+  initialSettings?: { timeout?: number; public?: boolean; rbac?: RBACConfig | null };
   onSaved?: () => void;
   entityLabel?: { singular: string; plural: string };
   /** Explicit org id to save against. Falls back to reading
@@ -85,7 +85,7 @@ const CATEGORY_OPTIONS: { category: string; singular: string; plural: string }[]
 
 interface CategoryEntry {
   automations: CategoryAutomation[] | null;
-  settings?: { timeout?: number; public?: boolean };
+  settings?: { timeout?: number; public?: boolean; rbac?: RBACConfig | null };
 }
 
 const WEEKS_OPTIONS = [

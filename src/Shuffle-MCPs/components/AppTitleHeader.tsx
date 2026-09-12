@@ -39,6 +39,8 @@ export interface AppTitleHeaderProps extends ShuffleHostProps {
   highlightActivate?: boolean;
   /** When provided, replaces the Activate button with "+ Add". */
   onAdd?: () => void;
+  /** Called when the auth status chip is clicked (host may expand its auth section). */
+  onAuthClick?: () => void;
 }
 
 export default function AppTitleHeader({
