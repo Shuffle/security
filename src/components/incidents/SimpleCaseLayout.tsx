@@ -74,11 +74,13 @@ export const SimpleCaseLayout = ({
 
   return (
     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: 'minmax(220px, 260px) minmax(0, 1fr) minmax(180px, 220px)' }, gap: { xs: 3, lg: 3 }, alignItems: 'start' }}>
-      <Box sx={{ order: { xs: 2, lg: 1 }, position: { lg: 'sticky' }, top: { lg: 24 }, minWidth: 0, maxHeight: { lg: 'calc(100vh - 48px)' }, overflowY: { lg: 'auto' } }}>
-        <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', mb: 1.5 }}>
+      <Box sx={{ order: { xs: 2, lg: 1 }, position: { lg: 'sticky' }, top: { lg: 24 }, minWidth: 0, height: { lg: 'calc(100vh - 48px)' }, display: 'flex', flexDirection: 'column' }}>
+        <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', mb: 1.5, flexShrink: 0 }}>
           Timeline
         </Typography>
-        {timeline}
+        <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+          {timeline}
+        </Box>
       </Box>
 
       <Box sx={{ order: { xs: 1, lg: 2 }, minWidth: 0, maxWidth: 820, width: '100%', mx: 'auto' }}>
