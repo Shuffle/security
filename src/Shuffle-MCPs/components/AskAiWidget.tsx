@@ -76,9 +76,20 @@ export const AskAiWidget: React.FC<AskAiWidgetProps> = ({
   const [activeTab, setActiveTab] = useState<AgentRunDrawerTab>(propInitialTab);
   const isDrawerOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
 
-  const currentPath = pathname !== undefined
-    ? pathname
-    : (typeof window !== 'undefined' ? window.location.pathname : '');
+  const [browserLocation, setBrowserLocation] = useState({ path: '', search: '' });
+
+  useEffect(() => {
+    if (pathname !== undefined && search !== undefined) return;
+    const syncLocation = () => setBrowserLocation({
+      path: window.location.pathname,
+      search: window.location.search,
+    });
+    syncLocation();
+    window.addEventListener('popstate', syncLocation);
+    return () => window.removeEventListener('popstate', syncLocation);
+  }, [pathname, search]);
+
+  const currentPath = pathname ?? browserLocation.path;
 
   const isAgentDisabled = isAgentRoute(currentPath);
 
@@ -101,7 +112,7 @@ export const AskAiWidget: React.FC<AskAiWidgetProps> = ({
   }, [isAgentDisabled, isDrawerOpen, setDrawerOpen]);
 
   // Synchronously compute resolved context for immediate label & hints
-  const currentSearch = search ?? (typeof window !== 'undefined' ? window.location.search : '');
+  const currentSearch = search ?? browserLocation.search;
 
   const resolvedContext = useMemo(() => {
     return resolveAgentContext(currentPath, currentSearch, rules);
@@ -216,11 +227,9 @@ export const AskAiWidget: React.FC<AskAiWidgetProps> = ({
  * Convenience hook to get the active agent context for a given route.
  */
 export const useContextAwareAgent = (pathname?: string, search?: string) => {
-  const [activeContext, setActiveContext] = useState<AgentResolvedContext>(() => {
-    const p = pathname ?? (typeof window !== 'undefined' ? window.location.pathname : '/');
-    const s = search ?? (typeof window !== 'undefined' ? window.location.search : '');
-    return resolveAgentContext(p, s);
-  });
+  const [activeContext, setActiveContext] = useState<AgentResolvedContext>(() =>
+    resolveAgentContext(pathname ?? '/', search ?? ''),
+  );
 
   useEffect(() => {
     const p = pathname ?? (typeof window !== 'undefined' ? window.location.pathname : '/');

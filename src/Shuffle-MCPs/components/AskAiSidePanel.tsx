@@ -158,17 +158,8 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
   const themeScope = useShuffleMcpTheme();
   const effectiveTheme = theme || (themeScope?.isDark ? 'dark' : 'light');
 
-  const [currentPathname, setCurrentPathname] = useState<string>(() => {
-    if (pathname !== undefined) return pathname;
-    if (typeof window !== 'undefined') return window.location.pathname;
-    return '/';
-  });
-
-  const [currentSearch, setCurrentSearch] = useState<string>(() => {
-    if (search !== undefined) return search;
-    if (typeof window !== 'undefined') return window.location.search;
-    return '';
-  });
+  const [currentPathname, setCurrentPathname] = useState<string>(pathname ?? '/');
+  const [currentSearch, setCurrentSearch] = useState<string>(search ?? '');
 
   // Keep path synced
   useEffect(() => {
@@ -181,6 +172,7 @@ export const AskAiSidePanel: React.FC<AskAiSidePanelProps> = ({
         setCurrentPathname(window.location.pathname);
         setCurrentSearch(window.location.search);
       };
+      handleLocationChange();
       window.addEventListener('popstate', handleLocationChange);
       return () => window.removeEventListener('popstate', handleLocationChange);
     }
