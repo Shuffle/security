@@ -5789,7 +5789,7 @@ const IncidentDetailPage = () => {
             fontSize: '0.7rem',
             borderRadius: '6px',
             cursor: 'pointer',
-            border: '1px solid hsl(var(--border))',
+            border: simple ? 'none' : '1px solid hsl(var(--border))',
             bgcolor: 'transparent',
             color: 'text.secondary',
             '& .MuiChip-label': { px: 0.875 },
