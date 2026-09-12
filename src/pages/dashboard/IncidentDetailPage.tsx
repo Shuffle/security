@@ -5809,7 +5809,9 @@ const IncidentDetailPage = () => {
   // chevron and collapse behaviour are owned by the surrounding
   // <IncidentSection> at each call site so it stays visually identical to
   // Description / Email Thread / Metadata.
-  const renderTimelinePanel = (variant: 'sidebar' | 'inline' = 'sidebar') => (
+  const renderTimelinePanel = (variant: 'sidebar' | 'inline' | 'simple' = 'sidebar') => {
+    const isSimple = variant === 'simple';
+    return (
     <>
       {/* Agent runs loading indicator */}
       {agentRunsLoading && (
