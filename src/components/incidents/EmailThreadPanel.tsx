@@ -490,7 +490,7 @@ const RecipientRow = ({
   </Box>
 );
 
-const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, onForward }: EmailThreadPanelProps) => {
+const EmailThreadPanel = ({ descriptionHtml, descriptionText, rawOCSF, onReply, onForward, borderless = false }: EmailThreadPanelProps) => {
   const theme = useTheme();
   const primaryColor = theme.palette.primary.main;
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
