@@ -6770,7 +6770,8 @@ const IncidentDetailPage = () => {
               p: 1.5,
               borderRadius: 1.5,
               bgcolor: 'transparent',
-              border: '1px solid hsl(var(--border-subtle))',
+              border: isSimple ? 'none' : '1px solid hsl(var(--border-subtle))',
+              mb: isSimple ? 1.5 : 0,
               transition: 'background-color 0.15s ease, border-color 0.15s ease',
               '&:hover': {
                 bgcolor: 'hsl(var(--muted) / 0.4)',
