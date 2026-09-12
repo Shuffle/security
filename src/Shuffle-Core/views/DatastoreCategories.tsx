@@ -397,6 +397,7 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
 
   // Share & Permissions modal
   const [sharingItem, setSharingItem] = useState<DatastoreItemRecord | null>(null);
+  const [sharingCategory, setSharingCategory] = useState<string | null>(null);
 
   // Add Category Dialog
   const [createCategoryDialogOpen, setCreateCategoryDialogOpen] = useState<boolean>(false);
@@ -946,6 +947,43 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
     fetchCache(selectedCategory, page, pageSize, activeSearchTerm, cursors);
   };
 
+  // Save Category RBAC
+  const handleSaveCategoryRBAC = async (rbac: RBACConfig | null) => {
+    if (!sharingCategory) return;
+    const baseSettings = categoryConfig?.settings || {};
+    const updatedSettings = {
+      ...baseSettings,
+      rbac: rbac || undefined,
+    };
+    const payload = {
+      category: sharingCategory,
+      automations: categoryConfig?.automations || [],
+      settings: updatedSettings,
+    };
+
+    const response = await fetch(getApiUrl('/api/v2/datastore/automate'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        ...getAuthHeader(orgId),
+      },
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to update category access: ${response.status}`);
+    }
+
+    toast.success(`Access updated for category "${sharingCategory}"`);
+    setCategoryConfig((prev: any) => ({
+      ...prev,
+      settings: updatedSettings,
+    }));
+    fetchCache(selectedCategory, page, pageSize, activeSearchTerm, cursors);
+  };
+
   // Row selection handlers
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -1223,6 +1261,36 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
                 <Tooltip
                   title={
                     !selectedCategory || selectedCategory === 'default' || selectedCategory === 'all'
+                      ? 'Sharing is disabled for Default category'
+                      : `Share permissions for category "${selectedCategory}"`
+                  }
+                >
+                  <span>
+                    <Button
+                      startIcon={<UserPlus size={15} />}
+                      disabled={!selectedCategory || selectedCategory === 'default' || selectedCategory === 'all'}
+                      onClick={() => setSharingCategory(selectedCategory)}
+                      sx={{
+                        textTransform: 'none',
+                        fontSize: '0.8rem',
+                        fontWeight: 500,
+                        borderColor: 'hsl(var(--border))',
+                        color: 'hsl(var(--foreground))',
+                        whiteSpace: 'nowrap',
+                        px: 1.5,
+                        '&:hover': {
+                          borderColor: 'hsl(var(--primary))',
+                          bgcolor: 'hsl(var(--primary) / 0.08)',
+                        },
+                      }}
+                    >
+                      Share
+                    </Button>
+                  </span>
+                </Tooltip>
+                <Tooltip
+                  title={
+                    !selectedCategory || selectedCategory === 'default' || selectedCategory === 'all'
                       ? 'Settings are disabled for Default category'
                       : `Settings for "${selectedCategory}"`
                   }
@@ -1230,7 +1298,11 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
                   <span>
                     <Button
                       disabled={!selectedCategory || selectedCategory === 'default' || selectedCategory === 'all'}
-                      onClick={() => setSettingsDialogOpen(true)}
+                      onClick={() => {
+                        setCategoryTimeout(categoryConfig?.settings?.timeout || 0);
+                        setIsCategoryPublic(categoryConfig?.settings?.public || false);
+                        setSettingsDialogOpen(true);
+                      }}
                       sx={{
                         px: 1,
                         minWidth: 'auto',
@@ -1986,6 +2058,55 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
             }
             label="Make category publicly queryable with authorization tokens"
           />
+
+          <Divider sx={{ my: 1, borderColor: 'hsl(var(--border))' }} />
+
+          {/* Access & Permissions (RBAC) */}
+          <Box
+            sx={{
+              p: 2,
+              borderRadius: 1.5,
+              border: '1px solid hsl(var(--border))',
+              bgcolor: 'hsl(var(--muted) / 0.25)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 2,
+            }}
+          >
+            <Box>
+              <Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: 'hsl(var(--foreground))' }}>
+                Category Permissions (RBAC)
+              </Typography>
+              <Typography sx={{ fontSize: '0.78rem', color: 'hsl(var(--muted-foreground))' }}>
+                {categoryConfig?.settings?.rbac
+                  ? 'Custom access rules are configured for this category'
+                  : 'Standard workspace permissions apply (RBAC inactive)'}
+              </Typography>
+            </Box>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => {
+                setSettingsDialogOpen(false);
+                setSharingCategory(selectedCategory);
+              }}
+              sx={{
+                textTransform: 'none',
+                fontSize: '0.82rem',
+                fontWeight: 600,
+                borderColor: 'hsl(var(--border))',
+                color: 'hsl(var(--foreground))',
+                whiteSpace: 'nowrap',
+                '&:hover': {
+                  borderColor: 'hsl(var(--primary))',
+                  bgcolor: 'hsl(var(--primary) / 0.08)',
+                },
+              }}
+            >
+              Manage Access
+            </Button>
+          </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 1.5, borderTop: '1px solid hsl(var(--border))' }}>
           <Button
@@ -2001,13 +2122,16 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
             onClick={async () => {
               setSavingSettings(true);
               try {
+                const baseSettings = categoryConfig?.settings || {};
+                const updatedSettings = {
+                  ...baseSettings,
+                  timeout: categoryTimeout,
+                  public: isCategoryPublic,
+                };
                 const payload = {
                   category: selectedCategory,
-                  automations: [],
-                  settings: {
-                    timeout: categoryTimeout,
-                    public: isCategoryPublic,
-                  },
+                  automations: categoryConfig?.automations || [],
+                  settings: updatedSettings,
                 };
                 await fetch(getApiUrl('/api/v2/datastore/automate'), {
                   method: 'POST',
@@ -2020,6 +2144,10 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
                   body: JSON.stringify(payload),
                 });
                 toast.success('Category settings saved');
+                setCategoryConfig((prev: any) => ({
+                  ...prev,
+                  settings: updatedSettings,
+                }));
                 setSettingsDialogOpen(false);
               } catch {
                 toast.error('Failed to save settings');
@@ -2143,6 +2271,17 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
           parentName={sharingItem.category || selectedCategory}
           initialRBAC={sharingItem.rbac}
           onSave={handleSaveItemRBAC}
+        />
+      )}
+
+      {sharingCategory && (
+        <ShareAccessModal
+          open={Boolean(sharingCategory)}
+          onClose={() => setSharingCategory(null)}
+          resourceType="category"
+          resourceName={sharingCategory}
+          initialRBAC={categoryConfig?.settings?.rbac}
+          onSave={handleSaveCategoryRBAC}
         />
       )}
     </Box>
