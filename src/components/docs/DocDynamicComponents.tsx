@@ -2388,7 +2388,7 @@ export const DocRegionSelect: React.FC<DocRegionSelectProps> = ({
   const navigate = useNavigate();
   const { isAuthenticated, sessionToken, userInfo, refreshUserInfo } = useAuth();
   const isLoggedIn = Boolean(isAuthenticated && (sessionToken || userInfo?.id));
-  const orgId = userInfo?.active_org?.id || userInfo?.org_id;
+  const orgId = userInfo?.active_org?.id;
 
   const defaultOrgName = isLoggedIn
     ? (userInfo?.active_org?.name || "Organization")
@@ -2497,7 +2497,7 @@ export const DocRegionSelect: React.FC<DocRegionSelectProps> = ({
         setTimeout(() => setSaveStatus("idle"), 3500);
       }
     } else {
-      setRegionUrl(newUrl);
+      setRegionUrl(newUrl, orgId || null);
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 2500);
     }
@@ -2862,7 +2862,7 @@ export const DocIncidentAutomation: React.FC<DocIncidentAutomationProps> = ({
   const orgName = isLoggedIn
     ? (userInfo?.active_org?.name || "Active Tenant")
     : "Shuffle Cloud (Public)";
-  const orgId = userInfo?.active_org?.id || userInfo?.org_id || null;
+  const orgId = userInfo?.active_org?.id || null;
 
   const { categoryConfig, fetchItems } = useDatastore({ category });
   const [dialogOpen, setDialogOpen] = useState(false);
