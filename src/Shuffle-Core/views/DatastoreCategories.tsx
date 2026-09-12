@@ -925,7 +925,7 @@ const DatastoreCategories: React.FC<DatastoreCategoriesProps> = ({
     const payload = {
       org_id: orgId,
       key: sharingItem.key,
-      value: sharingItem.value,
+      value: toStringValue(sharingItem.value),
       category: targetCategory,
       rbac: rbac || undefined,
     };
