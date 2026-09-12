@@ -80,19 +80,19 @@ export const SimpleCaseLayout = ({
       </Box>
 
       <Box sx={{ order: { xs: 1, xl: 2 }, minWidth: 0, maxWidth: 820, width: '100%', mx: 'auto' }}>
-        <Box ref={(node) => { refs.current.narrative = node; }} data-simple-section="narrative" sx={sectionSx}>
+        <Box ref={(node: HTMLElement | null) => { refs.current.narrative = node; }} data-simple-section="narrative" sx={sectionSx}>
           <Typography component="h2" sx={{ fontSize: '1.15rem', fontWeight: 700, mb: 2.5 }}>{narrativeLabel}</Typography>
           {narrative}
         </Box>
-        <Box ref={(node) => { refs.current.tasks = node; }} data-simple-section="tasks" sx={sectionSx}>
+        <Box ref={(node: HTMLElement | null) => { refs.current.tasks = node; }} data-simple-section="tasks" sx={sectionSx}>
           <Typography component="h2" sx={{ fontSize: '1.15rem', fontWeight: 700, mb: 2.5 }}>Tasks</Typography>
           {tasks}
         </Box>
-        <Box ref={(node) => { refs.current.observables = node; }} data-simple-section="observables" sx={sectionSx}>
+        <Box ref={(node: HTMLElement | null) => { refs.current.observables = node; }} data-simple-section="observables" sx={sectionSx}>
           <Typography component="h2" sx={{ fontSize: '1.15rem', fontWeight: 700, mb: 2.5 }}>Observables</Typography>
           {observables}
         </Box>
-        <Box ref={(node) => { refs.current.correlations = node; }} data-simple-section="correlations" sx={{ ...sectionSx, pb: 2 }}>
+        <Box ref={(node: HTMLElement | null) => { refs.current.correlations = node; }} data-simple-section="correlations" sx={{ ...sectionSx, pb: 2 }}>
           <Typography component="h2" sx={{ fontSize: '1.15rem', fontWeight: 700, mb: 2.5 }}>Correlations</Typography>
           {correlations}
         </Box>

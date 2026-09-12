@@ -142,6 +142,7 @@ import type { AgentRun } from '@/services/agentActivity';
 import { getAgentSkipInfo } from '@/lib/agentParsers';
 import HighlightedFileEditor from '@/components/incidents/HighlightedFileEditor';
 import EmailThreadPanel, { isEmailContent } from '@/components/incidents/EmailThreadPanel';
+import SimpleCaseLayout from '@/components/incidents/SimpleCaseLayout';
 import { isDraftOnlyIncident, resolveEmailThread } from '@/lib/emailThreadAdapters';
 
 import { IncidentSection } from '@/components/incidents/IncidentSection';
@@ -1091,7 +1092,7 @@ const IncidentDetailPage = () => {
   const [isMoving, setIsMoving] = useState(false);
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [publicAuthorization, setPublicAuthorization] = useState<string>('');
-  const TAB_NAMES = ['details', 'tasks', 'observables', 'correlations', 'raw', 'file', 'original'] as const;
+  const TAB_NAMES = ['details', 'tasks', 'observables', 'correlations', 'raw', 'file', 'original', 'simple'] as const;
   // Timeline filter — multi-select. Each key can be toggled independently.
   // Defaults: everything EXCEPT "Changes" (revisions). Revisions are noisy
   // diffs that most users don't want to see by default — the synthetic
@@ -1212,8 +1213,8 @@ const IncidentDetailPage = () => {
   const [revisionDialogData, setRevisionDialogData] = useState<{ json: string; changedKeys: Set<string> } | null>(null);
   const initialTab = (() => {
     const t = searchParams.get('tab');
-    if (t) { const idx = TAB_NAMES.indexOf(t as any); return idx >= 0 ? idx : 0; }
-    return 0;
+    if (t) { const idx = TAB_NAMES.indexOf(t as any); return idx >= 0 ? idx : 7; }
+    return 7;
   })();
    const [activeTab, setActiveTabState] = useState(initialTab);
    const setActiveTab = (tab: number) => {
@@ -1228,7 +1229,7 @@ const IncidentDetailPage = () => {
        return tab;
      });
      const newParams = new URLSearchParams(searchParams);
-     if (tab === 0) { newParams.delete('tab'); } else { newParams.set('tab', TAB_NAMES[tab] || ''); }
+      if (tab === 7) { newParams.delete('tab'); } else { newParams.set('tab', TAB_NAMES[tab] || ''); }
      const paramStr = newParams.toString();
      window.history.replaceState(null, '', `${window.location.pathname}${paramStr ? '?' + paramStr : ''}`);
    };
